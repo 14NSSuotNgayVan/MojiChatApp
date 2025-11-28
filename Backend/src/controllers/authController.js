@@ -72,10 +72,10 @@ export const signInhandler = async (req, res) => {
             httpOnly: true,//khong truy cap tu js
             secure: true,//chi truyen qua https
             sameSite: 'none',
-            maxAage: REFRESH_TOKEN_TTL
+            maxAge: REFRESH_TOKEN_TTL
         });
-
-        return res.status(200).json({ message: 'Sign in successfully!', accesssToken });
+        const { _id, __v, hashPassword, ...userData } = user.toObject();
+        return res.status(200).json({ message: 'Sign in successfully!', accesssToken, user: userData });
 
     } catch (error) {
         console.error("Error when calling signin: " + error);
@@ -101,6 +101,32 @@ export const signOutHandler = async (req, res) => {
         return res.status(204).send();
     } catch (error) {
         console.error("Error when calling signOut: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const refreshTokenHander = async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies;
+        if (!refreshToken) {
+            return res.status(400).json({ message: 'No refresh token in cookie' })
+        }
+
+        const session = await Session.findOne({ refreshToken });
+        if (!session || session.expiresAt < new Date()) {
+            return res.status(400).json({ message: 'Invalid refresh token!' })
+        }
+
+        const user = await User.findById(session.userId);
+        if (!user) {
+            return res.status(400).json({ message: 'User not found!' })
+        }
+
+        const accesssToken = jwt.sign({ id: user._id, username: user.username }, process.env.ASSET_TOKEN_SECRET, { expiresIn: ASSET_TOKEN_TTL });
+
+        return res.status(200).json({ message: 'Token refreshed successfuly!', accesssToken })
+    } catch (error) {
+        console.error("Error when calling refreshToken: " + error);
         return res.status(500).send();
     }
 }
