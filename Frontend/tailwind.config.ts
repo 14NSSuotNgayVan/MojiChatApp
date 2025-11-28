@@ -12,7 +12,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--color-background)",
+        background: {
+          DEFAULT: "var(--color-background)",
+        },
         foreground: "var(--color-foreground)",
         card: {
           DEFAULT: "var(--color-card)",
@@ -89,45 +91,6 @@ const config: Config = {
       },
       letterSpacing: {
         normal: "var(--tracking-normal)", // 0em
-      },
-      keyframes: {
-        // World Map Animation
-        worldMapLoop: {
-          "0%, 100%": { opacity: "0.3", transform: "scale(1)" },
-          "30%": { opacity: "0", transform: "scale(2)" },
-          "70%": { opacity: "0", transform: "scale(2)" },
-        },
-        // Vietnam Map Animation
-        vietnamMapLoop: {
-          "0%, 10%": { opacity: "0", transform: "scale(0)" },
-          "40%": { opacity: "0.15", transform: "scale(1)" },
-          "70%": { opacity: "0.15", transform: "scale(1)" },
-          "100%": { opacity: "0", transform: "scale(0)" },
-        },
-        // Flag Animation
-        flagLoop: {
-          "0%, 20%": {
-            opacity: "1",
-            transform: "translate(-50%, -50%) scale(1)",
-          },
-          "40%": {
-            opacity: "0",
-            transform: "translate(-50%, -50%) scale(1.5)",
-          },
-          "40%, 90%": {
-            opacity: "0",
-            transform: "translate(-50%, -50%) scale(1.5)",
-          },
-          "100%": {
-            opacity: "1",
-            transform: "translate(-50%, -50%) scale(1)",
-          },
-        },
-      },
-      animation: {
-        "world-map": "worldMapLoop 5s ease-in-out infinite",
-        "vietnam-map": "vietnamMapLoop 5s ease-out infinite",
-        "flag-pulse": "flagLoop 5s ease-in-out infinite",
       },
     },
   },
