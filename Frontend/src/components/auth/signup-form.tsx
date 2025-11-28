@@ -9,34 +9,44 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { WaveCard } from "./ui/WaveCard";
+import { WaveCard } from "../ui/WaveCard";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuthStore } from "@/stores/useAuthStore";
 
-const schema = z.object({
-  username: z.string().min(1, "Tên đăng nhập là bắt buộc"),
-  displayName: z.string().min(1, "Tên hiển thị là bắt buộc"),
-  email: z.email("Email không đúng định dạng").min(1, "Email là bắt buộc"),
-  password: z.string().min(8, "Mật khẩu là bắt buộc"),
-  confirmPassword: z.string().min(8, "Mật khẩu xác nhận là bắt buộc"),
-});
+const schema = z
+  .object({
+    username: z.string().min(1, "Tên đăng nhập là bắt buộc"),
+    displayName: z.string().min(1, "Tên hiển thị là bắt buộc"),
+    email: z.email("Email không đúng định dạng").min(1, "Email là bắt buộc"),
+    password: z.string().min(8, "Mật khẩu là bắt buộc"),
+    confirmPassword: z.string().min(8, "Mật khẩu xác nhận là bắt buộc"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Mật khẩu không khớp",
+    path: ["confirmPassword"], // Lỗi sẽ show ở field confirmPassword
+  });
 
-type singinSchema = z.infer<typeof schema>;
+type singupSchema = z.infer<typeof schema>;
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const { signUp, loading } = useAuthStore();
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<singinSchema>({
+  } = useForm<singupSchema>({
     resolver: zodResolver(schema),
   });
 
-  const handleSubmitForm = (data: singinSchema) => {};
+  const handleSubmitForm = async (data: singupSchema) => {
+    const { username, displayName, email, password } = data;
+    await signUp(username, email, password, displayName);
+  };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -74,7 +84,7 @@ export function SignupForm({
                       placeholder="user_123"
                     />
                     {errors?.username && (
-                      <FieldDescription className="text-accent">
+                      <FieldDescription>
                         {errors?.username?.message}
                       </FieldDescription>
                     )}
@@ -89,7 +99,7 @@ export function SignupForm({
                     />
 
                     {errors?.displayName && (
-                      <FieldDescription className="text-accent">
+                      <FieldDescription>
                         {errors?.displayName?.message}
                       </FieldDescription>
                     )}
@@ -106,9 +116,7 @@ export function SignupForm({
                 />
 
                 {errors?.email && (
-                  <FieldDescription className="text-accent">
-                    {errors?.email?.message}
-                  </FieldDescription>
+                  <FieldDescription>{errors?.email?.message}</FieldDescription>
                 )}
               </Field>
               <Field>
@@ -133,14 +141,16 @@ export function SignupForm({
                   </Field>
                 </Field>
                 {(errors?.password || errors?.confirmPassword) && (
-                  <FieldDescription className="text-accent">
+                  <FieldDescription>
                     {errors?.password?.message ||
                       errors?.confirmPassword?.message}
                   </FieldDescription>
                 )}
               </Field>
               <Field>
-                <Button type="submit">Tạo tài khoản</Button>
+                <Button type="submit" disabled={loading}>
+                  Tạo tài khoản
+                </Button>
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Hoặc tiếp tục với
@@ -175,7 +185,7 @@ export function SignupForm({
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Bạn đã có tài khoản? <a href="#">Đăng nhập</a>
+                Bạn đã có tài khoản? <a href="/signin">Đăng nhập</a>
               </FieldDescription>
             </FieldGroup>
           </form>
@@ -185,8 +195,8 @@ export function SignupForm({
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        Bằng cách tiếp tục, bạn đồng ý với <a href="#">Điều khoản</a>
+        và <a href="#">Chính sách</a> của chúng tôi.
       </FieldDescription>
     </div>
   );

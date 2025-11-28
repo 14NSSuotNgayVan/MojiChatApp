@@ -9,19 +9,20 @@ export const WaveCard = () => {
 
       <div className="text-center font-semibold text-2xl absolute top-1/3 left-0 right-0 text-accent -translate-y-1/2">
         <svg
-          fill="var(--accent)"
           viewBox="0 0 32 32"
           version="1.1"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-14 mx-auto my-8"
+          className="w-16 mx-auto my-8 fill-accent dark:fill-accent-foreground"
         >
           <title>slack</title>
           <path d="M19.955 23.108c-1.74 0-3.151-1.411-3.151-3.151s1.411-3.151 3.151-3.151h7.889c1.74 0 3.151 1.411 3.151 3.151s-1.411 3.151-3.151 3.151v0zM19.955 24.693c1.739 0 3.149 1.41 3.149 3.149s-1.41 3.149-3.149 3.149c-1.738 0-3.148-1.408-3.149-3.146v-3.152zM23.108 12.044c0 1.74-1.411 3.151-3.151 3.151s-3.151-1.411-3.151-3.151v0-7.888c0-1.74 1.411-3.151 3.151-3.151s3.151 1.411 3.151 3.151v0zM24.693 12.044c0.001-1.738 1.41-3.147 3.148-3.147s3.148 1.41 3.148 3.149c0 1.738-1.408 3.147-3.145 3.149h-3.152zM12.044 8.893c1.736 0.005 3.142 1.413 3.142 3.15s-1.406 3.146-3.142 3.15h-7.888c-1.736-0.005-3.142-1.413-3.142-3.15s1.406-3.146 3.142-3.15h0zM12.044 7.305c-1.736-0.002-3.143-1.41-3.143-3.147 0-1.738 1.409-3.147 3.147-3.147s3.145 1.408 3.147 3.144v3.149zM8.893 19.955c0.005-1.736 1.413-3.142 3.15-3.142s3.146 1.406 3.15 3.142v7.889c-0.005 1.736-1.413 3.142-3.15 3.142s-3.146-1.406-3.15-3.142v-0zM7.305 19.955c-0.001 1.737-1.41 3.145-3.147 3.145s-3.147-1.409-3.147-3.147c0-1.738 1.408-3.146 3.145-3.147h3.149z"></path>
         </svg>
-        <h2 className="text-5xl">Moji</h2>
-      </div>
-      <div className="absolute bottom-2 text-center w-full text-mutted">
-        By @Vananhdamm
+        <h2 className="text-5xl mb-3 text-accent dark:text-accent-foreground">
+          Moji
+        </h2>
+        <div className="text-center w-full text-muted dark:text-accent-foreground text-sm font-light">
+          By @Vananhdamm
+        </div>
       </div>
     </div>
   );
