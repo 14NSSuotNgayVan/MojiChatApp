@@ -19,3 +19,9 @@ export interface AuthState {
   getProfile: () => Promise<void>;
   setAccessToken: (accessToken: string) => void;
 }
+
+export interface ThemeState {
+  isDark: boolean;
+  toggleTheme: () => void;
+  setTheme: (isDark: boolean) => void;
+}

@@ -1,6 +1,7 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router";
+import Loading from "../ui/loading";
 
 export const ProtectedRoute = () => {
   const { user, accessToken, refreshToken, loading, setLoading, getProfile } =
@@ -8,7 +9,6 @@ export const ProtectedRoute = () => {
   const [starting, setStarting] = useState<boolean>(true);
 
   const authInit = async () => {
-    setLoading(true);
     if (!accessToken) {
       await refreshToken();
     }
@@ -23,7 +23,7 @@ export const ProtectedRoute = () => {
   }, []);
 
   if (starting || loading) {
-    return <p>Đang tải...</p>;
+    return <Loading />;
   }
 
   if (!accessToken) {
