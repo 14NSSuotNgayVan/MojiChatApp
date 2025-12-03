@@ -13,7 +13,7 @@ export const protectedRoute = async (req, res, next) => {
                 return res.status(401).json({ message: 'Invalid access token or expired!' })
             }
             const user = await User.findById(decoded.id).select('-hashPassword');
-            req.user = user;
+            req.user = user.toObject();
             next();
         });
     } catch (error) {
