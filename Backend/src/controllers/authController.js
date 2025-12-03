@@ -55,7 +55,7 @@ export const signInhandler = async (req, res) => {
         }
 
         //Tạo token và trả về
-        const accesssToken = jwt.sign({ id: user._id, username: user.username }, process.env.ASSET_TOKEN_SECRET, { expiresIn: ASSET_TOKEN_TTL });
+        const accessToken = jwt.sign({ id: user._id, username: user.username }, process.env.ASSET_TOKEN_SECRET, { expiresIn: ASSET_TOKEN_TTL });
 
         //Tạo refresh token 
         const refreshToken = crypto.randomBytes(64).toString('hex');
@@ -75,7 +75,7 @@ export const signInhandler = async (req, res) => {
             maxAge: REFRESH_TOKEN_TTL
         });
         const { _id, __v, hashPassword, ...userData } = user.toObject();
-        return res.status(200).json({ message: 'Sign in successfully!', accesssToken, user: userData });
+        return res.status(200).json({ message: 'Sign in successfully!', accessToken, user: userData });
 
     } catch (error) {
         console.error("Error when calling signin: " + error);
@@ -122,9 +122,9 @@ export const refreshTokenHander = async (req, res) => {
             return res.status(400).json({ message: 'User not found!' })
         }
 
-        const accesssToken = jwt.sign({ id: user._id, username: user.username }, process.env.ASSET_TOKEN_SECRET, { expiresIn: ASSET_TOKEN_TTL });
+        const accessToken = jwt.sign({ id: user._id, username: user.username }, process.env.ASSET_TOKEN_SECRET, { expiresIn: ASSET_TOKEN_TTL });
 
-        return res.status(200).json({ message: 'Token refreshed successfuly!', accesssToken })
+        return res.status(200).json({ message: 'Token refreshed successfuly!', accessToken })
     } catch (error) {
         console.error("Error when calling refreshToken: " + error);
         return res.status(500).send();
