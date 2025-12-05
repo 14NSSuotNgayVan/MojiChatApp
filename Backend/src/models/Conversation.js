@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import moongose from 'mongoose';
 
 const participantSchema = new moongose.Schema({
@@ -47,6 +48,7 @@ const lastMessageSchema = new moongose.Schema({
     {
         _id: false
     })
+
 const conversationSchema = new moongose.Schema({
     type: {
         type: String,
@@ -63,10 +65,15 @@ const conversationSchema = new moongose.Schema({
     lastMessageAt: {
         type: Date
     },
+    seenBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     lastMessage: {
         type: [lastMessageSchema],
         default: null
     },
+    //Số tin nhắn chưa đọc của mỗi người
     unreadCounts: {
         type: Map,
         of: Number,

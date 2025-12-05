@@ -12,6 +12,9 @@ const messageSchema = new moongose.Schema({
         ref: 'User',
         require: true
     },
+    content: {
+        type: String
+    },
     imgUrl: {
         type: String
     }
