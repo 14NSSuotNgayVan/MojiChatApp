@@ -1,8 +1,57 @@
-export const senDirectMessage = async (req, res) => {
-    try {
-        
-    } catch (error) {
+import Conversation from "../models/Conversation.js";
+import Message from "../models/Message.js";
+import { updateConversationAfterCreateMessgae } from "../utils/messageHelper.js";
 
+export const sendDirectMessage = async (req, res) => {
+    try {
+        const { recipientId, content, conversationId } = req.body;
+        const senderId = req.user._id;
+
+        let conversation;
+
+        if (!content) {
+            return res.status(400).json({ message: "Content must not be empty!" })
+        }
+
+        if (conversationId) {
+            conversation = await Conversation.findById(conversationId);
+            if (!conversation) {
+                return res.status(400).json({ message: "Conversation not found!" })
+            }
+        } else {
+            if (!recipientId) {
+                return res.status(400).json({ message: "recipientId must not be empty!" })
+            }
+            conversation = await Conversation.create({
+                participants: [
+                    {
+                        userId: senderId, joinedAt: new Date(),
+                    },
+                    {
+                        userId: recipientId, joinedAt: new Date(),
+                    },
+                ],
+                type: "direct",
+                lastMessageAt: new Date(),
+                unreadCounts: new Map()
+            })
+        }
+
+        const message = await Message.create({
+            conservationId: conversation._id,
+            content: content,
+            senderId: senderId,
+        })
+
+        updateConversationAfterCreateMessgae(conversation, message, senderId);
+
+        await conversation.save();
+
+        return res.status(201).json({ message })
+
+    } catch (error) {
+        console.error("Error when calling sendDirectMessage: " + error);
+        return res.status(500).send();
     }
 }
 export const senGroupMessage = async (req, res) => {

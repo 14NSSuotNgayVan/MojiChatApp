@@ -70,7 +70,7 @@ const conversationSchema = new moongose.Schema({
         ref: 'User'
     }],
     lastMessage: {
-        type: [lastMessageSchema],
+        type: lastMessageSchema,
         default: null
     },
     //Số tin nhắn chưa đọc của mỗi người
@@ -87,7 +87,20 @@ conversationSchema.index({
     "participant.userId": 1,
     lastMessageAt: -1
 })
+conversationSchema.set("toJSON", {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+        delete ret.__v;
+        ret.participants = doc.participants?.map(p => ({
+            _id: p.userId?._id || p.userId,
+            displayName: p?.userId?.displayName,
+            joinedAt: p.joinedAt
+        }))
 
+        return ret;
+    }
+});
 const Conversation = moongose.model("Conversation", conversationSchema)
 
 export default Conversation;

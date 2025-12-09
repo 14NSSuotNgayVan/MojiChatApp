@@ -2,12 +2,14 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { connectDB } from './libs/db.js';
 import { protectedRoute } from './middlewares/authMiddleware.js';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoute from './routes/authRoute.js';
 import userRoute from './routes/userRoute.js';
 import friendRouter from './routes/friendRoute.js';
 import messageRoute from './routes/messageRout.js';
-import cors from 'cors';
+import conversationRoute from './routes/conversationRoute.js';
+
 dotenv.config();
 
 const app = express();
@@ -27,6 +29,8 @@ app.use(protectedRoute)
 app.use('/api/user', userRoute)
 app.use('/api/friend', friendRouter)
 app.use('/api/message', messageRoute)
+app.use('/api/conversations', conversationRoute)
+
 
 connectDB().then(() => {
     app.listen(PORT, () => {

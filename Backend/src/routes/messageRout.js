@@ -1,9 +1,10 @@
 import express from 'express'
-import { senDirectMessage, senGroupMessage } from '../controllers/messageController.js';
+import { sendDirectMessage, senGroupMessage } from '../controllers/messageController.js';
+import { checkFriendShips } from '../middlewares/friendMiddleware.js';
 
 const messageRoute = express.Router();
 
-messageRoute.post("/direct", senDirectMessage)
+messageRoute.post("/direct", checkFriendShips, sendDirectMessage)
 messageRoute.post("/group", senGroupMessage)
 
 export default messageRoute;
