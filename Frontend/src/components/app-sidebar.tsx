@@ -39,7 +39,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       {/* content */}
       <SidebarContent>
-        <div className="relative p-2">
+        <div className="relative px-2 py-1">
           <Input
             id={`input-search`}
             className="peer h-8 ps-8 pe-2"
@@ -49,7 +49,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             onChange={() => {}}
           />
           <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
-            <SearchIcon size={16} />
+            <SearchIcon className="text-primary" size={16} />
           </div>
         </div>
       </SidebarContent>

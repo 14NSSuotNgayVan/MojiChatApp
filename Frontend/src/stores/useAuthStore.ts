@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
           set({ loading: true });
           //logic
           const res = await authService.signIn(username, password);
-          set({ accessToken: res?.accesssToken, user: res?.user });
+          set({ accessToken: res?.accessToken, user: res?.user });
           return true;
         } catch (error) {
           console.error(error);
@@ -72,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: async () => {
         try {
           const res = await authService.refreshToken();
-          set({ accessToken: res.accesssToken });
+          set({ accessToken: res.accessToken });
           await get().getProfile();
         } catch (error) {
           console.error(error);
