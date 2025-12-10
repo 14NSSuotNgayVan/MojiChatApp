@@ -2,6 +2,7 @@ import { SigninForm } from "@/components/auth/signin-form";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
+import { ToggleTheme } from "../../components/toggle-theme.tsx";
 const SignInPage = () => {
   const { accessToken } = useAuthStore();
   const navigate = useNavigate();
@@ -10,6 +11,9 @@ const SignInPage = () => {
   };
   return (
     <div className="animated-bg dark:bg-login flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+      <div className="absolute top-2 right-2">
+        <ToggleTheme />
+      </div>
       <div className="w-full max-w-sm md:max-w-4xl">
         {!accessToken ? (
           <SigninForm />
