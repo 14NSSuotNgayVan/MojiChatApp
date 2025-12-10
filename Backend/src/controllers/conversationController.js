@@ -1,4 +1,5 @@
 import Conversation from "../models/Conversation.js";
+import Message from "../models/Message.js";
 
 export const createConversation = async (req, res) => {
     try {
@@ -20,9 +21,18 @@ export const createConversation = async (req, res) => {
                     return res.status(400).json({ message: "Conversation name must not be empty!" })
                 }
 
+                const filteredMemberIds = new Map();
+
+                memberIds.forEach(i => {
+                    if (i !== userId && !filteredMemberIds.has(i)) {
+                        filteredMemberIds.set(i, { userId: i })
+                    }
+
+                })
+
                 conversation = await Conversation.create({
                     type,
-                    participants: [{ userId }, ...memberIds?.map(i => ({ userId: i }))],
+                    participants: [{ userId }, ...filteredMemberIds.values()],
                     lastMessageAt: new Date(),
                     group: {
                         name,
@@ -70,10 +80,10 @@ export const createConversation = async (req, res) => {
             },
 
         ])
+        
         return res.status(201).json({ conversation });
 
     } catch (error) {
-
         console.error("Error when calling createConversation: " + error);
         return res.status(500).send();
     }
@@ -103,14 +113,36 @@ export const getConversations = async (req, res) => {
         ])
         return res.status(200).json({ message: "Get conversation success!", conversations })
     } catch (error) {
-
+        console.error("Error when calling getConversations: " + error);
+        return res.status(500).send();
     }
 }
 
 export const getMessages = async (req, res) => {
     try {
+        const { conversationId } = req.params;
+        const { limit = 50, cursor } = req.query;
 
+        const query = { conversationId };
+
+        if (cursor) {
+            query.createdAt = { $lt: new Date(cursor) };
+        }
+
+        let messages = await Message.find(query).sort({ createdAt: -1 }).limit(Number(limit) + 1);
+
+        let nextCursor;
+
+        if (messages.length > Number(limit)) {
+            nextCursor = messages[messages.length - 1].createdAt.toISOString();
+            messages.pop();
+        }
+
+        messages.reverse();
+
+        return res.status(200).json({ messages: "Get messages success!", messages })
     } catch (error) {
-
+        console.error("Error when calling getMessages: " + error);
+        return res.status(500).send();
     }
 }

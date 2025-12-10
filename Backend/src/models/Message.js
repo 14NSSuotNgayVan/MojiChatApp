@@ -1,7 +1,7 @@
 import moongose from 'mongoose';
 
 const messageSchema = new moongose.Schema({
-    conservationId: {
+    conversationId: {
         type: moongose.Schema.Types.ObjectId,
         ref: 'Conversation',
         require: true,
@@ -22,7 +22,7 @@ const messageSchema = new moongose.Schema({
     timestamps: true
 })
 
-messageSchema.index({ conservationId: 1, createdAt: -1 })
+messageSchema.index({ conversationId: 1, createdAt: -1 })
 
 const Message = moongose.model("Message", messageSchema)
 

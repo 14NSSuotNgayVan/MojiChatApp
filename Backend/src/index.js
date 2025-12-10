@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser';
 import authRoute from './routes/authRoute.js';
 import userRoute from './routes/userRoute.js';
 import friendRouter from './routes/friendRoute.js';
-import messageRoute from './routes/messageRout.js';
+import messageRoute from './routes/messageRoute.js';
 import conversationRoute from './routes/conversationRoute.js';
 
 dotenv.config();

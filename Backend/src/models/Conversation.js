@@ -60,7 +60,7 @@ const conversationSchema = new moongose.Schema({
         requie: true
     },
     group: {
-        type: [groupSchema]
+        type: groupSchema
     },
     lastMessageAt: {
         type: Date
@@ -97,7 +97,12 @@ conversationSchema.set("toJSON", {
             displayName: p?.userId?.displayName,
             joinedAt: p.joinedAt
         }))
-
+        if (ret.lastMessage)
+            ret.lastMessage = {
+                ...ret.lastMessage,
+                senderId: ret.lastMessage.senderId._id,
+                senderName: ret.lastMessage.senderId.displayName
+            }
         return ret;
     }
 });

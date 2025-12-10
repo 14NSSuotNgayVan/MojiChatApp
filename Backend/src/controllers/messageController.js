@@ -22,7 +22,13 @@ export const sendDirectMessage = async (req, res) => {
             if (!recipientId) {
                 return res.status(400).json({ message: "recipientId must not be empty!" })
             }
-            conversation = await Conversation.create({
+
+            const conversationExisted = await Conversation.findOne({
+                type: "direct",
+                "participants.userId": { $all: [senderId, recipientId] }
+            })
+
+            conversation = conversationExisted ? conversationExisted : await Conversation.create({
                 participants: [
                     {
                         userId: senderId, joinedAt: new Date(),
@@ -38,7 +44,7 @@ export const sendDirectMessage = async (req, res) => {
         }
 
         const message = await Message.create({
-            conservationId: conversation._id,
+            conversationId: conversation._id,
             content: content,
             senderId: senderId,
         })
@@ -56,8 +62,27 @@ export const sendDirectMessage = async (req, res) => {
 }
 export const senGroupMessage = async (req, res) => {
     try {
+        const { content } = req.body;
+        const me = req.user._id;
+        const conversation = req.conversation;
 
+        if (!content) {
+            return res.status(400).json({ message: "content must not be empty!" })
+        }
+
+        const message = await Message.create({
+            conversationId: conversation._id,
+            content: content,
+            senderId: me,
+        })
+
+        updateConversationAfterCreateMessgae(conversation, message, me);
+
+        await conversation.save();
+
+        return res.status(201).json({ message })
     } catch (error) {
-
+        console.error("Error when calling senGroupMessage: " + error);
+        return res.status(500).send();
     }
 }
