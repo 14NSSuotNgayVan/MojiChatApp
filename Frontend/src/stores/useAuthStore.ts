@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { authService } from "@/services/authService";
 import type { AuthState } from "@/types/store";
 import { persist } from "zustand/middleware";
+import { useChatStore } from "./useChatStore.ts";
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -12,6 +13,7 @@ export const useAuthStore = create<AuthState>()(
       clearState: () => {
         set({ accessToken: null, user: null, loading: false });
         localStorage.clear();
+        useChatStore.getState().reset();
       },
       setLoading: (isLoading) => {
         set({ loading: isLoading });
@@ -35,14 +37,18 @@ export const useAuthStore = create<AuthState>()(
       signIn: async (username, password) => {
         try {
           localStorage.clear();
+          useChatStore.getState().reset();
           set({ loading: true });
           //logic
           const res = await authService.signIn(username, password);
           set({ accessToken: res?.accessToken, user: res?.user });
+          useChatStore.getState().getConversations();
           return true;
-        } catch (error) {
-          console.error(error);
-          toast.error("Đăng nhập thất bại. Vui lòng thử lại!");
+        } catch (error: any) {
+          if (error.response && error.response.status !== 401) {
+            console.error(error);
+            toast.error("Đăng nhập thất bại. Vui lòng thử lại!");
+          }
           return false;
         } finally {
           set({ loading: false });

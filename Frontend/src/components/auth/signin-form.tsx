@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
+import { useState } from "react";
 
 const schema = z.object({
   username: z.string().min(1, "Tên đăng nhập là bắt buộc"),
@@ -36,10 +37,12 @@ export function SigninForm({
   } = useForm<singinSchema>({
     resolver: zodResolver(schema),
   });
+  const [loginSuccess, setIsLoginSuccess] = useState<boolean>(true);
 
   const handleSubmitForm = async (data: singinSchema) => {
     const { username, password } = data;
     const isLoginSuccess = await signIn(username, password);
+    setIsLoginSuccess(isLoginSuccess);
     isLoginSuccess && navigate("/");
   };
 
@@ -80,6 +83,9 @@ export function SigninForm({
                   <FieldDescription>
                     {errors?.username?.message}
                   </FieldDescription>
+                )}
+                {!loginSuccess && (
+                  <FieldDescription>Sai thông tin đăng nhập</FieldDescription>
                 )}
               </Field>
               <Field>
