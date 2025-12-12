@@ -1,4 +1,4 @@
-export const updateConversationAfterCreateMessgae = (conversation, message, senderId) => {
+export const updateConversationAfterCreateMessage = (conversation, message, senderId) => {
     conversation.set({
         seenBy: [],
         lastMessageAt: message.createdAt,

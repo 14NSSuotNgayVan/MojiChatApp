@@ -74,7 +74,7 @@ export const signInhandler = async (req, res) => {
             sameSite: 'none',
             maxAge: REFRESH_TOKEN_TTL
         });
-        const { _id, __v, hashPassword, ...userData } = user.toObject();
+        const { __v, hashPassword, ...userData } = user.toObject();
         return res.status(200).json({ message: 'Sign in successfully!', accessToken, user: userData });
 
     } catch (error) {

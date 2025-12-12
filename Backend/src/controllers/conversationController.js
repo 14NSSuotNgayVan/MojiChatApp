@@ -17,9 +17,6 @@ export const createConversation = async (req, res) => {
 
         switch (type) {
             case "group": {
-                if (!name) {
-                    return res.status(400).json({ message: "Conversation name must not be empty!" })
-                }
 
                 const filteredMemberIds = new Map();
 
@@ -80,7 +77,7 @@ export const createConversation = async (req, res) => {
             },
 
         ])
-        
+
         return res.status(201).json({ conversation });
 
     } catch (error) {
@@ -110,8 +107,23 @@ export const getConversations = async (req, res) => {
                 path: 'lastMessage.senderId', select: "displayName avtUrl",
                 options: { lean: true }
             },
-        ])
-        return res.status(200).json({ message: "Get conversation success!", conversations })
+        ]).lean()
+
+        const formattedConversation = conversations.map(conv => ({
+            ...conv,
+            participants: conv.participants?.filter(p => p.userId._id.toString() !== userId.toString()).map(p => ({
+                _id: p.userId?._id || p.userId,
+                displayName: p?.userId?.displayName,
+                avtUrl: p?.userId?.avtUrl,
+                joinedAt: p.joinedAt
+            })),
+            lastMessage: conv.lastMessage ? {
+                ...conv.lastMessage,
+                senderId: conv.lastMessage.senderId._id,
+                senderName: conv.lastMessage.senderId.displayName
+            } : null,
+        }))
+        return res.status(200).json({ message: "Get conversation success!", conversations: formattedConversation })
     } catch (error) {
         console.error("Error when calling getConversations: " + error);
         return res.status(500).send();
@@ -140,7 +152,7 @@ export const getMessages = async (req, res) => {
 
         messages.reverse();
 
-        return res.status(200).json({ messages: "Get messages success!", messages })
+        return res.status(200).json({ messages: "Get messages success!", messages, nextCursor })
     } catch (error) {
         console.error("Error when calling getMessages: " + error);
         return res.status(500).send();
