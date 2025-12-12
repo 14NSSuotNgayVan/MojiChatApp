@@ -6,4 +6,12 @@ export const chatService = {
     const res = await api.get("/conversations");
     return res.data;
   },
+
+  async fetchMessage(
+    conversationId: string,
+    params: { limit: number; cursor: string }
+  ) {
+    const res = await api.get(`/conversations/${conversationId}`, { params });
+    return res.data;
+  },
 };

@@ -1,30 +1,28 @@
 export interface Participant {
   _id: string;
   displayName: string;
-  avatarUrl?: string | null;
+  avtUrl?: string | null;
   joinedAt: string;
 }
 
 export interface SeenUser {
   _id: string;
   displayName?: string;
-  avatarUrl?: string | null;
+  avtUrl?: string | null;
 }
 
 export interface Group {
   name: string;
   createdBy: string;
+  avtUrl: string;
 }
 
 export interface LastMessage {
   _id: string;
   content: string;
   createdAt: string;
-  sender: {
-    _id: string;
-    displayName: string;
-    avatarUrl?: string | null;
-  };
+  senderId: String;
+  senderName: string;
 }
 
 export interface Conversation {

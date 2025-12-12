@@ -9,7 +9,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { WaveCard } from "../ui/WaveCard";
+import { WaveCard } from "../wave-card";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,7 @@ import { useState } from "react";
 
 const schema = z.object({
   username: z.string().min(1, "Tên đăng nhập là bắt buộc"),
-  password: z.string().min(8, "Mật khẩu là bắt buộc"),
+  password: z.string().min(1, "Mật khẩu là bắt buộc"),
 });
 
 type singinSchema = z.infer<typeof schema>;

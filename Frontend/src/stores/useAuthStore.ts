@@ -12,7 +12,6 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       clearState: () => {
         set({ accessToken: null, user: null, loading: false });
-        localStorage.clear();
         useChatStore.getState().reset();
       },
       setLoading: (isLoading) => {
@@ -36,13 +35,12 @@ export const useAuthStore = create<AuthState>()(
       },
       signIn: async (username, password) => {
         try {
-          localStorage.clear();
+          get().clearState();
           useChatStore.getState().reset();
           set({ loading: true });
           //logic
           const res = await authService.signIn(username, password);
           set({ accessToken: res?.accessToken, user: res?.user });
-          useChatStore.getState().getConversations();
           return true;
         } catch (error: any) {
           if (error.response && error.response.status !== 401) {
@@ -58,6 +56,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authService.signOut();
           get().clearState();
+          useChatStore.getState().reset();
           toast.success("Đăng xuất thành công!");
         } catch (error) {
           console.error(error);

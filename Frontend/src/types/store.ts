@@ -1,4 +1,4 @@
-import type { Conversation, Message } from "./chat.ts";
+import type { Conversation, Message, Participant } from "./chat.ts";
 import type { User } from "./user";
 
 export interface AuthState {
@@ -29,17 +29,21 @@ export interface ThemeState {
 
 export interface ChatState {
   conversations: Conversation[];
+  activeConversation: Conversation | null;
   messages: Record<
     string,
     {
       items: Message[];
       hasMore: boolean;
-      nestCursor?: string | null;
+      nextCursor?: string | null;
     }
   >;
   activeConversationId: string | null;
   loading: boolean;
+  messageLoading: boolean;
   reset: () => void;
-  setActiveConversation: (id: string | null) => void;
+  setActiveConversation: (activeConversation: Conversation | null) => void;
   getConversations: () => Promise<void>;
+  getMessages: (conversationId: string) => Promise<void>;
+  getDefaultGroupName: (participants:Participant[]) => string;
 }
