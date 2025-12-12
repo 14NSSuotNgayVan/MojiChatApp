@@ -1,6 +1,6 @@
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
-import { updateConversationAfterCreateMessgae } from "../utils/messageHelper.js";
+import { updateConversationAfterCreateMessage } from "../utils/messageHelper.js";
 
 export const sendDirectMessage = async (req, res) => {
     try {
@@ -49,7 +49,7 @@ export const sendDirectMessage = async (req, res) => {
             senderId: senderId,
         })
 
-        updateConversationAfterCreateMessgae(conversation, message, senderId);
+        updateConversationAfterCreateMessage(conversation, message, senderId);
 
         await conversation.save();
 
@@ -76,7 +76,7 @@ export const senGroupMessage = async (req, res) => {
             senderId: me,
         })
 
-        updateConversationAfterCreateMessgae(conversation, message, me);
+        updateConversationAfterCreateMessage(conversation, message, me);
 
         await conversation.save();
 
