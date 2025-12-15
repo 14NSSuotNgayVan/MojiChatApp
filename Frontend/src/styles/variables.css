@@ -1,4 +1,5 @@
 :root {
+    --primary-rgb: 138 121 171;
     --background: rgb(248, 247, 250);
     --foreground: rgb(61, 60, 79);
     --card: rgb(255, 255, 255);
@@ -54,6 +55,7 @@
 }
 
 .dark {
+    --primary-rgb: 169 149 201;
     --background: rgb(26, 24, 35);
     --foreground: rgb(224, 221, 239);
     --card: rgb(35, 32, 48);

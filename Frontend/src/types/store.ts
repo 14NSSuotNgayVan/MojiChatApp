@@ -29,7 +29,10 @@ export interface ThemeState {
 
 export interface ChatState {
   conversations: Conversation[];
-  activeConversation: Conversation | null;
+  activeConversation: Omit<
+    Conversation,
+    "seenBy" | "lastMessage" | "unreadCounts"
+  > | null;
   messages: Record<
     string,
     {
@@ -45,5 +48,5 @@ export interface ChatState {
   setActiveConversation: (activeConversation: Conversation | null) => void;
   getConversations: () => Promise<void>;
   getMessages: (conversationId: string) => Promise<void>;
-  getDefaultGroupName: (participants:Participant[]) => string;
+  getDefaultGroupName: (participants: Participant[]) => string;
 }

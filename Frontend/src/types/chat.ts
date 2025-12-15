@@ -50,5 +50,5 @@ export interface Message {
   imgUrl?: string | null;
   updatedAt?: string | null;
   createdAt: string;
-  isOwn?: boolean;
+  isOwner?: boolean;
 }

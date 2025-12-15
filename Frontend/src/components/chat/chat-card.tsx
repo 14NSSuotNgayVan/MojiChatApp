@@ -41,7 +41,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   return (
     <div
       className={cn(
-        "group/item flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-sm cursor-pointer",
+        "group/item flex items-center gap-2 px-2 py-2 hover:bg-muted rounded-sm cursor-pointer",
         isActive && "bg-accent hover:bg-accent"
       )}
       onClick={handleClickConversation}

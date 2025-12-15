@@ -58,9 +58,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <ChatList />
       </SidebarContent>
       {/* footer */}
-      <SidebarFooter>
-        <NavUser user={user} />
-      </SidebarFooter>
+      <SidebarFooter>{user && <NavUser />}</SidebarFooter>
     </Sidebar>
   );
 }

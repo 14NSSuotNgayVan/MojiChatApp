@@ -1,7 +1,7 @@
 import { SidebarTrigger } from "../ui/sidebar.tsx";
 import { Separator } from "../ui/separator.tsx";
 import { useChatStore } from "../../stores/useChatStore.ts";
-import { Avatar } from "../avatar.tsx";
+import { Avatar, OnlineAvatar } from "../avatar.tsx";
 import { GroupAvatar } from "../group-avatar.tsx";
 
 export const ChatWindowHeader = () => {
@@ -29,9 +29,10 @@ export const ChatWindowHeader = () => {
           className="mr-2 data-[orientation=vertical]:h-4"
         />
         {activeConversation?.type === "direct" ? (
-          <Avatar
+          <OnlineAvatar
             name={activeConversation?.participants[0]?.displayName || ""}
             avatarUrl={activeConversation?.participants[0]?.avtUrl}
+            isOnline
           />
         ) : (
           <GroupAvatar

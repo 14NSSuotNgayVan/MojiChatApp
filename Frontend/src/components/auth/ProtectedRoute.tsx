@@ -4,7 +4,7 @@ import { Navigate, Outlet } from "react-router";
 import Loading from "../ui/loading";
 
 export const ProtectedRoute = () => {
-  const { user, accessToken, refreshToken, loading, setLoading, getProfile } =
+  const { user, accessToken, refreshToken, loading, getProfile } =
     useAuthStore();
   const [starting, setStarting] = useState<boolean>(true);
 
