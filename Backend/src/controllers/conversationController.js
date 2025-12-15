@@ -111,12 +111,16 @@ export const getConversations = async (req, res) => {
 
         const formattedConversation = conversations.map(conv => ({
             ...conv,
-            participants: conv.participants?.filter(p => p.userId._id.toString() !== userId.toString()).map(p => ({
+            participants: conv.participants?.map(p => ({
                 _id: p.userId?._id || p.userId,
                 displayName: p?.userId?.displayName,
                 avtUrl: p?.userId?.avtUrl,
                 joinedAt: p.joinedAt
-            })),
+            })).sort((a, b) => {
+                if (a._id.toString() === userId.toString()) return 1
+                if (b._id.toString() === userId.toString()) return -1
+                return 0
+            }),
             lastMessage: conv.lastMessage ? {
                 ...conv.lastMessage,
                 senderId: conv.lastMessage.senderId._id,
@@ -134,6 +138,7 @@ export const getMessages = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { limit = 50, cursor } = req.query;
+        const userId = req.user._id.toString();
 
         const query = { conversationId };
 
@@ -141,7 +146,12 @@ export const getMessages = async (req, res) => {
             query.createdAt = { $lt: new Date(cursor) };
         }
 
-        let messages = await Message.find(query).sort({ createdAt: -1 }).limit(Number(limit) + 1);
+        let messages = await Message.find(query).sort({ createdAt: -1 }).limit(Number(limit) + 1).lean({
+            transform: (doc) => {
+                doc.isOwner = doc.senderId.toString() === userId;
+                return doc;
+            }
+        });
 
         let nextCursor;
 
