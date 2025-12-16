@@ -1,3 +1,5 @@
+import type { User } from "./user.ts";
+
 export interface Participant {
   _id: string;
   displayName: string;
@@ -50,5 +52,13 @@ export interface Message {
   imgUrl?: string | null;
   updatedAt?: string | null;
   createdAt: string;
+  isOwner?: boolean;
+}
+
+export interface MessageGroup {
+  senderId: string;
+  messages: Message[];
+  startTime: Date;
+  endTime: Date;
   isOwner?: boolean;
 }

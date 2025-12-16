@@ -1,4 +1,9 @@
-import type { Conversation, Message, Participant } from "./chat.ts";
+import type {
+  Conversation,
+  Message,
+  MessageGroup,
+  Participant,
+} from "./chat.ts";
 import type { User } from "./user";
 
 export interface AuthState {
@@ -49,4 +54,8 @@ export interface ChatState {
   getConversations: () => Promise<void>;
   getMessages: (conversationId: string) => Promise<void>;
   getDefaultGroupName: (participants: Participant[]) => string;
+  getGroupMessages: (
+    messages: Message[],
+    timeThresholdMinutes?: number
+  ) => MessageGroup[];
 }

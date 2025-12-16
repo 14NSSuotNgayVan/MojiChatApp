@@ -5,7 +5,7 @@ export const ChatInsertSkeleton = () => {
         <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
         <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
       </div>
-      {/* owner message */}
+      {/* friend message */}
       <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
         <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
       </div>

@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import dayjs from "dayjs";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -65,4 +66,23 @@ export const stringToHexColor = (str: string): any => {
     backgroundColor: `hsla(${hue}, ${saturation}%, ${lightness}% , 0.2)`,
     color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
   };
+};
+
+export const diffMinutes = (a: Date, b: Date) => {
+  return Math.abs(a.getTime() - b.getTime()) / 1000 / 60;
+};
+
+export const getMessageTime = (datetime: string | Date): string => {
+  const date = dayjs(datetime);
+  const yesterday = dayjs().subtract(1, "day");
+  const startOfYesterday = yesterday
+    .set("hour", 0)
+    .set("second", 0)
+    .set("millisecond", 0);
+
+  if (date > yesterday) return date.format("HH:mm");
+  if (date < yesterday && date > startOfYesterday)
+    return `${date.format("HH:mm")} Hôm qua`;
+
+  return date.format("HH:mm DD/MM/YYYY");
 };

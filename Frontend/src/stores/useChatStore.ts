@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatState } from "../types/store.ts";
 import { chatService } from "../services/chatService.ts";
+import type { MessageGroup } from "../types/chat.ts";
+import { diffMinutes } from "../lib/utils.ts";
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -73,6 +75,31 @@ export const useChatStore = create<ChatState>()(
               participants.length > 2 ? "và những người khác" : ""
             }`
           : "";
+      },
+      getGroupMessages: (messages, timeThresholdMinutes = 5) => {
+        const groupMessages: MessageGroup[] = [];
+        messages.forEach((m) => {
+          const lastGroup = groupMessages[groupMessages.length - 1];
+          const canAppend =
+            lastGroup &&
+            lastGroup.senderId === m.senderId &&
+            diffMinutes(lastGroup.endTime, new Date(m.createdAt)) <=
+              timeThresholdMinutes;
+
+          if (canAppend) {
+            lastGroup.messages.push(m);
+            lastGroup.endTime = new Date(m.createdAt);
+          } else {
+            groupMessages.push({
+              messages: [m],
+              senderId: m.senderId,
+              startTime: new Date(m.createdAt),
+              endTime: new Date(m.createdAt),
+              isOwner: m.isOwner,
+            });
+          }
+        });
+        return groupMessages;
       },
       reset: () => {
         set({
