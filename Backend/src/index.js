@@ -9,10 +9,10 @@ import userRoute from './routes/userRoute.js';
 import friendRouter from './routes/friendRoute.js';
 import messageRoute from './routes/messageRoute.js';
 import conversationRoute from './routes/conversationRoute.js';
+import { app, server } from './socket/index.js'
 
 dotenv.config();
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
@@ -33,7 +33,7 @@ app.use('/api/conversations', conversationRoute)
 
 
 connectDB().then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`App run on port: http://localhost:${PORT}`)
     })
 });
