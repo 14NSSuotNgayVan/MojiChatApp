@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useChatStore } from "../../stores/useChatStore.ts";
 import type { Message, MessageGroup } from "../../types/chat.ts";
 import { Avatar } from "../avatar.tsx";
-import dayjs from "dayjs";
 import { cn, getMessageTime } from "../../lib/utils.ts";
 
 type IndexMessageType = "first" | "middle" | "last" | "single";
@@ -43,14 +42,14 @@ export const FriendMessage = ({
     <>
       <p
         className={cn(
-          "text-sm text-muted-foreground text-center hidden opacity-0 translate-y-4 transition-all duration-500 ease-out",
-          isShowDes && "block opacity-100 translate-y-0"
+          "text-sm text-muted-foreground text-center hidden slide-up-fade",
+          isShowDes && "block"
         )}
       >
         {getMessageTime(message.createdAt)}
       </p>
       {isShowDes && (
-        <p className="max-w-2/3 ml-14 text-sm text-muted-foreground">
+        <p className="max-w-2/3 ml-14 text-sm text-muted-foreground slide-up-fade">
           {sender?.displayName}
         </p>
       )}
@@ -58,7 +57,7 @@ export const FriendMessage = ({
         {indexType.isLast || indexType.isSingle ? (
           <Avatar name={sender?.displayName!} avatarUrl={sender?.avtUrl} />
         ) : (
-          <div className="w-10"></div>
+          <div className="w-10 shrink-0"></div>
         )}
         <div
           className={cn(
@@ -80,7 +79,7 @@ export const FriendMessage = ({
 
 export const FriendMessageGroup = ({ group }: { group: MessageGroup }) => {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 zoom-in">
       {group.messages.map((mg, idx) => (
         <FriendMessage
           message={mg}
@@ -118,7 +117,7 @@ export const OwnerMessage = ({
     <>
       <p
         className={cn(
-          "text-sm text-muted-foreground text-center hidden opacity-0 translate-y-4 transition-all duration-500 ease-out",
+          "text-sm text-muted-foreground text-center hidden opacity-0 translate-y-4 slide-up-fade",
           isShowDes && "block opacity-100 translate-y-0"
         )}
       >
@@ -145,7 +144,7 @@ export const OwnerMessage = ({
 
 export const OwnerMessageGroup = ({ group }: { group: MessageGroup }) => {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 zoom-in">
       {group.messages.map((mg, idx) => (
         <OwnerMessage
           message={mg}

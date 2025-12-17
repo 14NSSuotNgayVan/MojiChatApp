@@ -58,4 +58,11 @@ export interface ChatState {
     messages: Message[],
     timeThresholdMinutes?: number
   ) => MessageGroup[];
+
+  sendDirectMessage: (
+    conversationId: string,
+    recipientId: string,
+    content: string
+  ) => Promise<void>;
+  sendGroupMessage: (conversationId: string, content: string) => Promise<void>;
 }

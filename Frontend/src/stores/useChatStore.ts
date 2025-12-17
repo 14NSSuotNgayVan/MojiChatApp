@@ -4,6 +4,7 @@ import type { ChatState } from "../types/store.ts";
 import { chatService } from "../services/chatService.ts";
 import type { MessageGroup } from "../types/chat.ts";
 import { diffMinutes } from "../lib/utils.ts";
+import { toast } from "sonner";
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -100,6 +101,26 @@ export const useChatStore = create<ChatState>()(
           }
         });
         return groupMessages;
+      },
+      sendDirectMessage: async (conversationId, recipientId, content) => {
+        try {
+          await chatService.sendDirectMessage(
+            conversationId,
+            recipientId,
+            content
+          );
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi gửi tin nhắn!");
+        }
+      },
+      sendGroupMessage: async (conversationId, content) => {
+        try {
+          await chatService.sendGroupMessage(conversationId, content);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi gửi tin nhắn!");
+        }
       },
       reset: () => {
         set({

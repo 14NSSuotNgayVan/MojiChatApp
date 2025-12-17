@@ -74,15 +74,14 @@ export const diffMinutes = (a: Date, b: Date) => {
 
 export const getMessageTime = (datetime: string | Date): string => {
   const date = dayjs(datetime);
-  const yesterday = dayjs().subtract(1, "day");
-  const startOfYesterday = yesterday
+  const startOfToday = dayjs()
     .set("hour", 0)
     .set("second", 0)
     .set("millisecond", 0);
+  const startOfYesterday = dayjs(startOfToday).subtract(1, "day");
 
-  if (date > yesterday) return date.format("HH:mm");
-  if (date < yesterday && date > startOfYesterday)
-    return `${date.format("HH:mm")} Hôm qua`;
+  if (date > startOfToday) return date.format("HH:mm");
+  if (date > startOfYesterday) return `${date.format("HH:mm")} Hôm qua`;
 
   return date.format("HH:mm DD/MM/YYYY");
 };
