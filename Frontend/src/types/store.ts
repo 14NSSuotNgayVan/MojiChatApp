@@ -1,3 +1,4 @@
+import type { Socket } from "socket.io-client";
 import type {
   Conversation,
   Message,
@@ -65,4 +66,10 @@ export interface ChatState {
     content: string
   ) => Promise<void>;
   sendGroupMessage: (conversationId: string, content: string) => Promise<void>;
+}
+
+export interface SocketState {
+  socket: Socket | null;
+  connectSocket: () => void;
+  disconnectSocket: () => void;
 }
