@@ -4,6 +4,7 @@ import { authService } from "@/services/authService";
 import type { AuthState } from "@/types/store";
 import { persist } from "zustand/middleware";
 import { useChatStore } from "./useChatStore.ts";
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
