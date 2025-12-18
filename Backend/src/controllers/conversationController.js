@@ -168,3 +168,16 @@ export const getMessages = async (req, res) => {
         return res.status(500).send();
     }
 }
+
+export const getConversationIds = async (userId) => {
+    try {
+        const conversationIds = await Conversation.find({
+            "participants.userId": userId
+        }, { _id: 1 })
+
+        return conversationIds.map(i => i._id.toString());
+    } catch (error) {
+        console.error("Error when calling getConversationIds: " + error);
+        return res.status(500).send();
+    }
+}

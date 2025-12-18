@@ -5,7 +5,7 @@ export const updateConversationAfterCreateMessage = (conversation, message, send
         lastMessage: {
             _id: message._id,
             content: message.content,
-            senderId,
+            senderId: senderId,
             createdAt: message.createdAt
         }
     })
@@ -15,5 +15,24 @@ export const updateConversationAfterCreateMessage = (conversation, message, send
         const isSender = memberId === senderId.toString();
         const prevCount = conversation.unreadCounts.get(memberId) || 0;
         conversation.unreadCounts.set(memberId, isSender ? 0 : prevCount + 1);
+    })
+}
+
+export const emmitNewMessage = (io, conversation, message, sender) => {
+
+    io.to(conversation._id.toString()).emit("new-message", {
+        message,
+        conversation: {
+            _id: conversation._id,
+            lastMessageAt: conversation.lastMessageAt,
+            lastMessage: {
+                _id: message._id,
+                content: message.content,
+                senderId: message.senderId,
+                senderName: sender.displayName,
+                createdAt: message.createdAt
+            },
+            unreadCounts: conversation.unreadCounts,
+        },
     })
 }
