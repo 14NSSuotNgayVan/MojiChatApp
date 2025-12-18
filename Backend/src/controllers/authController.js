@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import Session from "../models/Session.js";
 import crypto from 'crypto';
 
-const ASSET_TOKEN_TTL = '30m';
+const ASSET_TOKEN_TTL = '1m';
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; //14 ngày
 
 export const signUpHandler = async (req, res) => {
