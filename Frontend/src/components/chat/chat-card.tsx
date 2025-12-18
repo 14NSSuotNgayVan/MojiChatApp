@@ -51,7 +51,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
         <OnlineAvatar
           name={participants[0]?.displayName || ""}
           avatarUrl={participants[0]?.avtUrl}
-          isOnline
+          userId={participants[0]._id}
         />
       ) : (
         <GroupAvatar avtUrl={group?.avtUrl} participants={participants} />

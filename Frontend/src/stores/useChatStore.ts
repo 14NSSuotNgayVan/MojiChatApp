@@ -5,6 +5,7 @@ import { chatService } from "../services/chatService.ts";
 import type { MessageGroup } from "../types/chat.ts";
 import { diffMinutes } from "../lib/utils.ts";
 import { toast } from "sonner";
+import { useAuthStore } from "./useAuthStore.ts";
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -122,6 +123,55 @@ export const useChatStore = create<ChatState>()(
           toast.error("Lỗi khi gửi tin nhắn!");
         }
       },
+      onNewMessage: (data) => {
+        const { user } = useAuthStore.getState();
+        const { conversation, message } = data;
+        debugger;
+        const {
+          activeConversationId,
+          activeConversation,
+          conversations,
+          messages,
+        } = get();
+        //update conversation
+        const idx = conversations.findIndex((c) => c._id === conversation._id);
+
+        const updatedConverSation = {
+          ...conversations[idx],
+          ...conversation,
+        };
+
+        //update messages
+        const convMessages = messages?.[conversation._id];
+
+        set({
+          messages: convMessages
+            ? {
+                ...messages,
+                [conversation._id]: {
+                  hasMore: convMessages?.hasMore,
+                  nextCursor: convMessages?.nextCursor,
+                  items: [
+                    ...convMessages.items,
+                    { ...message, isOwner: message.senderId === user?._id },
+                  ],
+                },
+              }
+            : messages,
+          activeConversation:
+            activeConversationId === conversation._id
+              ? updatedConverSation
+              : activeConversation,
+          conversations:
+            idx !== -1
+              ? [
+                  updatedConverSation,
+                  ...conversations.filter((_, i) => i !== idx),
+                ]
+              : conversations,
+        });
+      },
+      updateConversation: (data) => {},
       reset: () => {
         set({
           conversations: [],

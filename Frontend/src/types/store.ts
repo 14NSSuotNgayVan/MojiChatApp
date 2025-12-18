@@ -35,10 +35,7 @@ export interface ThemeState {
 
 export interface ChatState {
   conversations: Conversation[];
-  activeConversation: Omit<
-    Conversation,
-    "seenBy" | "lastMessage" | "unreadCounts"
-  > | null;
+  activeConversation: Conversation | null;
   messages: Record<
     string,
     {
@@ -59,17 +56,25 @@ export interface ChatState {
     messages: Message[],
     timeThresholdMinutes?: number
   ) => MessageGroup[];
-
   sendDirectMessage: (
     conversationId: string,
     recipientId: string,
     content: string
   ) => Promise<void>;
   sendGroupMessage: (conversationId: string, content: string) => Promise<void>;
+  onNewMessage: (data: NewMessageResponse) => void;
+  updateConversation: (data: NewMessageResponse) => void;
 }
-
+interface NewMessageResponse {
+  conversation: Pick<
+    Conversation,
+    "_id" | "lastMessageAt" | "lastMessage" | "unreadCounts"
+  >;
+  message: Message;
+}
 export interface SocketState {
   socket: Socket | null;
   connectSocket: () => void;
   disconnectSocket: () => void;
+  onlineUsers: string[];
 }

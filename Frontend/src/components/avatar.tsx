@@ -1,4 +1,5 @@
 import { cn, getAcronym, stringToHexColor } from "../lib/utils.ts";
+import { useSocketStore } from "../stores/useSocketStore.ts";
 
 export const Avatar = ({
   avatarUrl,
@@ -38,20 +39,23 @@ export const OnlineAvatar = ({
   avatarUrl,
   name,
   className,
-  isOnline,
+  userId,
 }: {
   name: string;
   avatarUrl?: string | null;
-  isOnline?: boolean;
+  userId: string;
   className?: string;
 }) => {
+  const { onlineUsers } = useSocketStore();
+  const isOnline = onlineUsers.includes(userId);
+
   return (
     <div className={cn("relative", className)}>
       <Avatar avatarUrl={avatarUrl} name={name} />
       <div
         className={cn(
-          "rounded-full border-2 border-background w-4 h-4 absolute bottom-0 right-0",
-          isOnline ? "bg-emerald-400" : "bg-gray-600"
+          "rounded-full border-2 border-background w-3 h-3 absolute bottom-0 right-0",
+          isOnline ? "bg-green-500" : "bg-gray-300"
         )}
       ></div>
     </div>

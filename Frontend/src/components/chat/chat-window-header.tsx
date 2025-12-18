@@ -32,7 +32,7 @@ export const ChatWindowHeader = () => {
           <OnlineAvatar
             name={activeConversation?.participants[0]?.displayName || ""}
             avatarUrl={activeConversation?.participants[0]?.avtUrl}
-            isOnline
+            userId={activeConversation?.participants[0]._id}
           />
         ) : (
           <GroupAvatar

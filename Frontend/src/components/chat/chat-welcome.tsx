@@ -4,9 +4,9 @@ import { Button } from "../ui/button.tsx";
 export const ChatWelcome = () => {
   return (
     <>
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 overflow-scroll flex flex-col bg-background">
         {/* Welcome Section */}
-        <div className="flex-1 flex items-center justify-center px-8">
+        <div className="flex-1 flex items-center justify-center px-8 pb-4">
           <div className="text-center max-w-md">
             {/* Large Emoji */}
             <div className="inline-block text-6xl">
