@@ -123,7 +123,7 @@ export const OwnerMessage = ({
       >
         {getMessageTime(message.createdAt)}
       </p>
-      <div className="self-end mw-2/3">
+      <div className="self-end max-w-2/3">
         <div
           className={cn(
             "bg-primary/40 px-3 py-2 hover:bg-accent",

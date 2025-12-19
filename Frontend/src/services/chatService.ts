@@ -9,7 +9,7 @@ export const chatService = {
 
   async fetchMessage(
     conversationId: string,
-    params: { limit: number; cursor: string }
+    params: { limit: number; cursor: string | null | undefined }
   ) {
     const res = await api.get(`/conversations/${conversationId}`, { params });
     return res.data;

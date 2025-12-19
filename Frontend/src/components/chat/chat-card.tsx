@@ -34,7 +34,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   } = conversation;
 
   const handleClickConversation = () => {
-    getMessages(conversationId);
+    getMessages(conversationId, false);
     setActiveConversation(conversation);
   };
 

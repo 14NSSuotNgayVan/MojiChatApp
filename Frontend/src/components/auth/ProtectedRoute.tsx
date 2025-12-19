@@ -38,7 +38,11 @@ export const ProtectedRoute = () => {
   }, []);
 
   if (starting || loading) {
-    return <Loading />;
+    return (
+      <div className="absolute inset-0 flex justify-center items-center">
+        <Loading />
+      </div>
+    );
   }
 
   if (!accessToken) {
