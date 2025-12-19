@@ -32,18 +32,21 @@ export const useChatStore = create<ChatState>()(
           set({ loading: false });
         }
       },
-      getMessages: async (conversationId) => {
+      getMessages: async (conversationId, isFetchOldMessage) => {
         try {
-          const { messages } = get();
+          const { messages, messageLoading } = get();
           const currentMessage = messages?.[conversationId];
 
-          if (currentMessage && !currentMessage?.nextCursor) return;
-
+          if (
+            (currentMessage && !isFetchOldMessage) ||
+            (isFetchOldMessage && !currentMessage.nextCursor) ||
+            messageLoading
+          )
+            return;
           set({ messageLoading: true });
-
           const res = await chatService.fetchMessage(conversationId, {
-            limit: 50,
-            cursor: currentMessage?.nextCursor || "",
+            limit: 20,
+            cursor: isFetchOldMessage ? currentMessage.nextCursor : undefined,
           });
 
           set((prev) => {
@@ -53,11 +56,11 @@ export const useChatStore = create<ChatState>()(
                 ...prev.messages,
                 [conversationId]: {
                   items: prevItems?.length
-                    ? [...prevItems, ...(res?.messages || [])]
+                    ? [...(res?.messages || []), ...prevItems]
                     : res?.messages || [],
+                  nextCursor: res?.nextCursor,
+                  hasMore: !!res?.nextCursor,
                 },
-                nextCursor: res?.nextCursor,
-                hasMore: !!res?.nextCursor,
               },
             };
           });
@@ -126,7 +129,7 @@ export const useChatStore = create<ChatState>()(
       onNewMessage: (data) => {
         const { user } = useAuthStore.getState();
         const { conversation, message } = data;
-        debugger;
+
         const {
           activeConversationId,
           activeConversation,

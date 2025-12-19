@@ -50,7 +50,10 @@ export interface ChatState {
   reset: () => void;
   setActiveConversation: (activeConversation: Conversation | null) => void;
   getConversations: () => Promise<void>;
-  getMessages: (conversationId: string) => Promise<void>;
+  getMessages: (
+    conversationId: string,
+    isFetchOldMessage: boolean
+  ) => Promise<void>;
   getDefaultGroupName: (participants: Participant[]) => string;
   getGroupMessages: (
     messages: Message[],

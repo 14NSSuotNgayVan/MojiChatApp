@@ -1,9 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useMemo } from "react";
 import { useChatStore } from "../../stores/useChatStore.ts";
-import type { Message, MessageGroup } from "../../types/chat.ts";
+import type { MessageGroup } from "../../types/chat.ts";
 import { ChatEmptyMessageWelcome } from "./chat-empty-message-welcome.tsx";
-import { ChatInsertSkeleton } from "./chat-insert-skeleton.tsx";
+
 import { FriendMessageGroup, OwnerMessageGroup } from "./message.tsx";
+import { useChatScroll } from "../../hooks/use-chat-scroll.ts";
+import Loading from "../ui/loading.tsx";
 
 export const ChatWindowInset = () => {
   const {
@@ -12,19 +14,17 @@ export const ChatWindowInset = () => {
     messageLoading,
     activeConversation,
     getGroupMessages,
+    getMessages,
   } = useChatStore();
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const { hasMore, items, nextCursor } = messages[activeConversationId!];
-  const messageGroups = getGroupMessages(items);
+  const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
 
-  useEffect(() => {
-    const scrollBox = scrollRef.current;
-    if (activeConversationId && scrollBox && items?.length) {
-      scrollBox.scrollTop = scrollBox.scrollHeight;
-    }
-  }, [activeConversationId]);
+  const { items, hasMore } = currentMessages;
 
-  if (messageLoading) return <ChatInsertSkeleton />;
+  const { isAtBottom, scrollRef, scrollToBottom } = useChatScroll(items, () =>
+    getMessages(activeConversationId!, true)
+  );
+
+  const messageGroups = useMemo(() => getGroupMessages(items), [items]);
 
   if (items?.length === 0)
     return (
@@ -35,9 +35,14 @@ export const ChatWindowInset = () => {
 
   return (
     <div
-      className="flex flex-1 flex-col gap-4 p-4 overflow-scroll text-lg select-none"
+      className="flex flex-1 flex-col gap-4 p-4 overflow-y-auto text-lg select-none"
       ref={scrollRef}
     >
+      {messageLoading && (
+        <div className="flex justify-center">
+          <Loading />
+        </div>
+      )}
       {messageGroups?.map((group: MessageGroup) =>
         group.isOwner ? (
           <OwnerMessageGroup
