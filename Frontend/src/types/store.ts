@@ -52,8 +52,8 @@ export interface ChatState {
   getConversations: () => Promise<void>;
   getMessages: (
     conversationId: string,
-    isFetchOldMessage: boolean
-  ) => Promise<void>;
+    isFetchOldMessage?: boolean
+  ) => Promise<boolean  >;
   getDefaultGroupName: (participants: Participant[]) => string;
   getGroupMessages: (
     messages: Message[],
@@ -66,7 +66,9 @@ export interface ChatState {
   ) => Promise<void>;
   sendGroupMessage: (conversationId: string, content: string) => Promise<void>;
   onNewMessage: (data: NewMessageResponse) => void;
-  updateConversation: (data: NewMessageResponse) => void;
+  updateConversation: (data: Conversation) => void;
+  onSeenMessage: (data: SeenMessageResponse) => void;
+  seenMessage: () => void;
 }
 interface NewMessageResponse {
   conversation: Pick<
@@ -75,6 +77,15 @@ interface NewMessageResponse {
   >;
   message: Message;
 }
+
+interface SeenMessageResponse {
+  conversationId: string;
+  lastSeenAt: string;
+  user: User;
+  messageId: string;
+  unreadCounts: Record<string, number>;
+}
+
 export interface SocketState {
   socket: Socket | null;
   connectSocket: () => void;

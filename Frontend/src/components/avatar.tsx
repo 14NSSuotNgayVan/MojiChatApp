@@ -1,5 +1,12 @@
-import { cn, getAcronym, stringToHexColor } from "../lib/utils.ts";
+import {
+  cn,
+  getAcronym,
+  getMessageTime,
+  stringToHexColor,
+} from "../lib/utils.ts";
 import { useSocketStore } from "../stores/useSocketStore.ts";
+import { Button } from "./ui/button.tsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip.tsx";
 
 export const Avatar = ({
   avatarUrl,
@@ -58,6 +65,56 @@ export const OnlineAvatar = ({
           isOnline ? "bg-green-500" : "bg-gray-300"
         )}
       ></div>
+    </div>
+  );
+};
+interface SeenUser {
+  userId: string;
+  displayName: string;
+  avtUrl?: string | null;
+  lastSeenAt: Date;
+}
+export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
+  const SHOW_LIMIT = 4;
+
+  const showUser = seenUsers.slice(0, SHOW_LIMIT - 1);
+  const hiddenUser = seenUsers.slice(SHOW_LIMIT - 1);
+
+  return (
+    <div className="flex items-center justify-end gap-[0.5px]">
+      {showUser.map((user) => (
+        <Tooltip>
+          <TooltipTrigger>
+            <Avatar
+              name={user.displayName}
+              avatarUrl={user.avtUrl}
+              className="size-4"
+            />
+          </TooltipTrigger>
+          <TooltipContent align="end">
+            <p>
+              {user.displayName} Đã xem {getMessageTime(user.lastSeenAt, true)}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      ))}
+      {!!hiddenUser?.length && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="bg-accent text-accent-foreground rounded-full"
+            >
+              +{hiddenUser?.length}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent align="end">
+            {hiddenUser.map((user) => (
+              <p>{user.displayName}</p>
+            ))}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 };

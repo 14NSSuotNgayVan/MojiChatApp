@@ -21,6 +21,7 @@ export const ChatWindowFooter = () => {
   const { user } = useAuthStore();
 
   const handleSendMessgae = async () => {
+    debugger;
     const content = value;
     setValue("");
     if (activeConversation?.type === "direct") {
@@ -46,6 +47,12 @@ export const ChatWindowFooter = () => {
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.repeat) {
+              e.preventDefault();
+              handleSendMessgae();
+            }
+          }}
           className="pr-8 h-10"
         ></Input>
         <Popover>

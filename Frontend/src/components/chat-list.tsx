@@ -1,4 +1,3 @@
-import React from "react";
 import { useChatStore } from "../stores/useChatStore.ts";
 import { ChatCardSkeleton } from "./chat/chat-card-skeleton.tsx";
 import { ChatCard } from "./chat/chat-card.tsx";

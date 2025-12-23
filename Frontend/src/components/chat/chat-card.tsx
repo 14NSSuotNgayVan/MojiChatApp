@@ -33,9 +33,9 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
     unreadCounts,
   } = conversation;
 
-  const handleClickConversation = () => {
-    getMessages(conversationId, false);
-    setActiveConversation(conversation);
+  const handleClickConversation = async () => {
+    const success = await getMessages(conversationId);
+    setActiveConversation(success ? conversation : null);
   };
 
   return (

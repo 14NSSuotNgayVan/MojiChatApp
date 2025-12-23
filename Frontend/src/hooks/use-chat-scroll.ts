@@ -1,12 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Message } from "../types/chat";
 
-export function useChatScroll(items: Message[], loadMore: () => Promise<void>) {
+export function useChatScroll(
+  items: Message[],
+  loadMore: () => Promise<void>,
+  activeConversationId: string | null
+) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const prevScrollHeightRef = useRef(0);
+
+  useEffect(() => {
+    scrollToBottom();
+    prevScrollHeightRef.current = 0;
+  }, [activeConversationId]);
 
   // Lắng nghe sự kiện scroll
   useEffect(() => {
@@ -31,7 +40,7 @@ export function useChatScroll(items: Message[], loadMore: () => Promise<void>) {
     };
   }, [isLoadingMore]);
 
-  // scroll xuống cuối đoạn chat
+  // Scroll xuống cuối đoạn chat
   useLayoutEffect(() => {
     if (!items?.length) return;
 
@@ -49,7 +58,7 @@ export function useChatScroll(items: Message[], loadMore: () => Promise<void>) {
     if (lastMessage.isOwner && !isAtBottom) {
       setIsAtBottom(true);
     }
-  }, [items]);
+  }, [activeConversationId, items?.length]);
 
   //Gọi API getmessages
   const onLoadMore = async () => {
@@ -72,7 +81,7 @@ export function useChatScroll(items: Message[], loadMore: () => Promise<void>) {
 
     el.scrollTop = diff;
     setIsLoadingMore(false);
-  }, [items]);
+  }, [activeConversationId, items?.length]);
 
   const scrollToBottom = () => {
     const scrollDiv = scrollRef.current;

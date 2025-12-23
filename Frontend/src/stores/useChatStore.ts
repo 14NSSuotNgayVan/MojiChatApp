@@ -6,6 +6,7 @@ import type { MessageGroup } from "../types/chat.ts";
 import { diffMinutes } from "../lib/utils.ts";
 import { toast } from "sonner";
 import { useAuthStore } from "./useAuthStore.ts";
+import { useSocketStore } from "./useSocketStore.ts";
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -32,7 +33,7 @@ export const useChatStore = create<ChatState>()(
           set({ loading: false });
         }
       },
-      getMessages: async (conversationId, isFetchOldMessage) => {
+      getMessages: async (conversationId, isFetchOldMessage = false) => {
         try {
           const { messages, messageLoading } = get();
           const currentMessage = messages?.[conversationId];
@@ -42,7 +43,7 @@ export const useChatStore = create<ChatState>()(
             (isFetchOldMessage && !currentMessage.nextCursor) ||
             messageLoading
           )
-            return;
+            return false;
           set({ messageLoading: true });
           const res = await chatService.fetchMessage(conversationId, {
             limit: 20,
@@ -64,8 +65,10 @@ export const useChatStore = create<ChatState>()(
               },
             };
           });
+          return true;
         } catch (error) {
           console.error("Lỗi khi gọi getMessages:", error);
+          return false;
         } finally {
           set({ messageLoading: false });
         }
@@ -174,7 +177,78 @@ export const useChatStore = create<ChatState>()(
               : conversations,
         });
       },
-      updateConversation: (data) => {},
+      updateConversation: (conversation) => {},
+      onSeenMessage: (data) => {
+        try {
+          const { conversationId, lastSeenAt, user, unreadCounts, messageId } =
+            data;
+          const { conversations, activeConversationId, activeConversation } =
+            get();
+          const index = conversations.findIndex(
+            (c) => c._id === conversationId
+          );
+
+          if (index === -1) return;
+
+          const isActive = activeConversationId === conversationId;
+          const userSeenByIndex = conversations[index].seenBy.findIndex(
+            (i) => i.userId === user._id
+          );
+
+          const updatedConv = {
+            ...conversations[index],
+            seenBy:
+              userSeenByIndex !== -1 // Nếu người này đã tồn tại trong seenBy ? cập nhật : thêm vào seenBy
+                ? conversations[index].seenBy.map((item) =>
+                    item?.userId === user._id
+                      ? {
+                          ...item,
+                          lastSeenAt: new Date(lastSeenAt),
+                          messageId,
+                        }
+                      : item
+                  )
+                : [
+                    ...conversations[index].seenBy,
+                    {
+                      userId: user._id,
+                      lastSeenAt: new Date(lastSeenAt),
+                      messageId,
+                      avtUrl: user.avtUrl,
+                      displayName: user.displayName,
+                    },
+                  ],
+            unreadCounts,
+          };
+          const updatedConvs = [...conversations];
+
+          updatedConvs[index] = updatedConv;
+
+          set({
+            conversations: updatedConvs,
+            activeConversation: isActive ? updatedConv : activeConversation,
+          });
+        } catch (error) {
+          console.log(error);
+        }
+      },
+      seenMessage: () => {
+        const currentConv = get().activeConversation;
+
+        const socket = useSocketStore.getState().socket;
+
+        if (
+          socket &&
+          currentConv &&
+          currentConv.lastMessage?.senderId !==
+            useAuthStore.getState().user?._id
+        ) {
+          socket.emit("seen-message-request", {
+            conversationId: currentConv._id,
+            lastSeenAt: currentConv.lastMessageAt,
+          });
+        }
+      },
       reset: () => {
         set({
           conversations: [],
@@ -187,7 +261,9 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: "chat-storage",
-      partialize: (state) => ({ conversations: state.conversations }),
+      partialize: (state) => ({
+        conversations: state.conversations,
+      }),
     }
   )
 );

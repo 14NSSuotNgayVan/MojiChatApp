@@ -7,10 +7,12 @@ export interface Participant {
   joinedAt: string;
 }
 
-export interface SeenUser {
-  _id: string;
-  displayName?: string;
+export interface SeenBy {
+  userId: string;
+  displayName: string;
   avtUrl?: string | null;
+  lastSeenAt: Date;
+  messageId: string;
 }
 
 export interface Group {
@@ -33,7 +35,7 @@ export interface Conversation {
   group: Group;
   participants: Participant[];
   lastMessageAt: string;
-  seenBy: SeenUser[];
+  seenBy: SeenBy[] | [];
   lastMessage: LastMessage | null;
   unreadCounts: Record<string, number>; // key = userId, value = unread count
   createdAt: string;

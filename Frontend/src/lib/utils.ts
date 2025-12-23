@@ -17,6 +17,7 @@ export function fromNow(datetime: string | Date): string {
     yesterday.getDate()
   );
   const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 1) return `Vừa xong`;
   if (seconds < 60) return `${seconds} giây`;
 
   const minutes = Math.floor(seconds / 60);
@@ -72,7 +73,10 @@ export const diffMinutes = (a: Date, b: Date) => {
   return Math.abs(a.getTime() - b.getTime()) / 1000 / 60;
 };
 
-export const getMessageTime = (datetime: string | Date): string => {
+export const getMessageTime = (
+  datetime: string | Date,
+  isShowWhen: boolean = false
+): string => {
   const date = dayjs(datetime);
   const startOfToday = dayjs()
     .set("hour", 0)
@@ -80,8 +84,10 @@ export const getMessageTime = (datetime: string | Date): string => {
     .set("millisecond", 0);
   const startOfYesterday = dayjs(startOfToday).subtract(1, "day");
 
-  if (date > startOfToday) return date.format("HH:mm");
+  if (date > startOfToday)
+    return `${isShowWhen ? "lúc " : ""}${date.format("HH:mm")}`;
   if (date > startOfYesterday) return `${date.format("HH:mm")} Hôm qua`;
 
   return date.format("HH:mm DD/MM/YYYY");
 };
+

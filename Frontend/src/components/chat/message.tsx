@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useChatStore } from "../../stores/useChatStore.ts";
-import type { Message, MessageGroup } from "../../types/chat.ts";
-import { Avatar } from "../avatar.tsx";
+import type { Message, MessageGroup, SeenBy } from "../../types/chat.ts";
+import { Avatar, SeenAvatars } from "../avatar.tsx";
 import { cn, getMessageTime } from "../../lib/utils.ts";
+import { useAuthStore } from "../../stores/useAuthStore.ts";
 
 type IndexMessageType = "first" | "middle" | "last" | "single";
 
@@ -13,6 +14,16 @@ const getMessageIndexType = (idx: number, total: number): IndexMessageType => {
   return "middle";
 };
 
+const getMessageSeender = (
+  seenByUsers: SeenBy[],
+  messageId: string,
+  userId: string
+) => {
+  return seenByUsers.filter(
+    (i) => i.messageId === messageId && userId !== i.userId
+  );
+};
+
 export const FriendMessage = ({
   message,
   indexMessageType,
@@ -21,6 +32,7 @@ export const FriendMessage = ({
   indexMessageType: IndexMessageType;
 }) => {
   const { activeConversation } = useChatStore();
+  const { user } = useAuthStore();
   const indexType = {
     isFirst: indexMessageType === "first",
     isMiddle: indexMessageType === "middle",
@@ -31,6 +43,11 @@ export const FriendMessage = ({
   const sender = participants?.find((p) => p._id === message.senderId);
   const [isShowDes, setIsShowDes] = useState<boolean>(
     indexType.isFirst || indexType.isSingle
+  );
+  const seenByUsers = getMessageSeender(
+    activeConversation?.seenBy || [],
+    message._id,
+    user?._id!
   );
 
   const handleToggleMessage = () => {
@@ -73,6 +90,7 @@ export const FriendMessage = ({
           {message.content}
         </div>
       </div>
+      <SeenAvatars seenUsers={seenByUsers} />
     </>
   );
 };
@@ -107,6 +125,13 @@ export const OwnerMessage = ({
   const [isShowDes, setIsShowDes] = useState<boolean>(
     indexType.isFirst || indexType.isSingle
   );
+  const { activeConversation } = useChatStore();
+  const { user } = useAuthStore();
+  const seenByUsers = getMessageSeender(
+    activeConversation?.seenBy || [],
+    message._id,
+    user!._id
+  );
 
   const handleToggleMessage = () => {
     if (indexType.isFirst || indexType.isSingle) return;
@@ -138,6 +163,7 @@ export const OwnerMessage = ({
           {message.content}
         </div>
       </div>
+      <SeenAvatars seenUsers={seenByUsers} />
     </>
   );
 };
