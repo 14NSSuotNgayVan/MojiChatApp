@@ -52,6 +52,19 @@ const lastMessageSchema = new moongose.Schema({
         _id: false
     })
 
+const seenSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    lastSeenAt: {
+        type: Date
+    },
+    messageId: {
+        type: String
+    }
+})
+
 const conversationSchema = new moongose.Schema({
     type: {
         type: String,
@@ -68,15 +81,12 @@ const conversationSchema = new moongose.Schema({
     lastMessageAt: {
         type: Date
     },
-    seenBy: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+    seenBy: [seenSchema],
     lastMessage: {
         type: lastMessageSchema,
         default: null
     },
-    //Số tin nhắn chưa đọc của mỗi người
+    //Số tin nhắn chưa đọc của mỗi người {[id1]: number,[id2]: number....}
     unreadCounts: {
         type: Map,
         of: Number,
@@ -87,7 +97,7 @@ const conversationSchema = new moongose.Schema({
 })
 
 conversationSchema.index({
-    "participant.userId": 1,
+    "participants.userId": 1,
     lastMessageAt: -1
 })
 // conversationSchema.set("toJSON", {
