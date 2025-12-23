@@ -3,6 +3,7 @@ import http from 'http'
 import express from 'express'
 import { socketAuthMiddleware } from '../middlewares/socketMiddleware.js';
 import { getConversationIds } from '../controllers/conversationController.js';
+import { onSeenMessage } from '../utils/socketHelper.js';
 
 const app = express();
 
@@ -30,6 +31,8 @@ io.on("connection", async (socket) => {
     userConversationIds.forEach(id => {
         socket.join(id)
     })
+
+    onSeenMessage(socket)
 
     //Người dùng offline
     socket.on("disconnect", () => {

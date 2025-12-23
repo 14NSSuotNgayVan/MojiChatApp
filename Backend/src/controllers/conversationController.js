@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
+import { io } from "../socket/index.js";
 
 export const createConversation = async (req, res) => {
     try {
@@ -100,7 +102,7 @@ export const getConversations = async (req, res) => {
                 options: { lean: true }
             },
             {
-                path: 'seenBy', select: "displayName avtUrl",
+                path: 'seenBy.userId', select: "displayName avtUrl",
                 options: { lean: true }
             },
             {
@@ -121,6 +123,12 @@ export const getConversations = async (req, res) => {
                 if (b._id.toString() === userId.toString()) return -1
                 return 0
             }),
+            seenBy: conv.seenBy?.map(s => ({
+                ...s,
+                avtUrl: s.userId.avtUrl,
+                displayName: s.userId.displayName,
+                userId: s.userId._id
+            })),
             lastMessage: conv.lastMessage ? {
                 ...conv.lastMessage,
                 senderId: conv.lastMessage.senderId._id,
@@ -179,5 +187,53 @@ export const getConversationIds = async (userId) => {
     } catch (error) {
         console.error("Error when calling getConversationIds: " + error);
         return res.status(500).send();
+    }
+}
+
+export const updateSeenBy = async (data, socket) => {
+    try {
+        const userId = socket.user?._id
+        const { conversationId } = data
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) return
+        if (!userId) return
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId
+        }).select("_id seenBy unreadCounts participants lastMessage")
+
+        if (!conversation) return
+
+        const now = new Date()
+
+        const seenIndex = conversation.seenBy.findIndex(
+            (s) => s.userId.toString() === userId.toString()
+        )
+
+        if (seenIndex !== -1) {
+            conversation.seenBy[seenIndex].lastSeenAt = now
+            conversation.seenBy[seenIndex].messageId = conversation.lastMessage._id.toString()
+        } else {
+            conversation.seenBy.push({
+                userId,
+                lastSeenAt: now,
+                messageId: conversation.lastMessage._id,
+            })
+        }
+
+        conversation.unreadCounts.set(userId.toString(), 0)
+
+        await conversation.save()
+
+        io.to(conversationId).emit("seen-message-updated", {
+            conversationId,
+            lastSeenAt: now,
+            user: socket.user,
+            messageId: conversation.lastMessage._id.toString(),
+            unreadCounts: conversation.unreadCounts
+        })
+    } catch (error) {
+        console.error("Error when calling updateSeenBy: " + error);
     }
 }
