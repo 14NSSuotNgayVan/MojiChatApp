@@ -211,7 +211,13 @@ export const updateSeenBy = async (data, socket) => {
             (s) => s.userId.toString() === userId.toString()
         )
 
+        if (conversation.lastMessage.senderId.toString() === userId.toString()) return;
+
+
         if (seenIndex !== -1) {
+            const isSeen = conversation.seenBy[seenIndex].messageId === conversation.lastMessage._id.toString();
+            if (isSeen) return;
+
             conversation.seenBy[seenIndex].lastSeenAt = now
             conversation.seenBy[seenIndex].messageId = conversation.lastMessage._id.toString()
         } else {
