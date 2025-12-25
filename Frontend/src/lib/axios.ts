@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import axios from "axios";
+import { authRefreshController } from "./refreshManager.ts";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -42,9 +43,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await api.post("/auth/refresh-token");
-
-        const newToken = data.accessToken;
+        const newToken = await authRefreshController.getValidAccessToken();
         useAuthStore.getState().setAccessToken(newToken);
 
         api.defaults.headers.common["Authorization"] = "Bearer " + newToken;

@@ -43,7 +43,7 @@ export const useChatStore = create<ChatState>()(
             (isFetchOldMessage && !currentMessage.nextCursor) ||
             messageLoading
           )
-            return false;
+            return true;
           set({ messageLoading: true });
           const res = await chatService.fetchMessage(conversationId, {
             limit: 20,

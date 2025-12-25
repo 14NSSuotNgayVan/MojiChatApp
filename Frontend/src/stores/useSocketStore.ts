@@ -24,10 +24,6 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       set({ socket });
       socket.on("connect", () => {
         console.log("Đã kết nối với socket!");
-        const { getConversations, getMessages, activeConversationId } =
-          useChatStore.getState();
-        getConversations();
-        activeConversationId && getMessages(activeConversationId);
       });
 
       socket.on("online-user", (userIds) => {
@@ -39,13 +35,21 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.on("new-message", useChatStore.getState().onNewMessage);
       socket.on("seen-message-updated", useChatStore.getState().onSeenMessage);
 
-      socket.on("reconnect", () => {
+      socket.io.on("reconnect", () => {
         console.log("Đã kết nối lại với socket!");
         const { getConversations, getMessages, activeConversationId } =
           useChatStore.getState();
         getConversations();
         activeConversationId && getMessages(activeConversationId);
       });
+
+      socket.on("connect_error", async (err) => {
+        console.log("Lỗi khi kết nối socket: ", err.message);
+
+        if (err.message === "AUTH_ERROR" || err.message === "NO_TOKEN") {
+          await useAuthStore.getState().refreshToken()
+        }
+      }); 
     } catch (error) {
       console.error("Lỗi khi kết nối socket: " + error);
     }

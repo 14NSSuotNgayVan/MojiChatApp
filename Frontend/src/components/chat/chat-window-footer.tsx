@@ -21,7 +21,6 @@ export const ChatWindowFooter = () => {
   const { user } = useAuthStore();
 
   const handleSendMessgae = async () => {
-    debugger;
     const content = value;
     setValue("");
     if (activeConversation?.type === "direct") {

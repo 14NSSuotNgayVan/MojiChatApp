@@ -82,6 +82,18 @@ export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
 
   return (
     <div className="flex items-center justify-end gap-[0.5px]">
+      {!!hiddenUser?.length && (
+        <Tooltip>
+          <TooltipTrigger className="bg-accent text-accent-foreground rounded-full px-2 text-xs">
+            +{hiddenUser?.length}
+          </TooltipTrigger>
+          <TooltipContent align="end">
+            {hiddenUser.map((user) => (
+              <p>{user.displayName}</p>
+            ))}
+          </TooltipContent>
+        </Tooltip>
+      )}
       {showUser.map((user) => (
         <Tooltip>
           <TooltipTrigger>
@@ -98,23 +110,6 @@ export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
           </TooltipContent>
         </Tooltip>
       ))}
-      {!!hiddenUser?.length && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className="bg-accent text-accent-foreground rounded-full"
-            >
-              +{hiddenUser?.length}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent align="end">
-            {hiddenUser.map((user) => (
-              <p>{user.displayName}</p>
-            ))}
-          </TooltipContent>
-        </Tooltip>
-      )}
     </div>
   );
 };

@@ -84,9 +84,6 @@ export function SigninForm({
                     {errors?.username?.message}
                   </FieldDescription>
                 )}
-                {!loginSuccess && (
-                  <FieldDescription>Sai thông tin đăng nhập</FieldDescription>
-                )}
               </Field>
               <Field>
                 <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
@@ -96,6 +93,11 @@ export function SigninForm({
                   type="password"
                 />
               </Field>
+              {!loginSuccess && (
+                <FieldDescription className="text-primary">
+                  Sai thông tin đăng nhập
+                </FieldDescription>
+              )}
               <Button type="submit" disabled={loading}>
                 Đăng nhập
               </Button>
