@@ -37,6 +37,7 @@ export const signInhandler = async (req, res) => {
     try {
         const { username, password } = req.body;
 
+
         //Kiểm tra dữ liệu đầu vào
         if (!username || !password) {
             return res.status(400).json({ message: 'Username and password are required!' })
@@ -45,13 +46,13 @@ export const signInhandler = async (req, res) => {
         //Kiểm tra username có tồn tại không
         const user = await User.findOne({ username });
         if (!user) {
-            return res.status(401).json({ message: 'Invalid username or password!' });
+            return res.status(400).json({ message: 'Invalid username or password!' });
         }
 
         //Kiểm tra password có đúng không
         const isMatch = await bcrypt.compare(password, user.hashPassword);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid username or password!' });
+            return res.status(400).json({ message: 'Invalid username or password!' });
         }
 
         //Tạo token và trả về
