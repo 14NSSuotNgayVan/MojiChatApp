@@ -94,10 +94,9 @@ export const acceptFriendRequestHandler = async (req, res) => {
     }
 }
 
-export const declineFriendRequestHandler = async (req, res) => {
+export const deleteFriendRequestHandler = async (req, res) => {
     try {
         const { requestId } = req.params;
-        const userId = req.user._id;
 
         if (!mongoose.Types.ObjectId.isValid(requestId)) {
         }
@@ -108,15 +107,11 @@ export const declineFriendRequestHandler = async (req, res) => {
             return res.status(404).json({ message: "The friend request do not exists!" })
         }
 
-        if (request.toUser.toString() !== userId.toString()) {
-            return res.status(403).json({ message: "You can't decline this request !" })
-        }
-
         await FriendRequest.deleteOne({ _id: requestId });
 
         return res.status(200).json({ message: "Request declined successfully!" })
     } catch (error) {
-        console.error("Error when calling declineFriendRequest: " + error);
+        console.error("Error when calling deleteFriendRequestHandler: " + error);
         return res.status(500).send();
     }
 }
