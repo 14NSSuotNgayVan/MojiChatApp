@@ -23,3 +23,10 @@ export interface FriendRequest {
   displayName: string;
   avatarUrl?: string;
 }
+
+export interface Profile {
+  user: User;
+  isFriend?: boolean;
+  sentRequest?: string;
+  receivedRequest?: string;
+}

@@ -5,7 +5,6 @@ import {
   stringToHexColor,
 } from "../lib/utils.ts";
 import { useSocketStore } from "../stores/useSocketStore.ts";
-import { Button } from "./ui/button.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip.tsx";
 
 export const Avatar = ({

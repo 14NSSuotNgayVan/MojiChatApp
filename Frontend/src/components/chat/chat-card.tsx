@@ -48,11 +48,13 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
     >
       {/* left-section */}
       {type === "direct" ? (
-        <OnlineAvatar
-          name={participants[0]?.displayName || ""}
-          avatarUrl={participants[0]?.avtUrl}
-          userId={participants[0]._id}
-        />
+        <div className="flex w-12 h-12 items-center justify-center shrink-0">
+          <OnlineAvatar
+            name={participants[0]?.displayName || ""}
+            avatarUrl={participants[0]?.avtUrl}
+            userId={participants[0]._id}
+          />
+        </div>
       ) : (
         <GroupAvatar avtUrl={group?.avtUrl} participants={participants} />
       )}

@@ -4,6 +4,8 @@ import type { Message, MessageGroup, SeenBy } from "../../types/chat.ts";
 import { Avatar, SeenAvatars } from "../avatar.tsx";
 import { cn, getMessageTime } from "../../lib/utils.ts";
 import { useAuthStore } from "../../stores/useAuthStore.ts";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover.tsx";
+import { MeProfileCard, OthersProfileCard } from "../ui/profile-card.tsx";
 
 type IndexMessageType = "first" | "middle" | "last" | "single";
 
@@ -72,7 +74,14 @@ export const FriendMessage = ({
       )}
       <div className="flex max-w-2/3 gap-2">
         {indexType.isLast || indexType.isSingle ? (
-          <Avatar name={sender?.displayName!} avatarUrl={sender?.avtUrl} />
+          <Popover>
+            <PopoverTrigger>
+              <Avatar name={sender?.displayName!} avatarUrl={sender?.avtUrl} />
+            </PopoverTrigger>
+            <PopoverContent align="start" side="bottom" className="w-80">
+              <OthersProfileCard userId={sender?._id!} />
+            </PopoverContent>
+          </Popover>
         ) : (
           <div className="w-10 shrink-0"></div>
         )}

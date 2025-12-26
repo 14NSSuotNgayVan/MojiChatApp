@@ -3,7 +3,7 @@ import type { Message } from "../types/chat";
 
 export function useChatScroll(
   items: Message[],
-  loadMore: () => Promise<void>,
+  loadMore: () => Promise<boolean>,
   activeConversationId: string | null
 ) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
