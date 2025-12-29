@@ -1,11 +1,11 @@
 import express from 'express';
-import { acceptFriendRequestHandler, addFriendHandler, declineFriendRequestHandler, getFriendRequestsHandler, getFriendsHandler, unFriendsHandler } from '../controllers/friendController.js';
+import { acceptFriendRequestHandler, addFriendHandler, deleteFriendRequestHandler, getFriendRequestsHandler, getFriendsHandler, unFriendsHandler } from '../controllers/friendController.js';
 
 const friendRouter = express.Router();
 
 friendRouter.post('/request', addFriendHandler)
 friendRouter.post('/request/:requestId/accept', acceptFriendRequestHandler)
-friendRouter.post('/request/:requestId/decline', declineFriendRequestHandler)
+friendRouter.post('/request/:requestId/decline', deleteFriendRequestHandler)
 friendRouter.get('/', getFriendsHandler)
 friendRouter.get('/request', getFriendRequestsHandler)
 friendRouter.delete('/:friendId', unFriendsHandler)

@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema({
     avtId: {
         type: String
     },
+    bgUrl: {
+        type: String,
+    },
+    bgId: {
+        type: String
+    },
     bio: {
         type: String,
     },
