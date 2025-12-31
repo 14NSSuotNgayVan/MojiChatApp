@@ -4,6 +4,7 @@ export interface User {
   email: string;
   displayName: string;
   avtUrl?: string;
+  bgUrl?: string;
   bio?: string;
   phone?: string;
   createdAt?: string;

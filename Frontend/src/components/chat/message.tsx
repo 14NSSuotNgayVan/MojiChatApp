@@ -5,7 +5,7 @@ import { Avatar, SeenAvatars } from "../avatar.tsx";
 import { cn, getMessageTime } from "../../lib/utils.ts";
 import { useAuthStore } from "../../stores/useAuthStore.ts";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover.tsx";
-import { MeProfileCard, OthersProfileCard } from "../ui/profile-card.tsx";
+import { OthersProfileCard } from "../profile/profile-card.tsx";
 
 type IndexMessageType = "first" | "middle" | "last" | "single";
 

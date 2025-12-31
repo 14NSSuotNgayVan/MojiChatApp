@@ -5,6 +5,7 @@ import type { AuthState } from "@/types/store";
 import { persist } from "zustand/middleware";
 import { useChatStore } from "./useChatStore.ts";
 import { authRefreshController } from "../lib/refreshManager.ts";
+import { userService } from "../services/userService.ts";
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -74,6 +75,16 @@ export const useAuthStore = create<AuthState>()(
           toast.error("Lấy thông tin người dùng thất bại!");
         } finally {
           set({ loading: false });
+        }
+      },
+      updateProfile: async (data) => {
+        try {
+          await userService.updateProfile(data);
+          
+          toast.success("Đăng xuất thành công!");
+        } catch (error) {
+          console.error(error);
+          toast.error("Đăng xuất thất bại. Vui lòng thử lại!");
         }
       },
       refreshToken: async () => {

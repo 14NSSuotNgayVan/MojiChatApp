@@ -13,6 +13,7 @@ import { BellOff, Check, MoreHorizontal } from "lucide-react";
 import { useIsMobile } from "../../hooks/use-mobile.ts";
 import { useChatStore } from "../../stores/useChatStore.ts";
 import { useAuthStore } from "../../stores/useAuthStore.ts";
+import { useSidebar } from "../ui/sidebar.tsx";
 
 interface ChatCardProps {
   conversation: Conversation;
@@ -20,6 +21,7 @@ interface ChatCardProps {
 }
 export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   const isMobile = useIsMobile();
+  const { setOpenMobile } = useSidebar();
   const { setActiveConversation, getMessages, getDefaultGroupName } =
     useChatStore();
   const { user } = useAuthStore();
@@ -34,6 +36,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   } = conversation;
 
   const handleClickConversation = async () => {
+    setOpenMobile(false);
     const success = await getMessages(conversationId);
     setActiveConversation(success ? conversation : null);
   };

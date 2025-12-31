@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "../avatar.tsx";
 import { userService } from "../../services/userService.ts";
-import Loading from "./loading.tsx";
-import { Button } from "./button.tsx";
+import Loading from "../ui/loading.tsx";
+import { Button } from "../ui/button.tsx";
 import {
   Check,
-  ChevronLeft,
-  PenLine,
+  ImageUp,
   Send,
   Undo2,
   UserPlus,
@@ -24,59 +23,102 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./dialog.tsx";
+} from "../ui/dialog.tsx";
 import type { Profile, User } from "../../types/user.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./dropdown-menu.tsx";
-import { useAuthStore } from "../../stores/useAuthStore.ts";
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "./field.tsx";
-import { Input } from "./input.tsx";
-import { cn } from "../../lib/utils.ts";
-import { Textarea } from "./textarea.tsx";
-import { Separator } from "./separator.tsx";
+} from "../ui/dropdown-menu.tsx";
+import { cn, getAcronym, stringToHexColor } from "../../lib/utils.ts";
 
 interface ProfileCardProps {
   userId: string;
 }
 
-export const ProfileCard = ({ user }: { user: User }) => {
+export const ProfileCard = ({
+  user,
+  onAvtClick,
+  onBgClick,
+}: {
+  user: User;
+  onAvtClick?: () => void;
+  onBgClick?: () => void;
+}) => {
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full">
       {/* Background Image */}
-      <div className="relative w-full aspect-video overflow-hidden bg-gray-200 rounded-lg">
-        {user?.avtUrl && (
+      <div
+        className={cn(
+          "relative w-full aspect-video overflow-hidden bg-gray-200 rounded-lg group",
+          onBgClick && "group"
+        )}
+      >
+        {user?.bgUrl && (
           <img
-            src={user?.avtUrl}
+            src={user?.bgUrl}
             alt="Background"
             className="w-full h-full object-cover"
           />
         )}
+        {onBgClick && (
+          <div
+            className={cn(
+              "hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer"
+            )}
+            onClick={onBgClick}
+          >
+            <ImageUp />
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className=" py-4">
+      <div className="p-4">
         {/* Avatar & Info */}
-        <div className="flex items-end gap-4 mb-2 -mt-12 relative z-10">
-          {user?.displayName && (
-            <Avatar
-              name={user?.displayName}
-              avatarUrl={user?.avtUrl}
-              className="w-20 h-20 rounded-full border-4 border-card bg-card object-cover"
-            />
+        <div className="mb-2 -mt-[calc(1/6)*100%] z-10">
+          {user && (
+            <div
+              className={cn(
+                "rounded-full overflow-hidden w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
+              )}
+            >
+              {user.avtUrl ? (
+                <img
+                  className="w-full h-full object-cover"
+                  src={user.avtUrl}
+                ></img>
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center font-semibold"
+                  style={stringToHexColor(getAcronym(user.displayName || ""))}
+                >
+                  {String(user.displayName)
+                    .split(" ")
+                    .slice(0, 2)
+                    .map((word) => word.charAt(0))
+                    .join("")}
+                </div>
+              )}
+              {onAvtClick && (
+                <div
+                  className={cn(
+                    "hidden justify-center items-center absolute inset-0 bg-gray-700/70 group-hover:flex cursor-pointer transition-all"
+                  )}
+                  onClick={onAvtClick}
+                >
+                  <ImageUp />
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="mb-2">
           <h2 className="text-xl font-bold text-foreground">
             {user?.displayName}
           </h2>
-          <p className="text-xs">{user.email}</p>
+          <p className="text-xs mb-1">{user.email}</p>
           <p className="text-xs">{user.phone}</p>
         </div>
 
@@ -253,136 +295,6 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
           <Send />
           Nhắn tin
         </Button>
-      </div>
-    </div>
-  );
-};
-
-const schema = z.object({
-  displayName: z.string().min(1, "Tên hiển thị là bắt buộc"),
-  bio: z.string(),
-  email: z.email("Email không đúng định dạng").min(1, "Email là bắt buộc"),
-  phone: z.regex(
-    /^(0|\+84)(3|5|7|8|9)\d{8}$/,
-    "Số điện thoại không đúng định dạng"
-  ),
-});
-
-type profileSchema = z.infer<typeof schema>;
-
-const EditProfileForm = ({ handleBack }: { handleBack: () => void }) => {
-  const { user } = useAuthStore();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<profileSchema>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      ...user,
-    },
-  });
-
-  const handleSubmitForm = async (data: profileSchema) => {};
-
-  return (
-    <div className="relative h-full">
-      <form
-        className="overflow-y-scroll mb-12"
-        onSubmit={handleSubmit(handleSubmitForm)}
-      >
-        <FieldGroup className="gap-4">
-          <Field>
-            <Field>
-              <FieldLabel htmlFor="displayName">Tên hiển thị</FieldLabel>
-              <Input
-                id="displayName"
-                {...register("displayName")}
-                type="string"
-                placeholder="User 123"
-              />
-
-              {errors?.displayName && (
-                <FieldDescription>
-                  {errors?.displayName?.message}
-                </FieldDescription>
-              )}
-            </Field>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
-            <Input
-              id="email"
-              {...register("email")}
-              type="email"
-              placeholder="m@example.com"
-            />
-
-            {errors?.email && (
-              <FieldDescription>{errors?.email?.message}</FieldDescription>
-            )}
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="phone">Số điện thoại</FieldLabel>
-            <Input
-              id="phone"
-              {...register("phone")}
-              type="phone"
-              placeholder="0987654321"
-            />
-
-            {errors?.phone && (
-              <FieldDescription>{errors?.phone?.message}</FieldDescription>
-            )}
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="phone">Tiểu sử</FieldLabel>
-            <Textarea id="bio" {...register("bio")} placeholder="0987654321" />
-
-            {errors?.bio && (
-              <FieldDescription>{errors?.bio?.message}</FieldDescription>
-            )}
-          </Field>
-        </FieldGroup>
-      </form>
-      <div className="absolute bottom-0 right-0 left-0 flex justify-between">
-        <Button variant="primary" onClick={handleBack}>
-          <ChevronLeft />
-          Trở lại
-        </Button>
-        <Button variant="primary">Lưu</Button>
-      </div>
-    </div>
-  );
-};
-
-export const MeProfileCard = () => {
-  const { user } = useAuthStore();
-  const [mode, setMode] = useState<"view" | "edit">("view");
-
-  return (
-    <div className="w-full max-w-sm overflow-hidden">
-      <div
-        className={cn(
-          "w-[200%] flex transition-all",
-          mode === "edit" ? "-translate-x-1/2" : "translate-x-0"
-        )}
-      >
-        <div className={cn("flex-1", mode === "edit" ? "h-0" : "h-auto")}>
-          {user && <ProfileCard user={user} />}
-          <Separator className="mb-2" />
-          <Button
-            variant="primary"
-            className="w-full"
-            onClick={() => setMode("edit")}
-          >
-            <PenLine />
-            Chỉnh sửa thông tin
-          </Button>
-        </div>
-        <div className={cn("flex-1", mode === "view" ? "h-0" : "h-auto")}>
-          <EditProfileForm handleBack={() => setMode("view")} />
-        </div>
       </div>
     </div>
   );

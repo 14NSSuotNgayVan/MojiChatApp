@@ -7,6 +7,16 @@ import type {
 } from "./chat.ts";
 import type { User } from "./user";
 
+export interface UpdateProfileRequest {
+  displayName?: string;
+  email?: string;
+  phone?: string;
+  bio?: string;
+  avtUrl?: string;
+  avtId?: string;
+  bgUrl?: string;
+  bgId?: string;
+}
 export interface AuthState {
   accessToken: string | null;
   user: User | null;
@@ -25,6 +35,7 @@ export interface AuthState {
   refreshToken: () => Promise<void>;
   getProfile: () => Promise<void>;
   setAccessToken: (accessToken: string) => void;
+  updateProfile: (payload: UpdateProfileRequest) => Promise<void>;
 }
 
 export interface ThemeState {
@@ -53,7 +64,7 @@ export interface ChatState {
   getMessages: (
     conversationId: string,
     isFetchOldMessage?: boolean
-  ) => Promise<boolean  >;
+  ) => Promise<boolean>;
   getDefaultGroupName: (participants: Participant[]) => string;
   getGroupMessages: (
     messages: Message[],

@@ -1,4 +1,3 @@
-import React from "react";
 import { useThemeStore } from "../stores/useThemeStore.ts";
 
 export const ToggleTheme = () => {
