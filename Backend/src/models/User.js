@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { IMAGE_PRESETS } from '../utils/uploadFileHelper.js';
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -46,6 +47,16 @@ const userSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+userSchema.virtual("transformedAvtUrl").get(function () {
+    if (!this.avtId) return null;
+
+    return buildImageUrl(
+        this.avtId,
+        IMAGE_PRESETS.avatar
+    );
+});
+
 const User = mongoose.model('User', userSchema);
 
 export default User;
