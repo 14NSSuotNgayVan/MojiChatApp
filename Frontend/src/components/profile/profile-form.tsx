@@ -136,13 +136,20 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
       reader.readAsDataURL(files[0]);
     }
   };
+  const handleSubmit = () => {
+    try {
+      const 
+    } catch (error) {
+      
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div className="flex flex-col items-center w-full gap-6">
       <Avatar
         name={user?.displayName!}
         avatarUrl={filePreview || user?.avtUrl}
-        className="w-20 h-20"
+        className="w-32 h-32"
       />
       <Dropzone
         accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
@@ -153,6 +160,15 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
         <DropzoneEmptyState />
         <DropzoneContent></DropzoneContent>
       </Dropzone>
+      <div className="flex justify-end gap-2 w-full">
+        <Button variant="primary" onClick={handleBack}>
+          <ChevronLeft />
+          Trở lại
+        </Button>
+        <Button variant="primary" onClick={handleSubmit}>
+          Cập nhật
+        </Button>
+      </div>
     </div>
   );
 };

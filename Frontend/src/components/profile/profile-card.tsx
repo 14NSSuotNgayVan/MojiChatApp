@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Avatar } from "../avatar.tsx";
 import { userService } from "../../services/userService.ts";
 import Loading from "../ui/loading.tsx";
 import { Button } from "../ui/button.tsx";

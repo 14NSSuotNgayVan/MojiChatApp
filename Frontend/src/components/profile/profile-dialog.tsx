@@ -7,7 +7,7 @@ import {
 import { useAuthStore } from "../../stores/useAuthStore.ts";
 import { cn } from "../../lib/utils.ts";
 import { Separator } from "../ui/separator.tsx";
-import { EditProfileForm } from "./profile-form.tsx";
+import { EditAvatarForm, EditProfileForm } from "./profile-form.tsx";
 import { ProfileCard } from "./profile-card.tsx";
 import { Button } from "../ui/button.tsx";
 import { PenLine } from "lucide-react";
@@ -29,13 +29,36 @@ export const MyProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
     if (!open) setMode("view");
   };
 
+  const renderNextPage = () => {
+    switch (mode) {
+      case "edit-avatar": {
+        return <EditAvatarForm handleBack={() => setMode("view")} />;
+      }
+      case "edit-bg": {
+        break;
+      }
+      case "edit-info": {
+        return <EditProfileForm handleBack={() => setMode("view")} />;
+      }
+    }
+  };
+  const renderTitle = () => {
+    switch (mode) {
+      case "edit-avatar":
+        return "Thay đổi ảnh đại diện";
+      case "edit-bg":
+        return "Thay đổi ảnh bìa";
+      case "edit-info":
+        return "Chỉnh sửa thông tin";
+      default:
+        return "Thông tin tài khoản";
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenHandler}>
       <DialogContent aria-describedby={undefined} className="">
         <DialogHeader>
-          <DialogTitle>
-            {mode === "view" ? "Thông tin tài khoản" : "Chỉnh sửa thông tin"}
-          </DialogTitle>
+          <DialogTitle>{renderTitle()}</DialogTitle>
         </DialogHeader>
         <div className="w-full overflow-hidden">
           <div
@@ -53,8 +76,12 @@ export const MyProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
               {user && (
                 <ProfileCard
                   user={user}
-                  onBgClick={() => {}}
-                  onAvtClick={() => {}}
+                  onBgClick={() => {
+                    setMode("edit-bg");
+                  }}
+                  onAvtClick={() => {
+                    setMode("edit-avatar");
+                  }}
                 />
               )}
               <Separator className="mb-2" />
@@ -73,7 +100,7 @@ export const MyProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                 mode === "view" ? "h-0" : "h-auto"
               )}
             >
-              <EditProfileForm handleBack={() => setMode("view")} />
+              {renderNextPage()}
             </div>
           </div>
         </div>
