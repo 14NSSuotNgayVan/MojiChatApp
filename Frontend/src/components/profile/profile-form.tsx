@@ -21,6 +21,8 @@ import {
 } from "../ui/shadcn-io/dropzone/index.tsx";
 import { useState } from "react";
 import { Avatar } from "../avatar.tsx";
+import { fileService } from "../../services/fileService.ts";
+import Loading from "../ui/loading.tsx";
 
 const schema = z.object({
   displayName: z.string().min(1, "Tên hiển thị là bắt buộc"),
@@ -47,7 +49,7 @@ export const EditProfileForm = ({ handleBack }: { handleBack: () => void }) => {
     },
   });
 
-  const handleSubmitForm = async (data: profileSchema) => {};
+  const handleSubmitForm = async (data: profileSchema) => { };
 
   return (
     <div className="relative h-full">
@@ -123,24 +125,28 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
   const { user } = useAuthStore();
   const [files, setFiles] = useState<File[] | undefined>();
   const [filePreview, setFilePreview] = useState<string | undefined>();
+  const [loading, setLoading] = useState<boolean>(false)
 
-  const handleDrop = (files: File[]) => {
-    setFiles(files);
-    if (files.length > 0) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (typeof e.target?.result === "string") {
-          setFilePreview(e.target?.result);
-        }
-      };
-      reader.readAsDataURL(files[0]);
+  const handleDrop = async (files: File[]) => {
+    try {
+      setLoading(true)
+      setFiles(files);
+      if (files.length > 0) {
+        const res = await fileService.uploadAvatar(files[0])
+        setFilePreview(res.url);
+      }
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setLoading(false)
     }
   };
+
   const handleSubmit = () => {
     try {
-      const 
+      // const
     } catch (error) {
-      
+
     }
   };
 
@@ -149,7 +155,13 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
       <Avatar
         name={user?.displayName!}
         avatarUrl={filePreview || user?.avtUrl}
-        className="w-32 h-32"
+        className="w-32 h-32 relative bg-"
+        layer={
+          loading &&
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-500/70">
+            <Loading />
+          </div>
+        }
       />
       <Dropzone
         accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
@@ -165,7 +177,7 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
           <ChevronLeft />
           Trở lại
         </Button>
-        <Button variant="primary" onClick={handleSubmit}>
+        <Button variant="primary" onClick={handleSubmit} disabled={!!files?.length}>
           Cập nhật
         </Button>
       </div>

@@ -1,3 +1,4 @@
+import type { ReactElement, ReactNode } from "react";
 import {
   cn,
   getAcronym,
@@ -11,10 +12,12 @@ export const Avatar = ({
   avatarUrl,
   name,
   className,
+  layer
 }: {
   name: string;
   avatarUrl?: string | null;
   className?: string;
+  layer?: ReactNode
 }) => {
   return (
     <div
@@ -23,6 +26,7 @@ export const Avatar = ({
         className
       )}
     >
+      {layer && layer}
       {avatarUrl ? (
         <img className="w-full h-full object-cover" src={avatarUrl}></img>
       ) : (

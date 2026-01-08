@@ -10,7 +10,7 @@ export const fileService  = {
         formData.append("timestamp", sigRes.data.timestamp);
         formData.append("signature", sigRes.data.signature);
         formData.append("folder", sigRes.data.folder);
-
+        
         const res = await fetch(
           `https://api.cloudinary.com/v1_1/${sigRes.data.cloudName}/image/upload`,
           {
