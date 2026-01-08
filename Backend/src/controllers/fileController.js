@@ -1,6 +1,7 @@
-
 import cloudinary from "cloudinary";
-import { generateSignature } from "../utils/uploadFileHelper.js";
+import {
+    generateSignature
+} from "../utils/uploadFileHelper.js";
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -22,6 +23,26 @@ export const getAvatarSignature = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Error when calling getAvatarSignature: " + error);
+        return res.status(500).send();
+    }
+}
 
+export const getBgSignature = async (req, res) => {
+    try {
+        const user = req.user;
+        const folder = `user/${user._id.toString()}/bg`;
+        const sig = generateSignature(folder);
+
+        res.json({
+            cloudName: process.env.CLOUD_NAME,
+            apiKey: process.env.CLOUD_API_KEY,
+            folder,
+            ...sig,
+        });
+
+    } catch (error) {
+        console.error("Error when calling getBgSignature: " + error);
+        return res.status(500).send();
     }
 }
