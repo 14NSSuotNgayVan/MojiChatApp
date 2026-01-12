@@ -2,6 +2,7 @@ import cloudinary from "cloudinary";
 import {
     generateSignature
 } from "../utils/uploadFileHelper.js";
+import crypto from "crypto";
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -12,7 +13,7 @@ cloudinary.v2.config({
 export const getAvatarSignature = async (req, res) => {
     try {
         const user = req.user;
-        const folder = `user/${user._id.toString()}/avatar`;
+        const folder = `${user._id.toString()}/avatar`;
         const sig = generateSignature(folder);
 
         res.json({
@@ -31,10 +32,10 @@ export const getAvatarSignature = async (req, res) => {
 export const getBgSignature = async (req, res) => {
     try {
         const user = req.user;
-        const folder = `user/${user._id.toString()}/bg`;
+        const folder = `${user._id.toString()}/bg`;
         const sig = generateSignature(folder);
 
-        res.json({
+        res.status(200).json({
             cloudName: process.env.CLOUD_NAME,
             apiKey: process.env.CLOUD_API_KEY,
             folder,
@@ -53,7 +54,8 @@ export const deleteFile = async (req, res) => {
         const { publicId } = req.query;
 
         if (!publicId) return res.status(400).json({ message: "publicId must not be empty!" })
-        
+
+        const timestamp = Math.round(Date.now() / 1000);
         const signature = crypto
             .createHash("sha1")
             .update(
@@ -68,7 +70,7 @@ export const deleteFile = async (req, res) => {
             signature,
         });
 
-        const res = await fetch(
+        const deleteRes = await fetch(
             `https://api.cloudinary.com/v1_1/${process.env.CLOUD_NAME}/image/destroy`,
             {
                 method: "POST",
@@ -78,7 +80,10 @@ export const deleteFile = async (req, res) => {
                 body: body.toString(),
             }
         );
-
+        console.log(`Delete file: ${publicId}`);
+        res.status(200).json({
+            message: "Delete file success!"
+        })
     } catch (error) {
         console.error("Error when calling deleteFile: " + error);
         return res.status(500).send();

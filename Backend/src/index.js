@@ -10,7 +10,7 @@ import userRoute from './routes/userRoute.js';
 import friendRouter from './routes/friendRoute.js';
 import messageRoute from './routes/messageRoute.js';
 import conversationRoute from './routes/conversationRoute.js';
-import uploadFileRoute from './routes/uploadFileRoute.js';
+import uploadFileRoute from './routes/fileRoute.js';
 
 dotenv.config();
 
