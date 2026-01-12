@@ -30,7 +30,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu.tsx";
-import { cn, getAcronym, stringToHexColor } from "../../lib/utils.ts";
+import { cn } from "../../lib/utils.ts";
+import { Avatar } from "../avatar.tsx";
 
 interface ProfileCardProps {
   userId: string;
@@ -78,39 +79,16 @@ export const ProfileCard = ({
         {/* Avatar & Info */}
         <div className="mb-2 -mt-[calc(1/6)*100%] z-10">
           {user && (
-            <div
-              className={cn(
-                "rounded-full overflow-hidden w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
-              )}
-            >
-              {user.avtUrl ? (
-                <img
-                  className="w-full h-full object-cover"
-                  src={user.avtUrl}
-                ></img>
-              ) : (
+            <Avatar name={user.displayName} avatarUrl={user.avtUrl} className=" w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
+              layer={onAvtClick && (
                 <div
-                  className="w-full h-full flex items-center justify-center font-semibold"
-                  style={stringToHexColor(getAcronym(user.displayName || ""))}
-                >
-                  {String(user.displayName)
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((word) => word.charAt(0))
-                    .join("")}
-                </div>
-              )}
-              {onAvtClick && (
-                <div
-                  className={cn(
-                    "hidden justify-center items-center absolute inset-0 bg-gray-700/70 group-hover:flex cursor-pointer transition-all"
-                  )}
+                  className="hidden justify-center items-center absolute inset-0 bg-gray-700/70 group-hover:flex cursor-pointer transition-smooth"
                   onClick={onAvtClick}
                 >
                   <ImageUp />
                 </div>
               )}
-            </div>
+            />
           )}
         </div>
         <div className="mb-2">
@@ -169,8 +147,9 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
 
   const acceptFriendHandler = async () => {
     try {
+      if (!profile) return
       setLoading(true);
-      await friendService.acceptFriendRequest(profile?.receivedRequest!);
+      await friendService.acceptFriendRequest(profile.receivedRequest!);
       getUserInfo();
     } catch (error) {
       console.log("Lỗi khi gọi unFriendHandler: " + error);
@@ -246,7 +225,7 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                declineFriendHandler(profile?.receivedRequest!);
+                declineFriendHandler(profile.receivedRequest!);
               }}
             >
               <X />
@@ -260,7 +239,7 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
         <Button
           variant="primary"
           onClick={() => {
-            declineFriendHandler(profile?.sentRequest!);
+            declineFriendHandler(profile.sentRequest!);
           }}
           disabled={loading}
         >

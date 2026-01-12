@@ -32,10 +32,10 @@ export const MyProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
   const renderNextPage = () => {
     switch (mode) {
       case "edit-avatar": {
-        return <EditAvatarForm handleBack={() => setMode("view")} />;
+        return <EditAvatarForm updateType="avatar" handleBack={() => setMode("view")} />;
       }
       case "edit-bg": {
-        break;
+        return <EditAvatarForm updateType="background" handleBack={() => setMode("view")} />;;
       }
       case "edit-info": {
         return <EditProfileForm handleBack={() => setMode("view")} />;

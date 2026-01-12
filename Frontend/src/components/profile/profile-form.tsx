@@ -19,10 +19,12 @@ import {
   DropzoneContent,
   DropzoneEmptyState,
 } from "../ui/shadcn-io/dropzone/index.tsx";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Avatar } from "../avatar.tsx";
 import { fileService } from "../../services/fileService.ts";
 import Loading from "../ui/loading.tsx";
+import { userService } from "../../services/userService.ts";
+import { toast } from "sonner";
 
 const schema = z.object({
   displayName: z.string().min(1, "Tên hiển thị là bắt buộc"),
@@ -121,18 +123,19 @@ export const EditProfileForm = ({ handleBack }: { handleBack: () => void }) => {
   );
 };
 
-export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
+export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => void, updateType: 'avatar' | 'background' }) => {
   const { user } = useAuthStore();
   const [files, setFiles] = useState<File[] | undefined>();
   const [filePreview, setFilePreview] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(false)
+  const isUpdateAvatar = updateType === 'avatar';
 
   const handleDrop = async (files: File[]) => {
     try {
       setLoading(true)
       setFiles(files);
       if (files.length > 0) {
-        const res = await fileService.uploadAvatar(files[0])
+        const res = await (isUpdateAvatar ? fileService.uploadAvatar : fileService.uploadBackground)(files[0])
         setFilePreview(res.url);
       }
     } catch (error) {
@@ -142,19 +145,45 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(async () => {
     try {
-      // const
+      await userService.updateProfile(isUpdateAvatar ? {
+        avtUrl: filePreview
+      } : {
+        bgUrl: filePreview
+      })
+      toast.success('Cập nhật thành công!')
     } catch (error) {
-
+      console.error("Lỗi khi gọi EditAvatarForm - handleSubmit:", error);
     }
-  };
+  }, [filePreview, isUpdateAvatar]);
+
+  const handleDeleteCurrentFile = useCallback(async () => {
+    try {
+      if (filePreview) {
+        await fileService.deleteFile(filePreview);
+      }
+    } catch (error) {
+      console.error("Lỗi khi gọi deleteFile:", error);
+    }
+  }, [filePreview])
+
+  const onBack = async () => {
+    handleBack()
+    handleDeleteCurrentFile()
+  }
+
+  useEffect(() => {
+    return () => {
+      handleDeleteCurrentFile()
+    }
+  }, [])
 
   return (
     <div className="flex flex-col items-center w-full gap-6">
-      <Avatar
-        name={user?.displayName!}
-        avatarUrl={filePreview || user?.avtUrl}
+      {user && isUpdateAvatar && <Avatar
+        name={user.displayName!}
+        avatarUrl={filePreview || user.avtUrl}
         className="w-32 h-32 relative bg-"
         layer={
           loading &&
@@ -162,7 +191,26 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
             <Loading />
           </div>
         }
-      />
+      />}
+      {user && !isUpdateAvatar &&
+        <div
+          className={
+            "relative w-full aspect-video overflow-hidden bg-gray-200 rounded-lg group"
+          }
+        >
+          {(user.bgUrl || filePreview) && (
+            <img
+              src={filePreview || user.bgUrl}
+              alt="Background"
+              className="w-full h-full object-cover"
+            />
+          )}
+          {loading &&
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-500/70">
+              <Loading />
+            </div>}
+        </div>
+      }
       <Dropzone
         accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
         onDrop={handleDrop}
@@ -173,11 +221,11 @@ export const EditAvatarForm = ({ handleBack }: { handleBack: () => void }) => {
         <DropzoneContent></DropzoneContent>
       </Dropzone>
       <div className="flex justify-end gap-2 w-full">
-        <Button variant="primary" onClick={handleBack}>
+        <Button variant="primary" onClick={onBack}>
           <ChevronLeft />
           Trở lại
         </Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={!!files?.length}>
+        <Button variant="primary" onClick={handleSubmit} disabled={!filePreview}>
           Cập nhật
         </Button>
       </div>
