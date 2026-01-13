@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatState } from "../types/store.ts";
 import { chatService } from "../services/chatService.ts";
-import type { MessageGroup } from "../types/chat.ts";
+import type {  MessageGroup } from "../types/chat.ts";
 import { diffMinutes } from "../lib/utils.ts";
 import { toast } from "sonner";
 import { useAuthStore } from "./useAuthStore.ts";
@@ -13,6 +13,7 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       conversations: [],
       messages: {},
+      users:{},
       activeConversationId: null,
       activeConversation: null,
       loading: false,
@@ -26,7 +27,7 @@ export const useChatStore = create<ChatState>()(
         try {
           set({ loading: true });
           const res = await chatService.fetchConversation();
-          set({ conversations: res.conversations });
+          set({ conversations: res.conversations, users: res.users });
         } catch (error) {
           console.error("Lỗi khi gọi getConversations:", error);
         } finally {
@@ -74,10 +75,11 @@ export const useChatStore = create<ChatState>()(
         }
       },
       getDefaultGroupName: (participants) => {
+        const users = get().users;
         return participants
           ? `${participants
               .slice(0, 2)
-              .map((p) => p.displayName)
+              .map((p) => users[p?._id]?.displayName)
               .join(", ")
               .concat("")} ${
               participants.length > 2 ? "và những người khác" : ""

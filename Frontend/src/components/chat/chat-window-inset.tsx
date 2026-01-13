@@ -19,6 +19,7 @@ export const ChatWindowInset = () => {
     getGroupMessages,
     getMessages,
     seenMessage,
+    users
   } = useChatStore();
   const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
   const { user } = useAuthStore();
@@ -32,14 +33,14 @@ export const ChatWindowInset = () => {
 
   useEffect(() => {
     if (isAtBottom) seenMessage();
-  }, [isAtBottom, activeConversation?.lastMessage?._id]);
+  }, [isAtBottom, activeConversation?.lastMessage?._id, seenMessage]);
 
-  const messageGroups = useMemo(() => getGroupMessages(items), [items]);
+  const messageGroups = useMemo(() => getGroupMessages(items), [items, getGroupMessages]);
 
   if (items?.length === 0)
     return (
       <ChatEmptyMessageWelcome
-        friendName={activeConversation?.participants[0]?.displayName!}
+        friendName={users[activeConversation!.participants[0]._id].displayName!}
       />
     );
 
@@ -71,13 +72,13 @@ export const ChatWindowInset = () => {
           className="flex absolute gap-2 items-center p-2 bottom-16 rounded-full left-1/2 -translate-x-1/2 bg-accent cursor-pointer"
           onClick={scrollToBottom}
         >
-          {!!activeConversation?.unreadCounts?.[user?._id!] && (
+          {user && !!activeConversation?.unreadCounts?.[user._id] && (
             <>
               <p className="truncate max-w-3xs pl-1">
                 {activeConversation.lastMessage?.content}
               </p>
               <div className="bg-red-500 text-xs px-1 rounded-full text-white">
-                {activeConversation.unreadCounts?.[user?._id!]}
+                {activeConversation.unreadCounts?.[user._id]}
               </div>
             </>
           )}

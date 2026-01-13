@@ -33,7 +33,7 @@ export const FriendMessage = ({
   message: Message;
   indexMessageType: IndexMessageType;
 }) => {
-  const { activeConversation } = useChatStore();
+  const { users, activeConversation } = useChatStore();
   const { user } = useAuthStore();
   const indexType = {
     isFirst: indexMessageType === "first",
@@ -46,11 +46,11 @@ export const FriendMessage = ({
   const [isShowDes, setIsShowDes] = useState<boolean>(
     indexType.isFirst || indexType.isSingle
   );
-  const seenByUsers = getMessageSeender(
+  const seenByUsers = user ? getMessageSeender(
     activeConversation?.seenBy || [],
     message._id,
-    user?._id!
-  );
+    user._id
+  ) : null;
 
   const handleToggleMessage = () => {
     if (indexType.isFirst || indexType.isSingle) return;
@@ -69,17 +69,17 @@ export const FriendMessage = ({
       </p>
       {isShowDes && (
         <p className="max-w-2/3 ml-14 text-sm text-muted-foreground slide-up-fade">
-          {sender?.displayName}
+          {sender ? users[sender._id!]?.displayName : ''}
         </p>
       )}
       <div className="flex max-w-2/3 gap-2">
         {indexType.isLast || indexType.isSingle ? (
           <Popover>
             <PopoverTrigger>
-              <Avatar name={sender?.displayName!} avatarUrl={sender?.avtUrl} />
+              {sender && <Avatar name={users[sender?._id]?.displayName} avatarUrl={users[sender?._id]?.avtUrl} />}
             </PopoverTrigger>
             <PopoverContent align="start" side="bottom" className="w-80">
-              <OthersProfileCard userId={sender?._id!} />
+              {sender && <OthersProfileCard userId={sender?._id} />}
             </PopoverContent>
           </Popover>
         ) : (
@@ -99,7 +99,7 @@ export const FriendMessage = ({
           {message.content}
         </div>
       </div>
-      <SeenAvatars seenUsers={seenByUsers} />
+      {seenByUsers && <SeenAvatars seenUsers={seenByUsers} />}
     </>
   );
 };

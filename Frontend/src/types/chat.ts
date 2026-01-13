@@ -2,15 +2,11 @@ import type { User } from "./user.ts";
 
 export interface Participant {
   _id: string;
-  displayName: string;
-  avtUrl?: string | null;
   joinedAt: string;
 }
 
 export interface SeenBy {
   userId: string;
-  displayName: string;
-  avtUrl?: string | null;
   lastSeenAt: Date;
   messageId: string;
 }
@@ -25,8 +21,7 @@ export interface LastMessage {
   _id: string;
   content: string;
   createdAt: string;
-  senderId: String;
-  senderName: string;
+  senderId: string;
 }
 
 export interface Conversation {
@@ -44,6 +39,7 @@ export interface Conversation {
 
 export interface ConversationResponse {
   conversations: Conversation[];
+  users: Record<string,User>,
 }
 
 export interface Message {

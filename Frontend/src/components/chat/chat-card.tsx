@@ -22,7 +22,7 @@ interface ChatCardProps {
 export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
-  const { setActiveConversation, getMessages, getDefaultGroupName } =
+  const { setActiveConversation, getMessages, getDefaultGroupName, users } =
     useChatStore();
   const { user } = useAuthStore();
   const {
@@ -53,8 +53,8 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
       {type === "direct" ? (
         <div className="flex w-12 h-12 items-center justify-center shrink-0">
           <OnlineAvatar
-            name={participants[0]?.displayName || ""}
-            avatarUrl={participants[0]?.avtUrl}
+            name={users[participants[0]._id]?.displayName || ""}
+            avatarUrl={users[participants[0]._id]?.avtUrl}
             userId={participants[0]._id}
           />
         </div>
@@ -66,19 +66,19 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
       <div className="space-y-1 w-full">
         <div className="font-medium truncate text-sm">
           {type === "direct"
-            ? participants[0]?.displayName
+            ? users[participants[0]._id]?.displayName
             : group?.name || getDefaultGroupName(participants)}
         </div>
-        {!!lastMessage ? (
+        {!!lastMessage && user ? (
           <div
             className={cn(
               "text-muted-foreground text-xs",
-              !!unreadCounts?.[user?._id!] && "text-[unset]"
+              !!unreadCounts?.[user._id] && "text-[unset]"
             )}
           >
             {lastMessage?.senderId === user?._id
               ? "Bạn"
-              : lastMessage?.senderName}
+              : users[lastMessage.senderId]?.displayName}
             : {lastMessage?.content}
           </div>
         ) : (
@@ -122,7 +122,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
           </div>
           <div className="block group-hover/item:hidden absolute top-0 right-0">
             <div className="bg-red-500 text-xs px-1 rounded-full text-white">
-              {unreadCounts?.[user?._id!] || ""}
+              {user && unreadCounts?.[user._id] ? unreadCounts?.[user._id] : ""}
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import {
 } from "../lib/utils.ts";
 import { useSocketStore } from "../stores/useSocketStore.ts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip.tsx";
+import { useChatStore } from "../stores/useChatStore.ts";
 
 export const Avatar = ({
   avatarUrl,
@@ -73,11 +74,10 @@ export const OnlineAvatar = ({
 };
 interface SeenUser {
   userId: string;
-  displayName: string;
-  avtUrl?: string | null;
   lastSeenAt: Date;
 }
 export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
+  const { users } = useChatStore()
   const SHOW_LIMIT = 4;
 
   const showUser = seenUsers.slice(0, SHOW_LIMIT - 1);
@@ -92,7 +92,7 @@ export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
           </TooltipTrigger>
           <TooltipContent align="end">
             {hiddenUser.map((user) => (
-              <p>{user.displayName}</p>
+              <p>{users[user.userId].displayName}</p>
             ))}
           </TooltipContent>
         </Tooltip>
@@ -101,14 +101,14 @@ export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
         <Tooltip>
           <TooltipTrigger>
             <Avatar
-              name={user.displayName}
-              avatarUrl={user.avtUrl}
+              name={users[user.userId].displayName}
+              avatarUrl={users[user.userId].avtUrl}
               className="size-4"
             />
           </TooltipTrigger>
           <TooltipContent align="end">
             <p>
-              {user.displayName} Đã xem {getMessageTime(user.lastSeenAt, true)}
+              {users[user.userId].displayName} Đã xem {getMessageTime(user.lastSeenAt, true)}
             </p>
           </TooltipContent>
         </Tooltip>

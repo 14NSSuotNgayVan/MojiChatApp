@@ -13,13 +13,12 @@ import { useAuthStore } from "../../stores/useAuthStore.ts";
 import { DialogFooter } from "../ui/dialog.tsx";
 import { Button } from "../ui/button.tsx";
 import { ChevronLeft } from "lucide-react";
-import ImageDropzone from "../ui/shadcn-io/dropzone/image-dropzone.tsx";
 import {
   Dropzone,
   DropzoneContent,
   DropzoneEmptyState,
 } from "../ui/shadcn-io/dropzone/index.tsx";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar } from "../avatar.tsx";
 import { fileService } from "../../services/fileService.ts";
 import Loading from "../ui/loading.tsx";
@@ -30,7 +29,7 @@ const schema = z.object({
   displayName: z.string().min(1, "Tên hiển thị là bắt buộc"),
   bio: z.string(),
   email: z.email("Email không đúng định dạng").min(1, "Email là bắt buộc"),
-  phone: z.regex(
+  phone: z.string().regex(
     /^(0|\+84)(3|5|7|8|9)\d{8}$/,
     "Số điện thoại không đúng định dạng"
   ),
@@ -51,7 +50,19 @@ export const EditProfileForm = ({ handleBack }: { handleBack: () => void }) => {
     },
   });
 
-  const handleSubmitForm = async (data: profileSchema) => { };
+  const handleSubmitForm = async (data: profileSchema) => {
+    try {
+      await userService.updateProfile({
+        bio: data?.bio,
+        displayName: data?.displayName,
+        email: data?.email,
+        phone: data?.phone
+      })
+      toast.success('Cập nhật thành công!')
+    } catch (error) {
+      console.error("Lỗi khi gọi EditAvatarForm - handleSubmit:", error);
+    }
+  };
 
   return (
     <div className="relative h-full">
@@ -129,6 +140,7 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
   const [filePreview, setFilePreview] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(false)
   const isUpdateAvatar = updateType === 'avatar';
+  const filePreviewRef = useRef<string | undefined>(filePreview);
 
   const handleDrop = async (files: File[]) => {
     try {
@@ -137,10 +149,10 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
       if (files.length > 0) {
         const res = await (isUpdateAvatar ? fileService.uploadAvatar : fileService.uploadBackground)(files[0])
         setFilePreview(res.url);
+        filePreviewRef.current = res.url;
       }
     } catch (error) {
       console.log(error)
-    } finally {
       setLoading(false)
     }
   };
@@ -158,15 +170,15 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
     }
   }, [filePreview, isUpdateAvatar]);
 
-  const handleDeleteCurrentFile = useCallback(async () => {
+  const handleDeleteCurrentFile = async () => {
     try {
-      if (filePreview) {
-        await fileService.deleteFile(filePreview);
+      if (filePreviewRef.current) {
+        await fileService.deleteFile(filePreviewRef.current);
       }
     } catch (error) {
       console.error("Lỗi khi gọi deleteFile:", error);
     }
-  }, [filePreview])
+  }
 
   const onBack = async () => {
     handleBack()
@@ -201,6 +213,9 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
           {(user.bgUrl || filePreview) && (
             <img
               src={filePreview || user.bgUrl}
+              onLoad={() => {
+                setLoading(false)
+              }}
               alt="Background"
               className="w-full h-full object-cover"
             />

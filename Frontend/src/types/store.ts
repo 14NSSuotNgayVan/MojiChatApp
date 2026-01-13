@@ -47,6 +47,7 @@ export interface ThemeState {
 export interface ChatState {
   conversations: Conversation[];
   activeConversation: Conversation | null;
+  users: Record<string,User>,
   messages: Record<
     string,
     {

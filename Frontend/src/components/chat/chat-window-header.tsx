@@ -1,11 +1,11 @@
 import { SidebarTrigger } from "../ui/sidebar.tsx";
 import { Separator } from "../ui/separator.tsx";
 import { useChatStore } from "../../stores/useChatStore.ts";
-import { Avatar, OnlineAvatar } from "../avatar.tsx";
+import { OnlineAvatar } from "../avatar.tsx";
 import { GroupAvatar } from "../group-avatar.tsx";
 
 export const ChatWindowHeader = () => {
-  const { activeConversation, getDefaultGroupName } = useChatStore();
+  const { activeConversation, getDefaultGroupName, users } = useChatStore();
 
   if (!activeConversation)
     return (
@@ -30,9 +30,9 @@ export const ChatWindowHeader = () => {
         />
         {activeConversation?.type === "direct" ? (
           <OnlineAvatar
-            name={activeConversation?.participants[0]?.displayName || ""}
-            avatarUrl={activeConversation?.participants[0]?.avtUrl}
-            userId={activeConversation?.participants[0]._id}
+            name={users[activeConversation?.participants[0]._id]?.displayName || ""}
+            avatarUrl={users[activeConversation?.participants[0]._id]?.avtUrl}
+            userId={users[activeConversation?.participants[0]._id]._id}
           />
         ) : (
           <GroupAvatar
@@ -42,9 +42,9 @@ export const ChatWindowHeader = () => {
         )}
         <div className="font-medium truncate">
           {activeConversation?.type === "direct"
-            ? activeConversation?.participants[0]?.displayName
+            ? users[activeConversation?.participants[0]._id]?.displayName
             : activeConversation?.group?.name ||
-              getDefaultGroupName(activeConversation.participants!)}
+            getDefaultGroupName(activeConversation.participants!)}
         </div>
       </div>
     </header>
