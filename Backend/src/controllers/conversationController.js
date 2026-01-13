@@ -98,44 +98,29 @@ export const getConversations = async (req, res) => {
             lastMessageAt: -1, updateAt: -1
         }).populate([
             {
-                path: 'participants.userId', select: 'displayName avtUrl',
-                options: { lean: true }
-            },
-            {
-                path: 'seenBy.userId', select: "displayName avtUrl",
-                options: { lean: true }
-            },
-            {
-                path: 'lastMessage.senderId', select: "displayName avtUrl",
+                path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
                 options: { lean: true }
             },
         ]).lean()
 
+        const users = {};
         const formattedConversation = conversations.map(conv => ({
             ...conv,
-            participants: conv.participants?.map(p => ({
-                _id: p.userId?._id || p.userId,
-                displayName: p?.userId?.displayName,
-                avtUrl: p?.userId?.avtUrl,
-                joinedAt: p.joinedAt
-            })).sort((a, b) => {
+            participants: conv.participants?.map(p => {
+                if (!users?.[p.userId._id]) {
+                    users[p.userId._id] = p.userId
+                }
+                return ({
+                    _id: p.userId?._id || p.userId,
+                    joinedAt: p.joinedAt
+                })
+            }).sort((a, b) => {
                 if (a._id.toString() === userId.toString()) return 1
                 if (b._id.toString() === userId.toString()) return -1
                 return 0
             }),
-            seenBy: conv.seenBy?.map(s => ({
-                ...s,
-                avtUrl: s.userId.avtUrl,
-                displayName: s.userId.displayName,
-                userId: s.userId._id
-            })),
-            lastMessage: conv.lastMessage ? {
-                ...conv.lastMessage,
-                senderId: conv.lastMessage.senderId._id,
-                senderName: conv.lastMessage.senderId.displayName
-            } : null,
         }))
-        return res.status(200).json({ message: "Get conversation success!", conversations: formattedConversation })
+        return res.status(200).json({ message: "Get conversation success!", conversations: formattedConversation, users })
     } catch (error) {
         console.error("Error when calling getConversations: " + error);
         return res.status(500).send();

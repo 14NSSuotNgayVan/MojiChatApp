@@ -148,6 +148,9 @@ export const updateProfile = async (req, res) => {
       bgUrl: bgUrl ?? me.bgUrl,
       bgId: bgId ?? me.bgId,
     };
+    const userConversationIds = await getConversationIds(me._id);
+    
+    io.to(userConversationIds).emit("updated-user", user);
 
     return res.status(200).json({
       message: "update user success!",
