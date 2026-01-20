@@ -3,6 +3,8 @@ import Friend from "../models/Friend.js";
 import mongoose from "mongoose";
 import FriendRequest from "../models/FriendRequest.js";
 import { IMAGE_PRESETS } from "../utils/uploadFileHelper.js";
+import { getConversationIds } from "./conversationController.js";
+import { io } from "../socket/index.js";
 
 export const getProfileHandler = (req, res) => {
   try {
