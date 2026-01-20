@@ -82,7 +82,7 @@ export const ProfileCard = ({
             <Avatar name={user.displayName} avatarUrl={user.avtUrl} className=" w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
               layer={onAvtClick && (
                 <div
-                  className="hidden justify-center items-center absolute inset-0 bg-gray-700/70 group-hover:flex cursor-pointer transition-smooth"
+                  className="hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer transition-smooth"
                   onClick={onAvtClick}
                 >
                   <ImageUp />

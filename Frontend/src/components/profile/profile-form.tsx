@@ -153,6 +153,7 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
       }
     } catch (error) {
       console.log(error)
+    } finally {
       setLoading(false)
     }
   };
@@ -164,11 +165,12 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
       } : {
         bgUrl: filePreview
       })
-      toast.success('Cập nhật thành công!')
+      handleBack();
+      toast.success('Cập nhật thành công!');
     } catch (error) {
       console.error("Lỗi khi gọi EditAvatarForm - handleSubmit:", error);
     }
-  }, [filePreview, isUpdateAvatar]);
+  }, [filePreview, isUpdateAvatar, handleBack]);
 
   const handleDeleteCurrentFile = async () => {
     try {

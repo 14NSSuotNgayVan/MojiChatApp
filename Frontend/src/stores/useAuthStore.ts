@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState>()(
       updateProfile: async (data) => {
         try {
           await userService.updateProfile(data);
-          
+
           toast.success("Đăng xuất thành công!");
         } catch (error) {
           console.error(error);

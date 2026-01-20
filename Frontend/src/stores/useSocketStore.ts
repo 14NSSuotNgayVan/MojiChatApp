@@ -40,8 +40,10 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         const { getConversations, getMessages, activeConversationId } =
           useChatStore.getState();
         getConversations();
-        activeConversationId && getMessages(activeConversationId);
+        if (activeConversationId) getMessages(activeConversationId);
       });
+
+      socket.on("updated-user", get().onUpdateUser)
 
       socket.on("connect_error", async (err) => {
         console.log("Lỗi khi kết nối socket: ", err.message);
@@ -49,9 +51,19 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         if (err.message === "AUTH_ERROR" || err.message === "NO_TOKEN") {
           await useAuthStore.getState().refreshToken()
         }
-      }); 
+      });
     } catch (error) {
       console.error("Lỗi khi kết nối socket: " + error);
+    }
+  },
+  onUpdateUser: (user) => {
+    const _id = useAuthStore.getState().user?._id;
+    useChatStore.getState().setUser(user);
+    if (_id === user._id) {
+      useAuthStore.setState((prev) => ({
+        ...prev,
+        user
+      }))
     }
   },
   disconnectSocket: () => {

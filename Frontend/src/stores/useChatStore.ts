@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatState } from "../types/store.ts";
 import { chatService } from "../services/chatService.ts";
-import type {  MessageGroup } from "../types/chat.ts";
+import type { MessageGroup } from "../types/chat.ts";
 import { diffMinutes } from "../lib/utils.ts";
 import { toast } from "sonner";
 import { useAuthStore } from "./useAuthStore.ts";
@@ -13,7 +13,7 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       conversations: [],
       messages: {},
-      users:{},
+      users: {},
       activeConversationId: null,
       activeConversation: null,
       loading: false,
@@ -23,6 +23,14 @@ export const useChatStore = create<ChatState>()(
           activeConversationId: activeConversation?._id,
           activeConversation,
         }),
+      setUser: (user) => {
+        set((prev) => ({
+          users: {
+            ...prev.users,
+            [user._id]: user
+          }
+        }))
+      },
       getConversations: async () => {
         try {
           set({ loading: true });
@@ -78,12 +86,11 @@ export const useChatStore = create<ChatState>()(
         const users = get().users;
         return participants
           ? `${participants
-              .slice(0, 2)
-              .map((p) => users[p?._id]?.displayName)
-              .join(", ")
-              .concat("")} ${
-              participants.length > 2 ? "và những người khác" : ""
-            }`
+            .slice(0, 2)
+            .map((p) => users[p?._id]?.displayName)
+            .join(", ")
+            .concat("")} ${participants.length > 2 ? "và những người khác" : ""
+          }`
           : "";
       },
       getGroupMessages: (messages, timeThresholdMinutes = 5) => {
@@ -94,7 +101,7 @@ export const useChatStore = create<ChatState>()(
             lastGroup &&
             lastGroup.senderId === m.senderId &&
             diffMinutes(lastGroup.endTime, new Date(m.createdAt)) <=
-              timeThresholdMinutes;
+            timeThresholdMinutes;
 
           if (canAppend) {
             lastGroup.messages.push(m);
@@ -155,16 +162,16 @@ export const useChatStore = create<ChatState>()(
         set({
           messages: convMessages
             ? {
-                ...messages,
-                [conversation._id]: {
-                  hasMore: convMessages?.hasMore,
-                  nextCursor: convMessages?.nextCursor,
-                  items: [
-                    ...convMessages.items,
-                    { ...message, isOwner: message.senderId === user?._id },
-                  ],
-                },
-              }
+              ...messages,
+              [conversation._id]: {
+                hasMore: convMessages?.hasMore,
+                nextCursor: convMessages?.nextCursor,
+                items: [
+                  ...convMessages.items,
+                  { ...message, isOwner: message.senderId === user?._id },
+                ],
+              },
+            }
             : messages,
           activeConversation:
             activeConversationId === conversation._id
@@ -173,13 +180,13 @@ export const useChatStore = create<ChatState>()(
           conversations:
             idx !== -1
               ? [
-                  updatedConverSation,
-                  ...conversations.filter((_, i) => i !== idx),
-                ]
+                updatedConverSation,
+                ...conversations.filter((_, i) => i !== idx),
+              ]
               : conversations,
         });
       },
-      updateConversation: (conversation) => {},
+      updateConversation: (conversation) => { },
       onSeenMessage: (data) => {
         try {
           const { conversationId, lastSeenAt, user, unreadCounts, messageId } =
@@ -202,24 +209,24 @@ export const useChatStore = create<ChatState>()(
             seenBy:
               userSeenByIndex !== -1 // Nếu người này đã tồn tại trong seenBy ? cập nhật : thêm vào seenBy
                 ? conversations[index].seenBy.map((item) =>
-                    item?.userId === user._id
-                      ? {
-                          ...item,
-                          lastSeenAt: new Date(lastSeenAt),
-                          messageId,
-                        }
-                      : item
-                  )
-                : [
-                    ...conversations[index].seenBy,
-                    {
-                      userId: user._id,
+                  item?.userId === user._id
+                    ? {
+                      ...item,
                       lastSeenAt: new Date(lastSeenAt),
                       messageId,
-                      avtUrl: user.avtUrl,
-                      displayName: user.displayName,
-                    },
-                  ],
+                    }
+                    : item
+                )
+                : [
+                  ...conversations[index].seenBy,
+                  {
+                    userId: user._id,
+                    lastSeenAt: new Date(lastSeenAt),
+                    messageId,
+                    avtUrl: user.avtUrl,
+                    displayName: user.displayName,
+                  },
+                ],
             unreadCounts,
           };
           const updatedConvs = [...conversations];
@@ -243,7 +250,7 @@ export const useChatStore = create<ChatState>()(
           socket &&
           currentConv &&
           currentConv.lastMessage?.senderId !==
-            useAuthStore.getState().user?._id
+          useAuthStore.getState().user?._id
         ) {
           socket.emit("seen-message-request", {
             conversationId: currentConv._id,

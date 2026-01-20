@@ -43,7 +43,7 @@ export function SigninForm({
     const { username, password } = data;
     const isLoginSuccess = await signIn(username, password);
     setIsLoginSuccess(isLoginSuccess);
-    isLoginSuccess && navigate("/");
+    if (isLoginSuccess) navigate("/");
   };
 
   return (

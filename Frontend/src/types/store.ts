@@ -47,7 +47,7 @@ export interface ThemeState {
 export interface ChatState {
   conversations: Conversation[];
   activeConversation: Conversation | null;
-  users: Record<string,User>,
+  users: Record<string, User>,
   messages: Record<
     string,
     {
@@ -81,6 +81,7 @@ export interface ChatState {
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;
   seenMessage: () => void;
+  setUser: (user: User) => void
 }
 interface NewMessageResponse {
   conversation: Pick<
@@ -103,4 +104,5 @@ export interface SocketState {
   connectSocket: () => void;
   disconnectSocket: () => void;
   onlineUsers: string[];
+  onUpdateUser: (user: User) => void;
 }
