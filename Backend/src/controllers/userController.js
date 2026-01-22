@@ -151,7 +151,7 @@ export const updateProfile = async (req, res) => {
       bgId: bgId ?? me.bgId,
     };
     const userConversationIds = await getConversationIds(me._id);
-    
+
     io.to(userConversationIds).emit("updated-user", user);
 
     return res.status(200).json({
@@ -163,3 +163,66 @@ export const updateProfile = async (req, res) => {
     return res.status(500).send();
   }
 };
+
+
+export const getNotFriendsHandler = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { keyword } = req.query;
+
+    if (!keyword)
+      return res.status(200).json({
+        message: "Fetch users success",
+        data: [],
+      });
+    const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Get all friend IDs
+    const friendships = await Friend.find({
+      $or: [
+        { user: userId },
+        { friend: userId }
+      ]
+    }).lean();
+
+    const friendIds = friendships.map((item) =>
+      item.user._id.toString() === userId.toString() ? item.friend._id.toString() : item.user._id.toString()
+    );
+
+    // Get all pending friend request IDs
+    const friendRequests = await FriendRequest.find({
+      $or: [
+        { fromUser: userId },
+        { toUser: userId }
+      ]
+    }).lean();
+
+    const requestUserIds = friendRequests.map((request) =>
+      request.fromUser._id.toString() === userId.toString() ? request.toUser._id.toString() : request.fromUser._id.toString()
+    );
+
+    // Get all users except current user, friends, and users with pending requests
+    const notFriends = await User.find({
+      _id: {
+        $nin: [userId, ...friendIds, ...requestUserIds]
+      },
+      $or: [
+        {
+          displayName: { $regex: "^" + safeKeyword, $options: "i" },
+        },
+        {
+          email: { $regex: "^" + safeKeyword, $options: "i" },
+        },
+        { phone: { $regex: "^" + safeKeyword, $options: "i" } },
+      ],
+    }, "displayName email avtUrl phone").lean();
+
+    return res.status(200).json({
+      message: "Get not friends list successfully!",
+      users: notFriends || []
+    })
+  } catch (error) {
+    console.error("Error when calling getNotFriendsHandler: " + error);
+    return res.status(500).send();
+  }
+}
