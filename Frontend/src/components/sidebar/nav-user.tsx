@@ -25,9 +25,9 @@ import {
 } from '@/components/ui/sidebar';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { Avatar } from './avatar.tsx';
+import { Avatar } from '@/components/avatars/avatar.tsx';
 import { useState } from 'react';
-import { MyProfileDialog } from './profile/profile-dialog.tsx';
+import { MyProfileDialog } from '@/components/profile/profile-dialog.tsx';
 
 export function NavUser() {
   const { isMobile } = useSidebar();

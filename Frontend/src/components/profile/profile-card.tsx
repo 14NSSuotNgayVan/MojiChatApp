@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu.tsx";
 import { cn } from "../../lib/utils.ts";
-import { Avatar } from "../avatar.tsx";
+import { Avatar } from "../avatars/avatar.tsx";
 
 interface ProfileCardProps {
   userId: string;

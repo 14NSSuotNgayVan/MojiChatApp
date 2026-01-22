@@ -1,8 +1,8 @@
 import { SidebarTrigger } from "../ui/sidebar.tsx";
 import { Separator } from "../ui/separator.tsx";
 import { useChatStore } from "../../stores/useChatStore.ts";
-import { OnlineAvatar } from "../avatar.tsx";
-import { GroupAvatar } from "../group-avatar.tsx";
+import { OnlineAvatar } from "../avatars/avatar.tsx";
+import { GroupAvatar } from "../avatars/group-avatar.tsx";
 
 export const ChatWindowHeader = () => {
   const { activeConversation, getDefaultGroupName, users } = useChatStore();

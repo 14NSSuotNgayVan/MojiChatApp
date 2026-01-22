@@ -1,6 +1,6 @@
-import type { Participant } from "../types/chat.ts";
+import type { Participant } from "../../types/chat.ts";
 import { Avatar } from "./avatar.tsx";
-import { useChatStore } from "../stores/useChatStore.ts";
+import { useChatStore } from "../../stores/useChatStore.ts";
 
 export const GroupAvatar = ({
   participants,

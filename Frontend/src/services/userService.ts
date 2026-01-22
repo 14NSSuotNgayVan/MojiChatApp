@@ -6,8 +6,12 @@ export const userService = {
     const res = await api.get(`/user/${userId}`);
     return res.data;
   },
-  updateProfile: async (payload: UpdateProfileRequest) => {
+  async updateProfile(payload: UpdateProfileRequest) {
     const res = await api.put("/user/profile/update", payload);
+    return res.data;
+  },
+  async getUsersNotFriend(params: { keyword: string }) {
+    const res = await api.get(`/user/not-friend`, { params });
     return res.data;
   },
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useChatStore } from "../../stores/useChatStore.ts";
 import type { Message, MessageGroup, SeenBy } from "../../types/chat.ts";
-import { Avatar, SeenAvatars } from "../avatar.tsx";
+import { Avatar, SeenAvatars } from "../avatars/avatar.tsx";
 import { cn, getMessageTime } from "../../lib/utils.ts";
 import { useAuthStore } from "../../stores/useAuthStore.ts";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover.tsx";

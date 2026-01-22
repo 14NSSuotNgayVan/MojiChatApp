@@ -19,7 +19,7 @@ import {
   DropzoneEmptyState,
 } from "../ui/shadcn-io/dropzone/index.tsx";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Avatar } from "../avatar.tsx";
+import { Avatar } from "../avatars/avatar.tsx";
 import { fileService } from "../../services/fileService.ts";
 import Loading from "../ui/loading.tsx";
 import { userService } from "../../services/userService.ts";
@@ -59,6 +59,7 @@ export const EditProfileForm = ({ handleBack }: { handleBack: () => void }) => {
         phone: data?.phone
       })
       toast.success('Cập nhật thành công!')
+      handleBack()
     } catch (error) {
       console.error("Lỗi khi gọi EditAvatarForm - handleSubmit:", error);
     }

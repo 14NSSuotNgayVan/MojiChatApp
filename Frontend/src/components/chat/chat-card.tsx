@@ -1,6 +1,6 @@
 import type { Conversation } from "../../types/chat.ts";
-import { OnlineAvatar } from "../avatar.tsx";
-import { GroupAvatar } from "../group-avatar.tsx";
+import { OnlineAvatar } from "../avatars/avatar.tsx";
+import { GroupAvatar } from "../avatars/group-avatar.tsx";
 import { cn, fromNow } from "../../lib/utils.ts";
 import {
   DropdownMenu,

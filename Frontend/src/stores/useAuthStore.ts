@@ -94,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
           await get().getProfile();
         } catch (error) {
           console.error(error);
-          toast.error("Làm mới token thất bại!");
+          console.error("Làm mới token thất bại!");
         } finally {
           set({ loading: false });
         }

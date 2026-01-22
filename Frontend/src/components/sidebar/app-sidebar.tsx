@@ -4,10 +4,10 @@ import {
   SidebarContent,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { NavUser } from "./nav-user";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { ChatList } from "./chat-list.tsx";
-import { Header } from "./sidebar/sidebar-header.tsx";
+import { Header } from "@/components/sidebar/sidebar-header.tsx";
+import { ChatList } from "@/components/sidebar/chat-list.tsx";
+import { NavUser } from "@/components/sidebar/nav-user.tsx";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();

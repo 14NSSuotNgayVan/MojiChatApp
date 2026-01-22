@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/sidebar/app-sidebar.tsx";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useChatStore } from "../stores/useChatStore.ts";
 import { useEffect } from "react";

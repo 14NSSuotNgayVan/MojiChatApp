@@ -4,10 +4,10 @@ import {
   getAcronym,
   getMessageTime,
   stringToHexColor,
-} from "../lib/utils.ts";
-import { useSocketStore } from "../stores/useSocketStore.ts";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip.tsx";
-import { useChatStore } from "../stores/useChatStore.ts";
+} from "../../lib/utils.ts";
+import { useSocketStore } from "../../stores/useSocketStore.ts";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip.tsx";
+import { useChatStore } from "../../stores/useChatStore.ts";
 
 export const Avatar = ({
   avatarUrl,
