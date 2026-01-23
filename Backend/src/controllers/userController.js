@@ -18,15 +18,16 @@ export const getProfileHandler = (req, res) => {
 
 export const findUserHandler = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { keyword } = req.query;
-    if (!keyword)
-      return res.status(200).json({
-        message: "Fetch users success",
-        data: [],
-      });
-    const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const safeKeyword = keyword?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     const users = await User.find(
       {
+        _id: {
+          $nin: [userId]
+        },
         $or: [
           {
             displayName: { $regex: "^" + safeKeyword, $options: "i" },
@@ -42,7 +43,7 @@ export const findUserHandler = async (req, res) => {
 
     return res.status(200).json({
       message: "Fetch users success",
-      data: users || [],
+      users
     });
   } catch (error) {
     console.error("Error when calling findFriend: " + error);
