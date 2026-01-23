@@ -119,6 +119,9 @@ export const deleteFriendRequestHandler = async (req, res) => {
 export const getFriendsHandler = async (req, res) => {
     try {
         const userId = req.user._id;
+        const { keyword } = req.query;
+
+        const safeKeyword = keyword?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") || '';
 
         const friendShips = await Friend.find({
             $or: [
@@ -129,15 +132,32 @@ export const getFriendsHandler = async (req, res) => {
                     friend: userId
                 }
             ]
-        })
-            .populate("user", "username displayName email avtUrl",)
-            .populate("friend", "username displayName email avtUrl")
-            .lean();
+        }).lean();
+
+        const friendIds = friendShips?.map((item) =>
+            (item?.user._id.toString() === userId.toString() ? item.friend._id : item.user._id)) || [];
+
+        const users = await User.find(
+            {
+                _id: {
+                    $in: friendIds
+                },
+                $or: [
+                    {
+                        displayName: { $regex: "^" + safeKeyword, $options: "i" },
+                    },
+                    {
+                        email: { $regex: "^" + safeKeyword, $options: "i" },
+                    },
+                    { phone: { $regex: "^" + safeKeyword, $options: "i" } },
+                ],
+            },
+            { __v: 0, bio: 0, avtId: 0, createdAt: 0, hashPassword: 0, updatedAt: 0 }
+        ).lean();
 
         return res.status(200).json({
             message: "Get friend list successfully!",
-            friends: friendShips?.map((item) =>
-                (item?.user._id.toString() === userId.toString() ? item.friend : item.user)) || []
+            friends: users
         })
 
     } catch (error) {
