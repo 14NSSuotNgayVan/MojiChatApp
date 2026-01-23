@@ -1,4 +1,5 @@
-import { AddFriendModal } from '@/components/modals/add-friend-dialog.tsx';
+import { AddChatDialog } from '@/components/dialogs/add-chat-dialog.tsx';
+import { AddFriendDialog } from '@/components/dialogs/add-friend-dialog';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { SidebarHeader, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar';
@@ -8,16 +9,23 @@ import { useState } from 'react';
 
 export const Header = () => {
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState<boolean>(false);
+  const [openAddChatDialog, setOpenAddChatDialog] = useState<boolean>(false);
 
   const handleOpenFriendDialog = () => {
     setOpenAddFriendDialog(true);
   };
+
+  const handleOpenAddChatDialog = () => {
+    setOpenAddChatDialog(true);
+  };
+
   const handleOpenChange = (open: boolean) => {
     setOpenAddFriendDialog(open);
   };
   return (
     <>
-      <AddFriendModal open={openAddFriendDialog} onOpenChange={handleOpenChange} />
+      <AddFriendDialog open={openAddFriendDialog} onOpenChange={handleOpenChange} />
+      <AddChatDialog open={openAddChatDialog} onOpenChange={setOpenAddChatDialog} />
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="flex p-2 items-center gap-2 justify-between">
@@ -46,7 +54,7 @@ export const Header = () => {
                 <SearchIcon className="text-primary" size={16} />
               </div>
             </div>
-            <Button variant="primary" size="sm" onClick={() => {}}>
+            <Button variant="primary" size="sm" onClick={handleOpenAddChatDialog}>
               <MessageCirclePlus />
             </Button>
             <Tooltip>

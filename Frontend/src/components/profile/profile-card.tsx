@@ -1,18 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { userService } from "../../services/userService.ts";
-import Loading from "../ui/loading.tsx";
-import { Button } from "../ui/button.tsx";
-import {
-  Check,
-  ImageUp,
-  Send,
-  Undo2,
-  UserPlus,
-  UserRoundCheck,
-  UserRoundX,
-  X,
-} from "lucide-react";
-import { friendService } from "../../services/friendService.ts";
+import { useEffect, useRef, useState } from 'react';
+import { userService } from '../../services/userService.ts';
+import Loading from '../ui/loading.tsx';
+import { Button } from '../ui/button.tsx';
+import { Check, ImageUp, Send, Undo2, UserPlus, UserRoundCheck, UserRoundX, X } from 'lucide-react';
+import { friendService } from '../../services/friendService.ts';
 import {
   Dialog,
   DialogClose,
@@ -22,19 +13,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog.tsx";
-import type { Profile, User } from "../../types/user.ts";
+} from '../ui/dialog.tsx';
+import type { Profile, User } from '../../types/user.ts';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu.tsx";
-import { cn } from "../../lib/utils.ts";
-import { Avatar } from "../avatars/avatar.tsx";
+} from '../ui/dropdown-menu.tsx';
+import { cn } from '../../lib/utils.ts';
+import { Avatar } from '../avatars/avatar.tsx';
+import { chatService } from '@/services/chatService.ts';
+import { useChatStore } from '@/stores/useChatStore.ts';
 
 interface ProfileCardProps {
   userId: string;
+  closeAll: () => void;
 }
 
 export const ProfileCard = ({
@@ -51,21 +45,17 @@ export const ProfileCard = ({
       {/* Background Image */}
       <div
         className={cn(
-          "relative w-full aspect-video overflow-hidden bg-gray-200 rounded-lg group",
-          onBgClick && "group"
+          'relative w-full aspect-video overflow-hidden bg-gray-200 rounded-lg group',
+          onBgClick && 'group'
         )}
       >
         {user?.bgUrl && (
-          <img
-            src={user?.bgUrl}
-            alt="Background"
-            className="w-full h-full object-cover"
-          />
+          <img src={user?.bgUrl} alt="Background" className="w-full h-full object-cover" />
         )}
         {onBgClick && (
           <div
             className={cn(
-              "hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer"
+              'hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer'
             )}
             onClick={onBgClick}
           >
@@ -79,46 +69,65 @@ export const ProfileCard = ({
         {/* Avatar & Info */}
         <div className="mb-2 -mt-[calc(1/6)*100%] z-10">
           {user && (
-            <Avatar name={user.displayName} avatarUrl={user.avtUrl} className=" w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
-              layer={onAvtClick && (
-                <div
-                  className="hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer transition-smooth"
-                  onClick={onAvtClick}
-                >
-                  <ImageUp />
-                </div>
-              )}
+            <Avatar
+              name={user.displayName}
+              avatarUrl={user.avtUrl}
+              className=" w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
+              layer={
+                onAvtClick && (
+                  <div
+                    className="hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer transition-smooth"
+                    onClick={onAvtClick}
+                  >
+                    <ImageUp />
+                  </div>
+                )
+              }
             />
           )}
         </div>
         <div className="mb-2">
-          <h2 className="text-xl font-bold text-foreground">
-            {user?.displayName}
-          </h2>
+          <h2 className="text-xl font-bold text-foreground">{user?.displayName}</h2>
           <p className="text-xs mb-1">{user.email}</p>
           <p className="text-xs">{user.phone}</p>
         </div>
 
         {/* Description */}
-        <p className="text-sm text-foreground/80 mb-2 leading-relaxed">
-          {user?.bio}
-        </p>
+        <p className="text-sm text-foreground/80 mb-2 leading-relaxed">{user?.bio}</p>
       </div>
     </div>
   );
 };
 
-export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
+export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
   const firstRender = useRef<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  const handleChat = async (userId: string) => {
+    try {
+      const { setActiveConversation, getConversations, getMessages } = useChatStore.getState();
+
+      const res = await chatService.createConversation({
+        type: 'direct',
+        memberIds: [userId],
+      });
+
+      await getConversations();
+      const success = await getMessages(res?.conversation._id);
+      setActiveConversation(success ? res.conversation : null);
+      closeAll();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const getUserInfo = async () => {
     try {
       const res = await userService.getUser(userId);
       setProfile(res.profile);
     } catch (error) {
-      console.log("Lỗi khi gọi getUserInfo: " + error);
+      console.log('Lỗi khi gọi getUserInfo: ' + error);
     } finally {
       setLoading(false);
       firstRender.current = false;
@@ -131,7 +140,7 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
       await friendService.unFriend(userId);
       getUserInfo();
     } catch (error) {
-      console.log("Lỗi khi gọi unFriendHandler: " + error);
+      console.log('Lỗi khi gọi unFriendHandler: ' + error);
     }
   };
 
@@ -141,18 +150,18 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
       await friendService.addFriend(userId);
       getUserInfo();
     } catch (error) {
-      console.log("Lỗi khi gọi unFriendHandler: " + error);
+      console.log('Lỗi khi gọi unFriendHandler: ' + error);
     }
   };
 
   const acceptFriendHandler = async () => {
     try {
-      if (!profile) return
+      if (!profile) return;
       setLoading(true);
       await friendService.acceptFriendRequest(profile.receivedRequest!);
       getUserInfo();
     } catch (error) {
-      console.log("Lỗi khi gọi unFriendHandler: " + error);
+      console.log('Lỗi khi gọi unFriendHandler: ' + error);
     }
   };
 
@@ -162,7 +171,7 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
       await friendService.declineFriendRequest(id);
       getUserInfo();
     } catch (error) {
-      console.log("Lỗi khi gọi unFriendHandler: " + error);
+      console.log('Lỗi khi gọi unFriendHandler: ' + error);
     }
   };
 
@@ -181,10 +190,7 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
           </Button>
           <Dialog>
             <DialogTrigger asChild>
-              <Button
-                variant="primary"
-                className="hidden group-hover:flex active:flex"
-              >
+              <Button variant="primary" className="hidden group-hover:flex active:flex">
                 <UserRoundX />
                 Hủy kết bạn
               </Button>
@@ -192,9 +198,7 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Xác nhận</DialogTitle>
-                <DialogDescription>
-                  Bạn có xác nhận hủy kết bạn với người này ?
-                </DialogDescription>
+                <DialogDescription>Bạn có xác nhận hủy kết bạn với người này ?</DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose asChild>
@@ -264,12 +268,17 @@ export const OthersProfileCard = ({ userId }: ProfileCardProps) => {
     );
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full">
       {profile?.user && <ProfileCard user={profile.user} />}
       <div className="flex justify-around gap-1 items-center">
         {renderButtons()}
         <div className="border-r h-4 border-secondary"></div>
-        <Button variant="primary">
+        <Button
+          variant="primary"
+          onClick={() => {
+            if (profile?.user?._id) handleChat(profile?.user?._id);
+          }}
+        >
           <Send />
           Nhắn tin
         </Button>

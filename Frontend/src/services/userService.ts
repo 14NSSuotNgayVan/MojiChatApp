@@ -14,4 +14,8 @@ export const userService = {
     const res = await api.get(`/user/not-friend`, { params });
     return res.data;
   },
+  async getUsers(params: { keyword: string }) {
+    const res = await api.get(`/user`, { params });
+    return res.data;
+  },
 };

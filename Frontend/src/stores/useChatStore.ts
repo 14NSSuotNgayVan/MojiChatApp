@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ChatState } from "../types/store.ts";
+import type { ChatState } from "@/types/store.ts";
 import { chatService } from "../services/chatService.ts";
 import type { MessageGroup } from "../types/chat.ts";
 import { diffMinutes } from "../lib/utils.ts";
@@ -55,7 +55,7 @@ export const useChatStore = create<ChatState>()(
             return true;
           set({ messageLoading: true });
           const res = await chatService.fetchMessage(conversationId, {
-            limit: 20,
+            limit: 50,
             cursor: isFetchOldMessage ? currentMessage.nextCursor : undefined,
           });
 
@@ -243,14 +243,15 @@ export const useChatStore = create<ChatState>()(
       },
       seenMessage: () => {
         const currentConv = get().activeConversation;
-
+        const userId = useAuthStore.getState().user?._id;
         const socket = useSocketStore.getState().socket;
 
         if (
           socket &&
           currentConv &&
           currentConv.lastMessage?.senderId !==
-          useAuthStore.getState().user?._id
+          userId
+          && currentConv.unreadCounts[userId!] > 0
         ) {
           socket.emit("seen-message-request", {
             conversationId: currentConv._id,

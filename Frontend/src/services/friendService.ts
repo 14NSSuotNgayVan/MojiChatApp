@@ -17,8 +17,8 @@ export const friendService = {
     const res = await api.post(`/friend/request/${requestId}/decline`);
     return res.data;
   },
-  async getFriends() {
-    const res = await api.get("/friend");
+  async getFriends(params: { keyword: string }) {
+    const res = await api.get("/friend", { params });
     return res.data;
   },
   async getFriendRequests() {

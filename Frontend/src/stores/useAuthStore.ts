@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
-import type { AuthState } from "@/types/store";
+import type { AuthState } from "@/types/store.ts";
 import { persist } from "zustand/middleware";
 import { useChatStore } from "./useChatStore.ts";
 import { authRefreshController } from "../lib/refreshManager.ts";
@@ -16,7 +16,7 @@ export const useAuthStore = create<AuthState>()(
       clearState: () => {
         set({ accessToken: null, user: null, loading: false });
         useChatStore.getState().reset();
-      },
+      },  
       setLoading: (isLoading) => {
         set({ loading: isLoading });
       },

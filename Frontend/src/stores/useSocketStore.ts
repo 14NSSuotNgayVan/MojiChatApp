@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SocketState } from "../types/store.ts";
+import type { SocketState } from "@/types/store.ts";
 import { useAuthStore } from "./useAuthStore.ts";
 import { io, type Socket } from "socket.io-client";
 import { useChatStore } from "./useChatStore.ts";

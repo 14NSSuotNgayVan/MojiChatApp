@@ -1,12 +1,17 @@
 import api from "../lib/axios.ts";
-import type { ConversationResponse } from "../types/chat.ts";
+import type { Conversation, ConversationResponse } from "../types/chat.ts";
 
 export const chatService = {
+  //conversation
+  async createConversation(payload: { type: "group" | "direct", name?: string, memberIds: string[] }): Promise<{ conversation: Conversation }> {
+    const res = await api.post("/conversations", payload);
+    return res.data;
+  },
   async fetchConversation(): Promise<ConversationResponse> {
     const res = await api.get("/conversations");
     return res.data;
   },
-
+  //message
   async fetchMessage(
     conversationId: string,
     params: { limit: number; cursor: string | null | undefined }
@@ -33,4 +38,5 @@ export const chatService = {
     });
     return res.data.message;
   },
+
 };

@@ -1,14 +1,14 @@
-import { useEffect, useMemo } from "react";
-import { useChatStore } from "../../stores/useChatStore.ts";
-import type { MessageGroup } from "../../types/chat.ts";
-import { ChatEmptyMessageWelcome } from "./chat-empty-message-welcome.tsx";
+import { useEffect, useMemo } from 'react';
+import { useChatStore } from '../../stores/useChatStore.ts';
+import type { MessageGroup } from '../../types/chat.ts';
+import { ChatEmptyMessageWelcome } from './chat-empty-message-welcome.tsx';
 
-import { FriendMessageGroup, OwnerMessageGroup } from "./message.tsx";
-import { useChatScroll } from "../../hooks/use-chat-scroll.ts";
-import Loading from "../ui/loading.tsx";
-import { useAuthStore } from "../../stores/useAuthStore.ts";
-import { ArrowDown } from "lucide-react";
-import { Button } from "../ui/button.tsx";
+import { FriendMessageGroup, OwnerMessageGroup } from './message.tsx';
+import { useChatScroll } from '../../hooks/use-chat-scroll.ts';
+import Loading from '../ui/loading.tsx';
+import { useAuthStore } from '../../stores/useAuthStore.ts';
+import { ArrowDown } from 'lucide-react';
+import { Button } from '../ui/button.tsx';
 
 export const ChatWindowInset = () => {
   const {
@@ -19,7 +19,7 @@ export const ChatWindowInset = () => {
     getGroupMessages,
     getMessages,
     seenMessage,
-    users
+    users,
   } = useChatStore();
   const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
   const { user } = useAuthStore();
@@ -56,15 +56,9 @@ export const ChatWindowInset = () => {
       )}
       {messageGroups?.map((group: MessageGroup) =>
         group.isOwner ? (
-          <OwnerMessageGroup
-            group={group}
-            key={group.senderId + group.startTime}
-          />
+          <OwnerMessageGroup group={group} key={group.senderId + group.startTime} />
         ) : (
-          <FriendMessageGroup
-            group={group}
-            key={group.senderId + group.startTime}
-          />
+          <FriendMessageGroup group={group} key={group.senderId + group.startTime} />
         )
       )}
       {!isAtBottom && (
@@ -74,9 +68,7 @@ export const ChatWindowInset = () => {
         >
           {user && !!activeConversation?.unreadCounts?.[user._id] && (
             <>
-              <p className="truncate max-w-3xs pl-1">
-                {activeConversation.lastMessage?.content}
-              </p>
+              <p className="truncate max-w-3xs pl-1">{activeConversation.lastMessage?.content}</p>
               <div className="bg-red-500 text-xs px-1 rounded-full text-white">
                 {activeConversation.unreadCounts?.[user._id]}
               </div>

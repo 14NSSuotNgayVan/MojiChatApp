@@ -1,9 +1,17 @@
-import { Heart, MessageCircle, Users } from "lucide-react";
-import { Button } from "../ui/button.tsx";
+import { Heart, MessageCircle, Users } from 'lucide-react';
+import { Button } from '../ui/button.tsx';
+import { AddFriendDialog } from '@/components/dialogs/add-friend-dialog.tsx';
+import { useState } from 'react';
+import { AddChatDialog } from '@/components/dialogs/add-chat-dialog.tsx';
 
 export const ChatWelcome = () => {
+  const [openAddFriendDialog, setOpenAddFriendDialog] = useState<boolean>(false);
+  const [openAddChatDialog, setOpenAddChatDialog] = useState<boolean>(false);
+
   return (
     <>
+      <AddFriendDialog open={openAddFriendDialog} onOpenChange={setOpenAddFriendDialog} />
+      <AddChatDialog open={openAddChatDialog} onOpenChange={setOpenAddChatDialog} />
       <div className="flex-1 overflow-scroll flex flex-col bg-background">
         {/* Welcome Section */}
         <div className="flex-1 flex items-center justify-center px-8 pb-4">
@@ -27,8 +35,7 @@ export const ChatWelcome = () => {
 
             {/* Subtitle */}
             <p className="mb-8 leading-relaxed">
-              Kết nối, trò chuyện và chia sẻ những khoảnh khắc tuyệt vời với bạn
-              bè và gia đình
+              Kết nối, trò chuyện và chia sẻ những khoảnh khắc tuyệt vời với bạn bè và gia đình
             </p>
 
             {/* Features */}
@@ -36,7 +43,7 @@ export const ChatWelcome = () => {
               <div className="flex items-center justify-center gap-3">
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "rgb(138, 121, 171)" }}
+                  style={{ backgroundColor: 'rgb(138, 121, 171)' }}
                 >
                   <MessageCircle size={18} className="text-white" />
                 </div>
@@ -45,7 +52,7 @@ export const ChatWelcome = () => {
               <div className="flex items-center justify-center gap-3">
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "rgb(138, 121, 171)" }}
+                  style={{ backgroundColor: 'rgb(138, 121, 171)' }}
                 >
                   <Users size={18} className="text-white" />
                 </div>
@@ -54,7 +61,7 @@ export const ChatWelcome = () => {
               <div className="flex items-center justify-center gap-3">
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "rgb(138, 121, 171)" }}
+                  style={{ backgroundColor: 'rgb(138, 121, 171)' }}
                 >
                   <Heart size={18} className="text-white" />
                 </div>
@@ -64,10 +71,21 @@ export const ChatWelcome = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col gap-3 items-center justify-center">
-              <Button onClick={() => {}} className="w-2xs">
+              <Button
+                onClick={() => {
+                  setOpenAddChatDialog(true);
+                }}
+                className="w-2xs"
+              >
                 Bắt đầu trò chuyện
               </Button>
-              <Button onClick={() => {}} variant="secondary" className="w-2xs">
+              <Button
+                onClick={() => {
+                  setOpenAddFriendDialog(true);
+                }}
+                variant="secondary"
+                className="w-2xs"
+              >
                 Thêm bạn bè
               </Button>
             </div>
