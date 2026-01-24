@@ -25,7 +25,7 @@ export function fromNow(datetime: string | Date): string {
 
   const hours = Math.floor(minutes / 60);
   if (date > yesterday) return `${hours} giờ`;
-  if (date < yesterday && date > startOfYesterday) return `Hôm qua`;
+  if (date < yesterday && date > startOfYesterday) return `H.qua`;
 
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} ngày`;

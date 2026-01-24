@@ -10,8 +10,8 @@ export const ChatEmptyMessageWelcome = ({ friendName }: { friendName: string }) 
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-8">
-      <div className="text-center max-w-md">
+    <div className="flex-1 justify-center overflow-y-auto">
+      <div className="text-center max-w-md mx-auto p-8">
         {/* Large Icon */}
         <div className="mb-6 flex justify-center">
           <MessageCircleHeart size="6rem" className="text-primary" />

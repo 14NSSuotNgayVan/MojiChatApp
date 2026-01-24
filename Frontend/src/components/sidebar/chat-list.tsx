@@ -1,6 +1,6 @@
-import { useChatStore } from "@/stores/useChatStore.ts";
-import { ChatCardSkeleton } from "@/components/chat/chat-card-skeleton.tsx";
-import { ChatCard } from "@/components/chat/chat-card.tsx";
+import { useChatStore } from '@/stores/useChatStore.ts';
+import { ChatCardSkeleton } from '@/components/chat/chat-card-skeleton.tsx';
+import { ChatCard } from '@/components/chat/chat-card.tsx';
 
 export const ChatList = () => {
   const { conversations, loading, activeConversationId } = useChatStore();
@@ -21,7 +21,7 @@ export const ChatList = () => {
     );
   }
   return (
-    <div className="grow flex flex-col gap-1 overflow-y-auto pr-1">
+    <div className="grow flex flex-col gap-1 overflow-y-auto w-full">
       {conversations?.length ? (
         conversations.map((conv) => (
           <ChatCard

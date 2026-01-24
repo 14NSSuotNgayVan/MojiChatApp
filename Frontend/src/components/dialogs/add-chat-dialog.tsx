@@ -65,14 +65,20 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
 
   const handleChat = async (userId: string) => {
     try {
-      const { setActiveConversation, getConversations, getMessages } = useChatStore.getState();
+      const { setActiveConversation, getMessages, conversations } = useChatStore.getState();
 
       const res = await chatService.createConversation({
         type: 'direct',
         memberIds: [userId],
       });
 
-      await getConversations();
+      const convId = conversations.findIndex((item) => item?._id === res.conversation._id);
+      if (convId == -1) {
+        useChatStore.setState((state) => ({
+          ...state,
+          conversations: [res.conversation, ...state.conversations],
+        }));
+      }
       const success = await getMessages(res?.conversation._id);
       setActiveConversation(success ? res.conversation : null);
       onOpenChange(false);

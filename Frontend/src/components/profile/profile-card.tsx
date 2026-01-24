@@ -28,7 +28,7 @@ import { useChatStore } from '@/stores/useChatStore.ts';
 
 interface ProfileCardProps {
   userId: string;
-  closeAll: () => void;
+  closeAll?: () => void;
 }
 
 export const ProfileCard = ({
@@ -116,7 +116,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
       await getConversations();
       const success = await getMessages(res?.conversation._id);
       setActiveConversation(success ? res.conversation : null);
-      closeAll();
+      if(closeAll) closeAll();
     } catch (error) {
       console.error(error);
     }

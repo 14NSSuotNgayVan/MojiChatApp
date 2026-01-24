@@ -1,4 +1,4 @@
-import { SidebarTrigger } from '../ui/sidebar.tsx';
+import { SidebarManagerTrigger } from '../ui/sidebar.tsx';
 import { Separator } from '../ui/separator.tsx';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import { OnlineAvatar } from '../avatars/avatar.tsx';
@@ -11,16 +11,16 @@ export const ChatWindowHeader = () => {
     return (
       <header className="flex h-16 shrink-0 items-center gap-2">
         <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
+          <SidebarManagerTrigger name="left" className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
         </div>
       </header>
     );
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b justify-between">
       <div className="flex items-center gap-2 px-4">
-        <SidebarTrigger className="-ml-1" />
+        <SidebarManagerTrigger name="left" className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
         {activeConversation?.type === 'direct' ? (
           <OnlineAvatar
@@ -41,6 +41,8 @@ export const ChatWindowHeader = () => {
               getDefaultGroupName(activeConversation.participants!)}
         </div>
       </div>
+
+      <SidebarManagerTrigger name="right" className="mr-4 shrink-0" />
     </header>
   );
 };
