@@ -167,7 +167,7 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
             ) : (
               <>
                 <p className="text-muted-foreground text-xs text-center">
-                  Nhập tên, email hoặc số điện thoại của người bạn muốn kết bạn...
+                  Nhập tên, email hoặc số điện thoại của người bạn muốn nhắn tin...
                 </p>
                 <p className="text-foreground text-sm">Gợi ý</p>
                 {users?.map((user) => (

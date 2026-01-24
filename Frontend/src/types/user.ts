@@ -31,3 +31,18 @@ export interface Profile {
   sentRequest?: string;
   receivedRequest?: string;
 }
+
+export interface ReceivedRequest {
+  _id: string
+  fromUser: User,
+  toUser: User,
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SentRequest {
+  _id: string
+  toUser: User,
+  createdAt: string
+  updatedAt: string
+}

@@ -150,7 +150,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
       await friendService.addFriend(userId);
       getUserInfo();
     } catch (error) {
-      console.log('Lỗi khi gọi unFriendHandler: ' + error);
+      console.log('Lỗi khi gọi addFriendHandler: ' + error);
     }
   };
 
@@ -161,7 +161,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
       await friendService.acceptFriendRequest(profile.receivedRequest!);
       getUserInfo();
     } catch (error) {
-      console.log('Lỗi khi gọi unFriendHandler: ' + error);
+      console.log('Lỗi khi gọi acceptFriendHandler: ' + error);
     }
   };
 
@@ -171,7 +171,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
       await friendService.declineFriendRequest(id);
       getUserInfo();
     } catch (error) {
-      console.log('Lỗi khi gọi unFriendHandler: ' + error);
+      console.log('Lỗi khi gọi declineFriendHandler: ' + error);
     }
   };
 

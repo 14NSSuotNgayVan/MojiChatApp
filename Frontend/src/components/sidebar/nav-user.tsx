@@ -3,10 +3,10 @@ import {
   Bell,
   CheckIcon,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
   Moon,
   Sun,
+  Users,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,16 +28,19 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { Avatar } from '@/components/avatars/avatar.tsx';
 import { useState } from 'react';
 import { MyProfileDialog } from '@/components/profile/profile-dialog.tsx';
+import { FriendsDialog } from '@/components/dialogs/friends-dialog.tsx';
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { isDark, setTheme } = useThemeStore();
   const { signOut, user } = useAuthStore();
   const [openProfile, setOpenProfile] = useState<boolean>(false);
+  const [openFriendsDialog, setOpenFriendsDialog] = useState<boolean>(false);
 
   return (
     <>
       <MyProfileDialog open={openProfile} onOpenChange={setOpenProfile} />
+      <FriendsDialog open={openFriendsDialog} onOpenChange={setOpenFriendsDialog} />
       <SidebarMenu>
         <SidebarMenuItem>
           <DropdownMenu>
@@ -80,13 +83,17 @@ export function NavUser() {
                   <BadgeCheck />
                   Tài khoản
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <CreditCard />
-                  Billing
+                <DropdownMenuItem
+                  onClick={() => {
+                    setOpenFriendsDialog(true);
+                  }}
+                >
+                  <Users />
+                  Bạn bè
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Bell />
-                  Notifications
+                  Thông báo
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

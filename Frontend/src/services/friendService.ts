@@ -21,8 +21,8 @@ export const friendService = {
     const res = await api.get("/friend", { params });
     return res.data;
   },
-  async getFriendRequests() {
-    const res = await api.get("/friend/request");
+  async getFriendRequests(params: { keyword: string }) {
+    const res = await api.get("/friend/request", { params });
     return res.data;
   },
 };
