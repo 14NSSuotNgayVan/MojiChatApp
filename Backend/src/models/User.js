@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    searchName: {
+        type: String,
+        required: true,
+        trim: true,
+    },
     avtUrl: {
         type: String,
     },

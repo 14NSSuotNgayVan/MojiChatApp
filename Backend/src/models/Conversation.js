@@ -21,6 +21,7 @@ const groupSchema = new moongose.Schema({
         require: false,
         trim: true
     },
+    nameNorm: String,
     createdBy: {
         type: moongose.Schema.Types.ObjectId,
         ref: "User",
@@ -65,6 +66,17 @@ const seenSchema = new mongoose.Schema({
     }
 })
 
+const messageCountSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    messageCount: {
+        type: String,
+        default: 0
+    }
+})
+
 const conversationSchema = new moongose.Schema({
     type: {
         type: String,
@@ -91,7 +103,11 @@ const conversationSchema = new moongose.Schema({
         type: Map,
         of: Number,
         default: {}
-    }
+    },
+    //Số tin nhắn đã gửi của mỗi người (phục vụ tìm kiếm)
+    messageCounts: [messageCountSchema],
+    //mảng tên đơn giản của thành viên (phục vụ tìm kiếm)
+    participantNameNorms: [String]
 }, {
     timestamps: true
 })
