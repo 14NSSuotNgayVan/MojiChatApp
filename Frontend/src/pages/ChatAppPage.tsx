@@ -26,7 +26,7 @@ const ChatAppPage = () => {
         </SidebarManager>
 
         <SidebarInset>
-          <SidebarProvider>
+          <SidebarProvider defaultOpen={false}>
             {/* main chat content */}
             <SidebarInset>
               <ChatWindowLayout />

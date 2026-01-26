@@ -59,6 +59,7 @@ export interface ChatState {
   activeConversationId: string | null;
   loading: boolean;
   messageLoading: boolean;
+  searchedConversations: Conversation[];
   reset: () => void;
   setActiveConversation: (activeConversation: Conversation | null) => void;
   getConversations: () => Promise<void>;
@@ -81,7 +82,8 @@ export interface ChatState {
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;
   seenMessage: () => void;
-  setUser: (user: User) => void
+  setUser: (user: User) => void;
+  searchConversations: (keyword: string) => Promise<void>;
 }
 interface NewMessageResponse {
   conversation: Pick<

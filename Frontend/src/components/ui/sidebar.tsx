@@ -24,7 +24,7 @@ const SIDEBAR_WIDTH = '24rem';
 const SIDEBAR_WIDTH_MOBILE = '100vw';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
-const MIN_CONTENT_WIDTH = '375px';
+const MIN_CONTENT_WIDTH = '478px';
 
 type SidebarContextProps = {
   state: 'expanded' | 'collapsed';
@@ -62,7 +62,6 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
-
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
   const [_open, _setOpen] = React.useState(defaultOpen);
@@ -672,6 +671,7 @@ type SidebarManagerContextProps = {
   unregister: (name: string) => void;
   use: (name: string) => SidebarContextProps | null;
   list: () => string[];
+  isOverflowIfOpenMore: () => boolean;
 };
 
 const SidebarManagerContext = React.createContext<SidebarManagerContextProps | null>(null);
@@ -699,13 +699,33 @@ function SidebarManagerProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const isOverflowIfOpenMore = React.useCallback(() => {
+    const sidebarListOpen = Object.values(sidebars).filter((sidebar) => sidebar.open);
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const screenWidth = window.innerWidth;
+    const totalWith =
+      Number(SIDEBAR_WIDTH.replace('rem', '')) * (sidebarListOpen.length + 1) * rootFontSize +
+      Number(MIN_CONTENT_WIDTH.replace('px', ''));
+
+    if (totalWith > screenWidth) {
+      return true;
+    }
+    return false;
+  }, [sidebars]);
+
   const list = React.useCallback(() => {
     return Object.keys(sidebars);
   }, [sidebars]);
 
   const value = React.useMemo(
-    () => ({ register, unregister, use: (name: string) => sidebars[name], list }),
-    [register, unregister, sidebars, list]
+    () => ({
+      register,
+      unregister,
+      use: (name: string) => sidebars[name],
+      list,
+      isOverflowIfOpenMore,
+    }),
+    [register, unregister, sidebars, list, isOverflowIfOpenMore]
   );
 
   return <SidebarManagerContext.Provider value={value}>{children}</SidebarManagerContext.Provider>;
@@ -749,9 +769,9 @@ function SidebarManagerTrigger({
 }: React.ComponentProps<typeof Button> & { name: string; icon?: React.ReactNode }) {
   const manager = useSidebarManager();
   const sidebar = manager.use(name);
-  const sidebarList = manager.list();
 
   const handleClickSidebarTrigger = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const sidebarList = manager.list();
     const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
     const screenWidth = window.innerWidth;
     const totalWith =

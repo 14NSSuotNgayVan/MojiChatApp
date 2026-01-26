@@ -11,6 +11,10 @@ export const chatService = {
     const res = await api.get("/conversations");
     return res.data;
   },
+  async searchConversation(params: { keyword: string }): Promise<ConversationResponse> {
+    const res = await api.get("/conversations/search", { params });
+    return res.data;
+  },
   //message
   async fetchMessage(
     conversationId: string,

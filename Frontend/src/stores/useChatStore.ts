@@ -18,6 +18,7 @@ export const useChatStore = create<ChatState>()(
       activeConversation: null,
       loading: false,
       messageLoading: false,
+      searchedConversations: [],
       setActiveConversation: (activeConversation) =>
         set({
           activeConversationId: activeConversation?._id,
@@ -38,6 +39,23 @@ export const useChatStore = create<ChatState>()(
           set({ conversations: res.conversations, users: res.users });
         } catch (error) {
           console.error("Lỗi khi gọi getConversations:", error);
+        } finally {
+          set({ loading: false });
+        }
+      },
+      searchConversations: async (keyword: string) => {
+        try {
+          set({ loading: true });
+          const res = await chatService.searchConversation({ keyword });
+          set({
+            searchedConversations: res?.conversations || [],
+            users: {
+              ...get().users,
+              ...(res?.users ?? {})
+            }
+          })
+        } catch (error) {
+          console.error("Lỗi khi gọi getMessages:", error);
         } finally {
           set({ loading: false });
         }

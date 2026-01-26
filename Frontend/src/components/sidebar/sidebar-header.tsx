@@ -10,6 +10,7 @@ import { useState } from 'react';
 export const Header = () => {
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState<boolean>(false);
   const [openAddChatDialog, setOpenAddChatDialog] = useState<boolean>(false);
+  const [onSearch, setOnSearch] = useState<boolean>(false);
 
   const handleOpenFriendDialog = () => {
     setOpenAddFriendDialog(true);
@@ -22,6 +23,11 @@ export const Header = () => {
   const handleOpenChange = (open: boolean) => {
     setOpenAddFriendDialog(open);
   };
+
+  const handleOnSearchClick = () => {
+    if (!onSearch) setOnSearch(true);
+  };
+
   return (
     <>
       <AddFriendDialog open={openAddFriendDialog} onOpenChange={handleOpenChange} />
@@ -49,24 +55,40 @@ export const Header = () => {
                 type="search"
                 value={''}
                 onChange={() => {}}
+                onClick={handleOnSearchClick}
               />
               <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
                 <SearchIcon className="text-primary" size={16} />
               </div>
             </div>
-            <Button variant="primary" size="sm" onClick={handleOpenAddChatDialog}>
-              <MessageCirclePlus />
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild className="cursor-pointer">
-                <Button variant="primary" size="sm" onClick={handleOpenFriendDialog}>
-                  <UserPlus />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Thêm bạn bè</p>
-              </TooltipContent>
-            </Tooltip>
+            {onSearch ? (
+              <Button variant="primary" size="sm" onClick={() => setOnSearch(false)}>
+                Trở lại
+              </Button>
+            ) : (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild className="cursor-pointer">
+                    <Button variant="primary" size="sm" onClick={handleOpenAddChatDialog}>
+                      <MessageCirclePlus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Tin nhắn mới</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild className="cursor-pointer">
+                    <Button variant="primary" size="sm" onClick={handleOpenFriendDialog}>
+                      <UserPlus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Thêm bạn bè</p>
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            )}
           </div>
         </div>
       </SidebarHeader>

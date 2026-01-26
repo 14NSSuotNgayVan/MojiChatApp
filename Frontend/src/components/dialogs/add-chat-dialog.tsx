@@ -121,17 +121,17 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
             </div>
           </div>
           <div className="flex flex-col gap-1">
-            {filter?.keyword?.trim() ? (
+            {loading ? (
+              <div className="flex justify-center items-center">
+                <div className="w-4">
+                  <Loading />
+                </div>
+              </div>
+            ) : (
               <>
-                <p className="text-foreground text-sm">Kết quả</p>
-                {loading ? (
-                  <div className="flex justify-center items-center">
-                    <div className="w-4">
-                      <Loading />
-                    </div>
-                  </div>
-                ) : (
+                {filter?.keyword?.trim() ? (
                   <>
+                    <p className="text-foreground text-sm">Kết quả</p>
                     {!users?.length ? (
                       <p className="text-primary text-center text-xs">
                         Không tìm thấy bạn bè phù hợp.
@@ -162,37 +162,37 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                       ))
                     )}
                   </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground text-xs text-center">
+                      Nhập tên, email hoặc số điện thoại của người bạn muốn nhắn tin...
+                    </p>
+                    <p className="text-foreground text-sm">Gợi ý</p>
+                    {users?.map((user) => (
+                      <div
+                        className="group flex p-2 items-center justify-between rounded-sm gap-2 dark:hover:bg-muted hover:bg-secondary/50"
+                        onClick={() => {
+                          setCurrentUserId(user._id);
+                          setOpenProfileDialog(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
+                          <p className="">{user.displayName}</p>
+                        </div>
+                        <Button
+                          variant="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleChat(user._id);
+                          }}
+                        >
+                          <Send />
+                        </Button>
+                      </div>
+                    ))}
+                  </>
                 )}
-              </>
-            ) : (
-              <>
-                <p className="text-muted-foreground text-xs text-center">
-                  Nhập tên, email hoặc số điện thoại của người bạn muốn nhắn tin...
-                </p>
-                <p className="text-foreground text-sm">Gợi ý</p>
-                {users?.map((user) => (
-                  <div
-                    className="group flex p-2 items-center justify-between rounded-sm gap-2 dark:hover:bg-muted hover:bg-secondary/50"
-                    onClick={() => {
-                      setCurrentUserId(user._id);
-                      setOpenProfileDialog(true);
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
-                      <p className="">{user.displayName}</p>
-                    </div>
-                    <Button
-                      variant="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleChat(user._id);
-                      }}
-                    >
-                      <Send />
-                    </Button>
-                  </div>
-                ))}
               </>
             )}
           </div>
