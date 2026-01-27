@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Session from "../models/Session.js";
 import crypto from 'crypto';
+import { getNormalizeString } from "../utils/Utils.js";
 
 const ASSET_TOKEN_TTL = '30m';
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; //14 ngày
@@ -23,7 +24,7 @@ export const signUpHandler = async (req, res) => {
         const hashPassword = await bcrypt.hash(password, 10);
 
         await User.create({
-            username, email, displayName, hashPassword
+            username, email, displayName, hashPassword, searchName: getNormalizeString(displayName)
         })
 
         return res.status(201).json({ message: 'User created successfully!' })

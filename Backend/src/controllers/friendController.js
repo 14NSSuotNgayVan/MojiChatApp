@@ -144,6 +144,9 @@ export const getFriendsHandler = async (req, res) => {
                 },
                 $or: [
                     {
+                        searchName: { $regex: "^" + safeKeyword, $options: "i" },
+                    },
+                    {
                         displayName: { $regex: "^" + safeKeyword, $options: "i" },
                     },
                     {

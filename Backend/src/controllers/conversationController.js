@@ -3,11 +3,13 @@ import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import { io } from "../socket/index.js";
 import { convertConversation } from "../utils/conversationHelper.js";
+import { getNormalizeString } from "../utils/Utils.js";
+import User from "../models/User.js";
 
 export const createConversation = async (req, res) => {
     try {
         const { type, name, memberIds } = req.body;
-        const userId = req.user._id;
+        const { _id: userId, searchName } = req.user;
 
         if (!type) {
             return res.status(400).json({ message: "Conversation type must not be empty!" })
@@ -16,6 +18,16 @@ export const createConversation = async (req, res) => {
         if (!memberIds?.length) {
             return res.status(400).json({ message: "Conversation memberIds must not be empty!" })
         }
+
+        const participants = await User.find({
+            _id: {
+                $in: memberIds,
+                $ne: userId
+            }
+        }).select("searchName").lean();
+
+        const participantNameNorms = participants.map(p => p.searchName).concat(searchName);
+
         let conversation;
 
         switch (type) {
@@ -33,9 +45,11 @@ export const createConversation = async (req, res) => {
                 conversation = await Conversation.create({
                     type,
                     participants: [{ userId }, ...filteredMemberIds.values()],
+                    participantNameNorms,
                     lastMessageAt: new Date(),
                     group: {
                         name,
+                        nameNorm: name ? getNormalizeString(name) : undefined,
                         createdBy: userId
                     }
                 })
@@ -44,7 +58,7 @@ export const createConversation = async (req, res) => {
             }
 
             case "direct": {
-                const participantId = memberIds[0];
+                const participantId = memberIds.find(id => id !== userId);
 
                 conversation = await Conversation.findOne({
                     type: "direct",
@@ -59,6 +73,7 @@ export const createConversation = async (req, res) => {
                     conversation = await Conversation.create({
                         type,
                         participants: [{ userId }, { userId: participantId }],
+                        participantNameNorms,
                         lastMessageAt: new Date()
                     })
                 } else {
@@ -94,18 +109,35 @@ export const getConversations = async (req, res) => {
     try {
         const userId = req.user._id;
 
-        const conversations = await Conversation.find({
-            "participants.userId": userId
-        }).sort({
+        const { limit = 20, cursor } = req.query;
+
+        const query = { "participants.userId": userId };
+
+        if (cursor) {
+            query.lastMessageAt = {
+                $lt: new Date(cursor)
+            }
+        }
+
+        const conversations = await Conversation.find(
+            query
+        ).sort({
             lastMessageAt: -1, updateAt: -1
         }).populate([
             {
                 path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
                 options: { lean: true }
             },
-        ]).lean()
+        ]).limit(limit + 1)
 
         const users = {};
+
+        let nextCursor;
+
+        if (conversations.length > Number(limit)) {
+            nextCursor = conversations.pop().lastMessageAt;
+        }
+
         const formattedConversation = conversations.map(conv => ({
             ...conv,
             participants: conv.participants?.map(p => {
@@ -122,6 +154,74 @@ export const getConversations = async (req, res) => {
                 return 0
             }),
         }))
+
+        return res.status(200).json({ message: "Get conversation success!", conversations: formattedConversation, users, nextCursor })
+    } catch (error) {
+        console.error("Error when calling getConversations: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const getConversationsByKeyword = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const { keyword } = req.query;
+
+        const safeKeyword = keyword?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        const query = { "participants.userId": userId };
+        let conversations;
+        if (safeKeyword) {
+
+            query.$or = [
+                { "group.nameNorm": { $regex: safeKeyword, $options: "i" } },
+                { participantNameNorms: { $regex: safeKeyword, $options: "i" } }
+            ]
+
+            conversations = await Conversation.find(
+                query
+            ).sort({
+                lastMessageAt: -1, updateAt: -1
+            }).populate([
+                {
+                    path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
+                    options: { lean: true }
+                },
+            ])
+        } else {
+            conversations = await Conversation.find(
+                query
+            ).sort({
+                messageCount: -1
+            }).limit(20).populate([
+                {
+                    path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
+                    options: { lean: true }
+                },
+            ])
+        }
+
+
+        const users = {};
+
+        const formattedConversation = conversations.map(conv => ({
+            ...conv,
+            participants: conv.participants?.map(p => {
+                if (!users?.[p.userId._id]) {
+                    users[p.userId._id] = p.userId
+                }
+                return ({
+                    _id: p.userId?._id || p.userId,
+                    joinedAt: p.joinedAt
+                })
+            }).sort((a, b) => {
+                if (a._id.toString() === userId.toString()) return 1
+                if (b._id.toString() === userId.toString()) return -1
+                return 0
+            }),
+        }))
+
         return res.status(200).json({ message: "Get conversation success!", conversations: formattedConversation, users })
     } catch (error) {
         console.error("Error when calling getConversations: " + error);

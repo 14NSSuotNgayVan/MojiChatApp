@@ -2,9 +2,10 @@ import User from "../models/User.js";
 import Friend from "../models/Friend.js";
 import mongoose from "mongoose";
 import FriendRequest from "../models/FriendRequest.js";
-import { IMAGE_PRESETS } from "../utils/uploadFileHelper.js";
+import { buildImageUrl, IMAGE_PRESETS } from "../utils/uploadFileHelper.js";
 import { getConversationIds } from "./conversationController.js";
 import { io } from "../socket/index.js";
+import { getNormalizeString } from "../utils/Utils.js";
 
 export const getProfileHandler = (req, res) => {
   try {
@@ -29,6 +30,9 @@ export const findUserHandler = async (req, res) => {
           $nin: [userId]
         },
         $or: [
+          {
+            searchName: { $regex: "^" + safeKeyword, $options: "i" },
+          },
           {
             displayName: { $regex: "^" + safeKeyword, $options: "i" },
           },
@@ -130,6 +134,7 @@ export const updateProfile = async (req, res) => {
       { _id: me._id },
       {
         displayName,
+        searchName: displayName ? getNormalizeString(displayName) : undefined,
         email,
         phone,
         bio,
@@ -143,6 +148,7 @@ export const updateProfile = async (req, res) => {
     const user = {
       ...me,
       displayName: displayName ?? me.displayName,
+      searchName: displayName ? getNormalizeString(displayName) : me.searchName,
       email: email ?? me.email,
       phone: phone ?? me.phone,
       bio: bio ?? me.bio,
@@ -208,6 +214,9 @@ export const getNotFriendsHandler = async (req, res) => {
         $nin: [userId, ...friendIds, ...requestUserIds]
       },
       $or: [
+        {
+          searchName: { $regex: "^" + safeKeyword, $options: "i" },
+        },
         {
           displayName: { $regex: "^" + safeKeyword, $options: "i" },
         },
