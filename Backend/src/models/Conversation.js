@@ -1,9 +1,8 @@
 import mongoose from 'mongoose';
-import moongose from 'mongoose';
 
-const participantSchema = new moongose.Schema({
+const participantSchema = new mongoose.Schema({
     userId: {
-        type: moongose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         require: true
     },
@@ -15,7 +14,7 @@ const participantSchema = new moongose.Schema({
     _id: false
 })
 
-const groupSchema = new moongose.Schema({
+const groupSchema = new mongoose.Schema({
     name: {
         type: String,
         require: false,
@@ -23,7 +22,7 @@ const groupSchema = new moongose.Schema({
     },
     nameNorm: String,
     createdBy: {
-        type: moongose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         require: true
     },
@@ -35,7 +34,7 @@ const groupSchema = new moongose.Schema({
     _id: false
 })
 
-const lastMessageSchema = new moongose.Schema({
+const lastMessageSchema = new mongoose.Schema({
     _id: {
         type: String
     },
@@ -44,7 +43,7 @@ const lastMessageSchema = new moongose.Schema({
         default: null,
     },
     senderId: {
-        type: moongose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
     createdAt: { type: Date, default: null }
@@ -72,12 +71,15 @@ const messageCountSchema = new mongoose.Schema({
         ref: 'User'
     },
     messageCount: {
-        type: String,
+        type: Number,
         default: 0
     }
-})
+},
+    {
+        _id: false
+    })
 
-const conversationSchema = new moongose.Schema({
+const conversationSchema = new mongoose.Schema({
     type: {
         type: String,
         enum: ["direct", "group"],
@@ -104,8 +106,6 @@ const conversationSchema = new moongose.Schema({
         of: Number,
         default: {}
     },
-    //Số tin nhắn đã gửi của mỗi người (phục vụ tìm kiếm)
-    messageCounts: [messageCountSchema],
     //mảng tên đơn giản của thành viên (phục vụ tìm kiếm)
     participantNameNorms: [String]
 }, {
@@ -116,27 +116,9 @@ conversationSchema.index({
     "participants.userId": 1,
     lastMessageAt: -1
 })
-// conversationSchema.set("toJSON", {
-//     virtuals: true,
-//     versionKey: false,
-//     transform: function (doc, ret) {
-//         delete ret.__v;
-//         ret.participants = doc.participants?.map(p => ({
-//             _id: p.userId?._id || p.userId,
-//             displayName: p?.userId?.displayName,
-//             avtUrl: p?.userId?.avtUrl,
-//             joinedAt: p.joinedAt
-//         }))
-//         if (ret.lastMessage)
-//             ret.lastMessage = {
-//                 ...ret.lastMessage,
-//                 senderId: ret.lastMessage.senderId._id,
-//                 senderName: ret.lastMessage.senderId.displayName
-//             }
-//         return ret;
-//     }
-// });
-const Conversation = moongose.model("Conversation", conversationSchema)
+
+
+const Conversation = mongoose.model("Conversation", conversationSchema)
 
 export default Conversation;
 

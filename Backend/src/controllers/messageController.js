@@ -1,4 +1,5 @@
 import Conversation from "../models/Conversation.js";
+import ConversationStats from "../models/ConversationStats.js";
 import Message from "../models/Message.js";
 import { io } from "../socket/index.js";
 import { emmitNewMessage, updateConversationAfterCreateMessage } from "../utils/messageHelper.js";
@@ -19,29 +20,20 @@ export const sendDirectMessage = async (req, res) => {
             if (!conversation) {
                 return res.status(400).json({ message: "Conversation not found!" })
             }
+
         } else {
             if (!recipientId) {
                 return res.status(400).json({ message: "recipientId must not be empty!" })
             }
 
-            const conversationExisted = await Conversation.findOne({
+            conversation = await Conversation.findOne({
                 type: "direct",
                 "participants.userId": { $all: [senderId, recipientId] }
             })
 
-            conversation = conversationExisted ? conversationExisted : await Conversation.create({
-                participants: [
-                    {
-                        userId: senderId, joinedAt: new Date(),
-                    },
-                    {
-                        userId: recipientId, joinedAt: new Date(),
-                    },
-                ],
-                type: "direct",
-                lastMessageAt: new Date(),
-                unreadCounts: new Map()
-            })
+            if (!conversation) {
+                return res.status(400).json({ message: "conversation not existed!" })
+            }
         }
 
         const message = await Message.create({
@@ -49,6 +41,18 @@ export const sendDirectMessage = async (req, res) => {
             content: content,
             senderId: senderId,
         })
+
+        await ConversationStats.updateOne({
+            userId: senderId,
+            conversationId: conversation._id,
+        },
+            {
+                $inc: { messageCount: 1 },
+                $set: { lastMessageAt: message.createdAt }
+            },
+            {
+                upsert: true// cập nhật nếu tồn tại - nếu không => tạo mới
+            })
 
         updateConversationAfterCreateMessage(conversation, message, senderId);
 
@@ -62,10 +66,11 @@ export const sendDirectMessage = async (req, res) => {
         return res.status(500).send();
     }
 }
+
 export const senGroupMessage = async (req, res) => {
     try {
         const { content } = req.body;
-        const me = req.user._id;
+        const senderId = req.user._id;
         const conversation = req.conversation;
 
         if (!content) {
@@ -75,10 +80,21 @@ export const senGroupMessage = async (req, res) => {
         const message = await Message.create({
             conversationId: conversation._id,
             content: content,
-            senderId: me,
+            senderId: senderId,
         })
 
-        updateConversationAfterCreateMessage(conversation, message, me);
+        await ConversationStats.updateOne({
+            userId: senderId,
+            conversationId: conversation._id,
+        },
+            {
+                $inc: { messageCount: 1 },
+                $set: { lastMessageAt: message.createdAt }
+            },
+            {
+                upsert: true// cập nhật nếu tồn tại - nếu không => tạo mới
+            })
+        updateConversationAfterCreateMessage(conversation, message, senderId);
         emmitNewMessage(io, conversation, message, req.user);
 
         await conversation.save();
