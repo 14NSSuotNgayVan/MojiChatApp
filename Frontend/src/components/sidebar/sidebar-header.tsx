@@ -4,13 +4,20 @@ import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { SidebarHeader, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
+import { debounce } from '@/lib/utils.ts';
 import { MessageCirclePlus, SearchIcon, UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 
 export const Header = () => {
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState<boolean>(false);
   const [openAddChatDialog, setOpenAddChatDialog] = useState<boolean>(false);
   const [onSearch, setOnSearch] = useState<boolean>(false);
+
+  const [keyword, setKeyword] = useState<string>('');
+
+  const handleChangeSearch = debounce((e: ChangeEvent<HTMLInputElement>) => {
+    setKeyword(e.target.value);
+  }, 0);
 
   const handleOpenFriendDialog = () => {
     setOpenAddFriendDialog(true);
@@ -53,8 +60,8 @@ export const Header = () => {
                 className="peer h-8 ps-8 pe-2 text-sm"
                 placeholder={'Tìm kiếm...'}
                 type="search"
-                value={''}
-                onChange={() => {}}
+                onTouchCancel={() => setKeyword('')}
+                onChange={handleChangeSearch}
                 onClick={handleOnSearchClick}
               />
               <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">

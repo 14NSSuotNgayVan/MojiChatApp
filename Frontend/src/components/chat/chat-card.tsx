@@ -86,7 +86,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
       </div>
 
       {/* right-section */}
-      <div className="space-y-2 flex flex-col items-end flex-1">
+      <div className="space-y-2 flex flex-col items-end shrink-0">
         {!!lastMessageAt && (
           <div className="text-muted-foreground text-xs">{fromNow(lastMessageAt)}</div>
         )}
