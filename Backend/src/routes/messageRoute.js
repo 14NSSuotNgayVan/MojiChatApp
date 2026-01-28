@@ -4,7 +4,7 @@ import { checkFriendShips, checkGroupMembership } from '../middlewares/friendMid
 
 const messageRoute = express.Router();
 
-messageRoute.post("/direct", checkFriendShips, sendDirectMessage)
+messageRoute.post("/direct", sendDirectMessage)
 messageRoute.post("/group", checkGroupMembership, senGroupMessage)
 
 export default messageRoute;

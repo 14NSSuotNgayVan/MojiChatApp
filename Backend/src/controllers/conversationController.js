@@ -5,6 +5,7 @@ import { io } from "../socket/index.js";
 import { convertConversation } from "../utils/conversationHelper.js";
 import { getNormalizeString } from "../utils/Utils.js";
 import User from "../models/User.js";
+import ConversationStats from "../models/ConversationStats.js";
 
 export const createConversation = async (req, res) => {
     try {
@@ -128,7 +129,7 @@ export const getConversations = async (req, res) => {
                 path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
                 options: { lean: true }
             },
-        ]).limit(limit + 1)
+        ]).limit(limit + 1).lean()
 
         const users = {};
 
@@ -172,6 +173,7 @@ export const getConversationsByKeyword = async (req, res) => {
 
         const query = { "participants.userId": userId };
         let conversations;
+
         if (safeKeyword) {
 
             query.$or = [
@@ -189,12 +191,26 @@ export const getConversationsByKeyword = async (req, res) => {
                     options: { lean: true }
                 },
             ])
+
         } else {
+
+            const mostFrequentlyChat = await ConversationStats.find({
+                userId: userId,
+            }).sort({
+                messageCount: -1
+            }).limit(20).lean()
+            
+            if (!mostFrequentlyChat?.length) return res.status(200).json({ message: "Get conversation success!", conversations: [], users: {} });
+
+            const chatIds = mostFrequentlyChat?.map(c => c._id);
+
+            query._id = {
+                $in: chatIds
+            }
+
             conversations = await Conversation.find(
                 query
-            ).sort({
-                messageCount: -1
-            }).limit(20).populate([
+            ).populate([
                 {
                     path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
                     options: { lean: true }
