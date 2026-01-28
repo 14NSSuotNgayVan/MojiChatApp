@@ -11,6 +11,7 @@ import { useSocketStore } from "./useSocketStore.ts";
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
+      isSearching: false,
       conversations: [],
       messages: {},
       users: {},
@@ -103,11 +104,11 @@ export const useChatStore = create<ChatState>()(
       getDefaultGroupName: (participants) => {
         const users = get().users;
         return participants
-          ? `${participants
+          ? `Bạn, ${participants
             .slice(0, 2)
             .map((p) => users[p?._id]?.displayName)
             .join(", ")
-            .concat("")} ${participants.length > 2 ? "và những người khác" : ""
+            .concat("")} ${participants.length > 3 ? "và những người khác" : ""
           }`
           : "";
       },

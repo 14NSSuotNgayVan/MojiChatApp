@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input.tsx';
 import Loading from '@/components/ui/loading.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
-import { debounce } from '@/lib/utils.ts';
+import { debounce, getNormalizeString } from '@/lib/utils.ts';
 import { friendService } from '@/services/friendService.ts';
 import type { ReceivedRequest, SentRequest } from '@/types/user.ts';
 import { Check, SearchIcon, Undo2, UserRoundCheck, UserRoundX, X } from 'lucide-react';
@@ -321,7 +321,7 @@ export const FriendsDialog = ({ open, onOpenChange }: DialogProps) => {
   const [keyword, setKeyword] = useState<string>('');
 
   const handleSearch = debounce((e) => {
-    setKeyword(e?.target?.value);
+    setKeyword(getNormalizeString(e?.target?.value));
   }, 500);
 
   const handleOpenChange = (open: boolean) => {

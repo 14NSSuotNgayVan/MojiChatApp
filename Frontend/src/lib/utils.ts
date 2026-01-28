@@ -52,7 +52,15 @@ export function getAcronym(input: string): string {
     .join("");
 }
 
-export const stringToHexColor = (str: string): any => {
+export const getNormalizeString = (input: string) => {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/Đ/g, 'D')
+    .replace(/đ/g, 'd');
+};
+
+export const stringToHexColor = (str: string): { backgroundColor: string, color: string } => {
   let hash = 0;
   for (let i = 0; i < str?.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);

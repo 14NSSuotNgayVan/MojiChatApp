@@ -45,7 +45,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   return (
     <div
       className={cn(
-        'group/item flex items-center w-full gap-2 px-2 py-2 hover:bg-muted rounded-sm cursor-pointer',
+        'group/item flex items-center w-full gap-2 px-2 py-2 hover:bg-accent/50 rounded-sm cursor-pointer',
         isActive && 'bg-accent hover:bg-accent'
       )}
       onClick={handleClickConversation}
@@ -65,7 +65,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
 
       {/* center-section */}
       <div className="space-y-1 flex-1">
-        <div className="font-medium truncate text-sm">
+        <div className="font-medium truncate max-w-56 text-sm">
           {type === 'direct'
             ? users[participants[0]._id]?.displayName
             : group?.name || getDefaultGroupName(participants)}
@@ -73,7 +73,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
         {!!lastMessage && user ? (
           <div
             className={cn(
-              'text-muted-foreground text-xs',
+              'text-muted-foreground text-xs truncate max-w-56',
               !!unreadCounts?.[user._id] && 'text-[unset]'
             )}
           >
@@ -122,6 +122,55 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
               {user && unreadCounts?.[user._id] ? unreadCounts?.[user._id] : ''}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ChatCardSearch = ({ conversation, isActive }: ChatCardProps) => {
+  const { setOpenMobile } = useSidebar();
+  const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading } =
+    useChatStore();
+  const { _id: conversationId, type, participants, group } = conversation;
+
+  const handleClickConversation = async () => {
+    if (messageLoading) return;
+    setOpenMobile(false);
+    const success = await getMessages(conversationId);
+    setActiveConversation(success ? conversation : null);
+  };
+
+  return (
+    <div
+      className={cn(
+        'group/item flex items-center w-full gap-2 px-2 py-2 hover:bg-accent/50 rounded-sm cursor-pointer',
+        isActive && 'bg-accent hover:bg-accent'
+      )}
+      onClick={handleClickConversation}
+    >
+      {/* left-section */}
+      {type === 'direct' ? (
+        <div className="flex w-12 h-12 items-center justify-center shrink-0">
+          <OnlineAvatar
+            name={users[participants[0]._id]?.displayName || ''}
+            avatarUrl={users[participants[0]._id]?.avtUrl}
+            userId={participants[0]._id}
+          />
+        </div>
+      ) : (
+        <GroupAvatar avtUrl={group?.avtUrl} participants={participants} />
+      )}
+
+      {/* center-section */}
+      <div className="space-y-1 flex-1">
+        <div className="font-medium truncate text-sm">
+          {type === 'direct'
+            ? users[participants[0]._id]?.displayName
+            : group?.name || getDefaultGroupName(participants)}
+        </div>
+        <div className={cn('text-muted-foreground text-xs truncate max-w-56')}>
+          {group?.name && getDefaultGroupName(participants)}
         </div>
       </div>
     </div>

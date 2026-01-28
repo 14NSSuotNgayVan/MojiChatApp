@@ -5,7 +5,6 @@ import { ChatEmptyMessageWelcome } from './chat-empty-message-welcome.tsx';
 
 import { FriendMessageGroup, OwnerMessageGroup } from './message.tsx';
 import { useChatScroll } from '../../hooks/use-chat-scroll.ts';
-import Loading from '../ui/loading.tsx';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { ArrowDown } from 'lucide-react';
 import { Button } from '../ui/button.tsx';
@@ -50,9 +49,27 @@ export const ChatWindowInset = () => {
       ref={scrollRef}
     >
       {messageLoading && (
-        <div className="flex justify-center">
-          <Loading />
-        </div>
+        <>
+          <div className="flex w-2/3 gap-2">
+            <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
+            <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+          </div>
+          {/* friend message */}
+          <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
+            <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+          </div>
+          <div className="flex w-1/3 gap-2 flex-row-reverse self-end">
+            <div className="bg-muted/50 aspect-video rounded-xl grow h-12" />
+          </div>
+          <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
+            <div className="bg-muted/50 aspect-video rounded-xl grow h-12" />
+          </div>
+
+          <div className="flex w-2/3 gap-2">
+            <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
+            <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+          </div>
+        </>
       )}
       {messageGroups?.map((group: MessageGroup) =>
         group.isOwner ? (

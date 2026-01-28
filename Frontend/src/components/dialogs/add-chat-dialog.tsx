@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.tsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import Loading from '@/components/ui/loading.tsx';
-import { debounce } from '@/lib/utils.ts';
+import { debounce, getNormalizeString } from '@/lib/utils.ts';
 import { chatService } from '@/services/chatService.ts';
 import { friendService } from '@/services/friendService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
@@ -36,7 +36,7 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
   const [users, setUsers] = useState<NotUser[]>([]);
 
   const handleSearch = debounce((e) => {
-    setFilter((prev) => ({ ...prev, keyword: e?.target?.value }));
+    setFilter((prev) => ({ ...prev, keyword: getNormalizeString(e?.target?.value) }));
   }, 500);
 
   const handleGetFriends = async () => {

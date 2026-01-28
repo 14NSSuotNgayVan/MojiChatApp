@@ -12,14 +12,16 @@ class AuthRefreshController {
 
     this.isRefreshing = true;
 
-    this.refreshPromise = new Promise(async (resolve, reject) => {
+    this.refreshPromise = new Promise((resolve, reject) => {
       try {
-        const res = await authService.refreshToken();
-        const newToken = res.accessToken;
+        authService.refreshToken().then((res) => {
 
-        useAuthStore.getState().setAccessToken(newToken);
+          const newToken = res.accessToken;
 
-        resolve(newToken);
+          useAuthStore.getState().setAccessToken(newToken);
+
+          resolve(newToken);
+        });
       } catch (err) {
         reject(err);
       } finally {

@@ -4,20 +4,28 @@ import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { SidebarHeader, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
-import { debounce } from '@/lib/utils.ts';
+import { debounce, getNormalizeString } from '@/lib/utils.ts';
+import { useChatStore } from '@/stores/useChatStore.ts';
 import { MessageCirclePlus, SearchIcon, UserPlus } from 'lucide-react';
-import { useState, type ChangeEvent } from 'react';
+import { useCallback, useState, type ChangeEvent } from 'react';
 
 export const Header = () => {
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState<boolean>(false);
   const [openAddChatDialog, setOpenAddChatDialog] = useState<boolean>(false);
-  const [onSearch, setOnSearch] = useState<boolean>(false);
+  const { searchConversations, isSearching } = useChatStore();
 
   const [keyword, setKeyword] = useState<string>('');
 
-  const handleChangeSearch = debounce((e: ChangeEvent<HTMLInputElement>) => {
-    setKeyword(e.target.value);
-  }, 0);
+  const handleSearch = debounce((value: string) => {
+    searchConversations(getNormalizeString(value));
+  }, 500);
+
+  const handleChangeSearch = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const value = getNormalizeString(e.target.value);
+    setKeyword(value);
+    handleSearch(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenFriendDialog = () => {
     setOpenAddFriendDialog(true);
@@ -32,7 +40,21 @@ export const Header = () => {
   };
 
   const handleOnSearchClick = () => {
-    if (!onSearch) setOnSearch(true);
+    if (!isSearching) {
+      searchConversations('');
+      useChatStore.setState({
+        isSearching: true,
+      });
+    }
+  };
+
+  const handleOnBackClick = () => {
+    if (isSearching) {
+      setKeyword('');
+      useChatStore.setState({
+        isSearching: false,
+      });
+    }
   };
 
   return (
@@ -60,16 +82,17 @@ export const Header = () => {
                 className="peer h-8 ps-8 pe-2 text-sm"
                 placeholder={'Tìm kiếm...'}
                 type="search"
-                onTouchCancel={() => setKeyword('')}
+                value={keyword}
                 onChange={handleChangeSearch}
                 onClick={handleOnSearchClick}
+                onTouchCancel={() => setKeyword('')}
               />
               <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
                 <SearchIcon className="text-primary" size={16} />
               </div>
             </div>
-            {onSearch ? (
-              <Button variant="primary" size="sm" onClick={() => setOnSearch(false)}>
+            {isSearching ? (
+              <Button variant="primary" size="sm" onClick={handleOnBackClick} className="w-[76px]">
                 Trở lại
               </Button>
             ) : (

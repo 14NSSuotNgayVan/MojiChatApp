@@ -3,7 +3,7 @@ import { OthersProfileDialog } from '@/components/dialogs/others-profile-dialog.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import Loading from '@/components/ui/loading.tsx';
-import { debounce } from '@/lib/utils.ts';
+import { debounce, getNormalizeString } from '@/lib/utils.ts';
 import { userService } from '@/services/userService.ts';
 import { SearchIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -33,7 +33,7 @@ export const AddFriendDialog = ({ open, onOpenChange }: DialogProps) => {
   const [users, setUsers] = useState<NotUser[]>([]);
 
   const handleSearch = debounce((e) => {
-    setFilter((prev) => ({ ...prev, keyword: e?.target?.value }));
+    setFilter((prev) => ({ ...prev, keyword: getNormalizeString(e?.target?.value) }));
   }, 500);
 
   const handleGetUsers = async () => {

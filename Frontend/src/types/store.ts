@@ -45,6 +45,7 @@ export interface ThemeState {
 }
 
 export interface ChatState {
+  isSearching: boolean;
   conversations: Conversation[];
   activeConversation: Conversation | null;
   users: Record<string, User>,
