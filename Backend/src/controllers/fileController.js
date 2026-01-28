@@ -48,6 +48,26 @@ export const getBgSignature = async (req, res) => {
     }
 }
 
+export const getImageSignature = async (req, res) => {
+    try {
+        const user = req.user;
+        const { conversationId } = req.query;
+        const folder = `conv/${conversationId}/${user._id.toString()}/`;
+        const sig = generateSignature(folder);
+
+        res.status(200).json({
+            cloudName: process.env.CLOUD_NAME,
+            apiKey: process.env.CLOUD_API_KEY,
+            folder,
+            ...sig,
+        });
+
+    } catch (error) {
+        console.error("Error when calling getImageSignature: " + error);
+        return res.status(500).send();
+    }
+}
+
 export const deleteFile = async (req, res) => {
     try {
         const user = req.user;

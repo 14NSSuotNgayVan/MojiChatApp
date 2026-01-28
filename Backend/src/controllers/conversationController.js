@@ -190,7 +190,7 @@ export const getConversationsByKeyword = async (req, res) => {
                     path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
                     options: { lean: true }
                 },
-            ])
+            ]).lean()
 
         } else {
 
@@ -199,10 +199,10 @@ export const getConversationsByKeyword = async (req, res) => {
             }).sort({
                 messageCount: -1
             }).limit(20).lean()
-            
+
             if (!mostFrequentlyChat?.length) return res.status(200).json({ message: "Get conversation success!", conversations: [], users: {} });
 
-            const chatIds = mostFrequentlyChat?.map(c => c._id);
+            const chatIds = mostFrequentlyChat?.map(c => c.conversationId);
 
             query._id = {
                 $in: chatIds
@@ -215,7 +215,7 @@ export const getConversationsByKeyword = async (req, res) => {
                     path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
                     options: { lean: true }
                 },
-            ])
+            ]).lean()
         }
 
 

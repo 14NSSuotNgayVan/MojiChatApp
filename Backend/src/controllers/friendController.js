@@ -147,9 +147,6 @@ export const getFriendsHandler = async (req, res) => {
                         searchName: { $regex: "^" + safeKeyword, $options: "i" },
                     },
                     {
-                        displayName: { $regex: "^" + safeKeyword, $options: "i" },
-                    },
-                    {
                         email: { $regex: "^" + safeKeyword, $options: "i" },
                     },
                     { phone: { $regex: "^" + safeKeyword, $options: "i" } },
