@@ -45,7 +45,7 @@ export const ChatWindowInset = () => {
 
   return (
     <div
-      className="flex flex-1 flex-col gap-4 p-4 overflow-y-auto text-base select-none"
+      className="flex h-full flex-col gap-4 p-4 overflow-y-auto text-base select-none"
       ref={scrollRef}
     >
       {messageLoading && (
@@ -80,7 +80,7 @@ export const ChatWindowInset = () => {
       )}
       {!isAtBottom && (
         <div
-          className="flex absolute gap-2 items-center p-2 bottom-16 rounded-full left-1/2 -translate-x-1/2 bg-accent cursor-pointer"
+          className="flex absolute gap-2 items-center p-2 bottom-4 rounded-full left-1/2 -translate-x-1/2 bg-accent cursor-pointer"
           onClick={scrollToBottom}
         >
           {user && !!activeConversation?.unreadCounts?.[user._id] && (
@@ -91,11 +91,7 @@ export const ChatWindowInset = () => {
               </div>
             </>
           )}
-          <Button
-            asChild
-            variant="ghost"
-            className="bg-background transition-colors size-10 p-2 rounded-full"
-          >
+          <Button asChild variant="ghost" className="transition-colors size-6 p-1 rounded-full">
             <ArrowDown />
           </Button>
         </div>
