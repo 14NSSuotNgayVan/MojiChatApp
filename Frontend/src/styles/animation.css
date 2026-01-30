@@ -38,3 +38,25 @@
 .zoom-in {
     animation: zoomIn 0.3s ease-in-out 1;
 }
+
+@keyframes fadedOut {
+    0% {
+        opacity: 1;
+        display: block;
+    }
+
+    90% {
+        display: block;
+        opacity: 1;
+    }
+
+    100% {
+        display: none;
+        opacity: 0;
+    }
+}
+
+.progress-faded-out {
+    display: none;
+    animation: fadedOut 1.1s ease-out 1;
+}

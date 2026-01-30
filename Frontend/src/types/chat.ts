@@ -39,15 +39,16 @@ export interface Conversation {
 
 export interface ConversationResponse {
   conversations: Conversation[];
-  users: Record<string,User>,
+  users: Record<string, User>,
 }
 
 export interface Message {
   _id: string;
+  type: 'text' | 'image' | 'system',
   conversationId: string;
   senderId: string;
   content: string | null;
-  imgUrl?: string | null;
+  imgUrls?: [string];
   updatedAt?: string | null;
   createdAt: string;
   isOwner?: boolean;

@@ -1,45 +1,35 @@
-import type { ReactNode } from "react";
-import {
-  cn,
-  getAcronym,
-  getMessageTime,
-  stringToHexColor,
-} from "../../lib/utils.ts";
-import { useSocketStore } from "../../stores/useSocketStore.ts";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip.tsx";
-import { useChatStore } from "../../stores/useChatStore.ts";
+import type { ReactNode } from 'react';
+import { cn, getAcronym, getMessageTime, stringToHexColor } from '../../lib/utils.ts';
+import { useSocketStore } from '../../stores/useSocketStore.ts';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip.tsx';
+import { useChatStore } from '../../stores/useChatStore.ts';
 
 export const Avatar = ({
   avatarUrl,
   name,
   className,
-  layer
+  layer,
 }: {
   name: string;
   avatarUrl?: string | null;
   className?: string;
-  layer?: ReactNode
+  layer?: ReactNode;
 }) => {
   return (
-    <div
-      className={cn(
-        "rounded-full overflow-hidden w-10 h-10 shrink-0",
-        className
-      )}
-    >
+    <div className={cn('rounded-full overflow-hidden w-10 h-10 shrink-0', className)}>
       {layer && layer}
       {avatarUrl ? (
         <img className="w-full h-full object-cover" src={avatarUrl}></img>
       ) : (
         <div
           className="w-full h-full flex items-center justify-center font-semibold"
-          style={stringToHexColor(getAcronym(name || ""))}
+          style={stringToHexColor(getAcronym(name || ''))}
         >
           {String(name)
-            .split(" ")
+            .split(' ')
             .slice(0, 2)
             .map((word) => word.charAt(0))
-            .join("")}
+            .join('')}
         </div>
       )}
     </div>
@@ -61,12 +51,12 @@ export const OnlineAvatar = ({
   const isOnline = onlineUsers.includes(userId);
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn('relative', className)}>
       <Avatar avatarUrl={avatarUrl} name={name} />
       <div
         className={cn(
-          "rounded-full border-2 border-background w-3 h-3 absolute bottom-0 right-0",
-          isOnline ? "bg-green-500" : "bg-gray-300"
+          'rounded-full border-2 border-background w-3 h-3 absolute bottom-0 right-0',
+          isOnline ? 'bg-green-500' : 'bg-gray-300'
         )}
       ></div>
     </div>
@@ -77,11 +67,13 @@ interface SeenUser {
   lastSeenAt: Date;
 }
 export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
-  const { users } = useChatStore()
+  const { users } = useChatStore();
   const SHOW_LIMIT = 4;
 
   const showUser = seenUsers.slice(0, SHOW_LIMIT - 1);
   const hiddenUser = seenUsers.slice(SHOW_LIMIT - 1);
+
+  if (!showUser?.length) return;
 
   return (
     <div className="flex items-center justify-end gap-[0.5px]">

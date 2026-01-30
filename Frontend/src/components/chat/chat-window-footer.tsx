@@ -9,12 +9,14 @@ import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { fileService } from '@/services/fileService.ts';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils.ts';
+import CircularProgress from '@/components/progress-10.tsx';
 
 type UploadImage = {
   id: string;
   file: File;
   preview: string; // base64 từ FileReader
   publicUrl?: string; // url Cloudinary
+  publicId?: string; // id Cloudinary
   status: 'pending' | 'uploading' | 'done' | 'error';
 };
 
@@ -61,6 +63,7 @@ export const ChatWindowFooter = () => {
                   ? {
                       ...img,
                       publicUrl: res.secure_url,
+                      publicId: res.public_id,
                       status: 'done',
                     }
                   : img
@@ -80,13 +83,15 @@ export const ChatWindowFooter = () => {
 
   const handleSendMessgae = async () => {
     const content = value;
+    const imgUrls = files?.map((i) => i.publicUrl!);
     setValue('');
+    setFiles([]);
     if (activeConversation?.type === 'direct') {
       const friend = activeConversation.participants.find((u) => u._id !== user!._id);
 
-      await sendDirectMessage(activeConversationId!, friend!._id, content);
+      await sendDirectMessage(activeConversationId!, friend!._id, content, imgUrls);
     } else {
-      await sendGroupMessage(activeConversationId!, content);
+      await sendGroupMessage(activeConversationId!, content, imgUrls);
     }
   };
 
@@ -100,9 +105,38 @@ export const ChatWindowFooter = () => {
     }
   };
 
-  const handleDeleteImage = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+  const handleDeleteImage = (img: UploadImage) => {
+    setFiles((prev) => prev.filter((f) => f.id !== img.id));
+    if (!img.publicId) return;
+    try {
+      fileService.deleteFile(img.publicId);
+    } catch (error) {
+      console.log(error);
+    }
   };
+
+  const getProgress = (status: 'pending' | 'uploading' | 'done' | 'error') => {
+    switch (status) {
+      case 'pending': {
+        return 0;
+      }
+      case 'uploading': {
+        return 20;
+      }
+      case 'done': {
+        return 100;
+      }
+      case 'error': {
+        return 0;
+      }
+      default: {
+        return 0;
+      }
+    }
+  };
+
+  const isSendable =
+    value.trim() || (files?.length ? files?.every((f) => f?.status === 'done') : false);
 
   return (
     <footer className="p-2 flex border-t gap-2 items-center">
@@ -125,11 +159,27 @@ export const ChatWindowFooter = () => {
         <div className="absolute pt-2 mx-4 flex gap-2 overflow-x-auto">
           {files.map((i) => (
             <div className="relative shrink-0">
+              {/* progress */}
+              <div
+                className={cn(
+                  'absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 z-30',
+                  i.status === 'done' && 'progress-faded-out'
+                )}
+              >
+                <CircularProgress
+                  className="stroke-gray-500"
+                  progressClassName="stroke-white"
+                  size={40}
+                  strokeWidth={4}
+                  value={getProgress(i.status)}
+                />
+              </div>
+              {/* nút xóa */}
               <CircleX
-                className="absolute right-0 size-4 text-white hover:bg-muted-foreground dark:hover:bg-muted-foreground/50 rounded-full cursor-pointer"
-                onClick={() => handleDeleteImage(i.id)}
+                className="absolute right-0 size-4 text-white bg-muted-foreground dark:bg-muted-foreground/50 rounded-full cursor-pointer"
+                onClick={() => handleDeleteImage(i)}
               />
-              <img src={i.preview} className="w-14 h-14 rounded-md" />
+              <img src={i.preview} className="w-14 h-14 rounded-md object-contain border" />
             </div>
           ))}
         </div>
@@ -145,7 +195,7 @@ export const ChatWindowFooter = () => {
               handleSendMessgae();
             }
           }}
-          className={cn('pr-8 h-10', !!files?.length && 'h-28 pt-18')}
+          className={cn('pr-8 h-10', !!files?.length && 'h-28 pt-18 transition-all')}
         ></Input>
 
         {/* Modal icon */}
@@ -154,8 +204,6 @@ export const ChatWindowFooter = () => {
             asChild
             className="cursor-pointer absolute bottom-1.5 right-0.5 resize-none"
           >
-            {/* <Button variant="ghost" className="hover:bg-none! transition-colors size-9 p-1!">
-            </Button> */}
             <Smile className="hover:bg-accent size-7 transition-colors p-1 rounded-full" />
           </PopoverTrigger>
           <PopoverContent className="w-fit p-0 m-2" align="end">
@@ -176,7 +224,7 @@ export const ChatWindowFooter = () => {
         variant="ghost"
         className="hover:bg-accent transition-colors size-9 p-2"
         onClick={handleSendMessgae}
-        disabled={!value.trim()}
+        disabled={!isSendable}
       >
         <Send />
       </Button>

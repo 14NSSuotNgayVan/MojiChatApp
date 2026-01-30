@@ -150,7 +150,7 @@ export const EditAvatarForm = ({ handleBack, updateType }: { handleBack: () => v
       if (files.length > 0) {
         const res = await (isUpdateAvatar ? fileService.uploadAvatar : fileService.uploadBackground)(files[0])
         setFilePreview(res.url);
-        filePreviewRef.current = res.url;
+        filePreviewRef.current = res.public_id;
       }
     } catch (error) {
       console.log(error)
