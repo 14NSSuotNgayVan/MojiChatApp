@@ -46,6 +46,11 @@ const lastMessageSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
+    type: {
+        type: String,
+        enum: ['text', 'image', 'system'],
+        default: 'text'
+    },
     createdAt: { type: Date, default: null }
 },
     {

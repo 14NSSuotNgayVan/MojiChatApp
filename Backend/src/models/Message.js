@@ -12,12 +12,15 @@ const messageSchema = new moongose.Schema({
         ref: 'User',
         require: true
     },
+    type: {
+        type: String,
+        enum: ['text', 'image', 'system'],
+        default: 'text'
+    },
     content: {
         type: String
     },
-    imgUrl: {
-        type: String
-    }
+    imgUrls: [String]
 }, {
     timestamps: true
 })
