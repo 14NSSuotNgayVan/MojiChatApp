@@ -5,7 +5,8 @@ export const updateConversationAfterCreateMessage = (conversation, message, send
             _id: message._id,
             content: message.content,
             senderId: senderId,
-            createdAt: message.createdAt
+            createdAt: message.createdAt,
+            type: message.type
         }
     })
 
@@ -29,7 +30,8 @@ export const emmitNewMessage = (io, conversation, message, sender) => {
                 content: message.content,
                 senderId: message.senderId,
                 senderName: sender.displayName,
-                createdAt: message.createdAt
+                createdAt: message.createdAt,
+                type: message.type
             },
             unreadCounts: conversation.unreadCounts,
         },

@@ -6,12 +6,12 @@ import { emmitNewMessage, updateConversationAfterCreateMessage } from "../utils/
 
 export const sendDirectMessage = async (req, res) => {
     try {
-        const { recipientId, content, conversationId } = req.body;
+        const { recipientId, content, imgUrls, conversationId } = req.body;
         const senderId = req.user._id;
 
         let conversation;
 
-        if (!content) {
+        if (!content && !imgUrls?.length) {
             return res.status(400).json({ message: "Content must not be empty!" })
         }
 
@@ -40,6 +40,8 @@ export const sendDirectMessage = async (req, res) => {
             conversationId: conversation._id,
             content: content,
             senderId: senderId,
+            imgUrls: imgUrls,
+            type: imgUrls?.length ? 'image' : 'text'
         })
 
         await ConversationStats.updateOne({
@@ -69,11 +71,11 @@ export const sendDirectMessage = async (req, res) => {
 
 export const senGroupMessage = async (req, res) => {
     try {
-        const { content } = req.body;
+        const { content, imgUrls } = req.body;
         const senderId = req.user._id;
         const conversation = req.conversation;
 
-        if (!content) {
+        if (!content && !imgUrls?.length) {
             return res.status(400).json({ message: "content must not be empty!" })
         }
 
@@ -81,6 +83,8 @@ export const senGroupMessage = async (req, res) => {
             conversationId: conversation._id,
             content: content,
             senderId: senderId,
+            imgUrls: imgUrls,
+            type: imgUrls?.length ? 'image' : 'text'
         })
 
         await ConversationStats.updateOne({
