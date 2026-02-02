@@ -1,3 +1,4 @@
+import type { FileRequest } from "@/types/store.ts";
 import api from "../lib/axios.ts";
 import type { Conversation, ConversationResponse } from "../types/chat.ts";
 
@@ -27,22 +28,22 @@ export const chatService = {
     conversationId: string,
     recipientId: string,
     content: string = "",
-    imgUrls?: string[]
+    media?: FileRequest[]
   ) {
     const res = await api.post("/message/direct", {
       conversationId,
       recipientId,
       content,
-      imgUrls
+      media
     });
     return res.data.message;
   },
   async sendGroupMessage(conversationId: string, content: string = "",
-    imgUrls?: string[]) {
+    media?: FileRequest[]) {
     const res = await api.post("/message/group", {
       conversationId,
       content,
-      imgUrls
+      media
     });
     return res.data.message;
   },

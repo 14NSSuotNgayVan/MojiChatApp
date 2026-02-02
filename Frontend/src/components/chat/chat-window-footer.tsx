@@ -18,6 +18,7 @@ type UploadImage = {
   publicUrl?: string; // url Cloudinary
   publicId?: string; // id Cloudinary
   status: 'pending' | 'uploading' | 'done' | 'error';
+  type: 'image' | 'video' | 'file';
 };
 
 export const ChatWindowFooter = () => {
@@ -49,6 +50,7 @@ export const ChatWindowFooter = () => {
                 file,
                 preview: (e.target?.result as string) || '',
                 status: 'uploading',
+                type: 'image',
               },
             ]);
           }
@@ -65,6 +67,7 @@ export const ChatWindowFooter = () => {
                       publicUrl: res.secure_url,
                       publicId: res.public_id,
                       status: 'done',
+                      type: 'image',
                     }
                   : img
               )
@@ -81,17 +84,17 @@ export const ChatWindowFooter = () => {
     },
   });
 
-  const handleSendMessgae = async () => {
+  const handleSendMessage = async () => {
     const content = value;
-    const imgUrls = files?.map((i) => i.publicUrl!);
+    const media = files?.map((i) => ({ url: i.publicUrl!, type: i?.type }));
     setValue('');
     setFiles([]);
     if (activeConversation?.type === 'direct') {
       const friend = activeConversation.participants.find((u) => u._id !== user!._id);
 
-      await sendDirectMessage(activeConversationId!, friend!._id, content, imgUrls);
+      await sendDirectMessage(activeConversationId!, friend!._id, content, media);
     } else {
-      await sendGroupMessage(activeConversationId!, content, imgUrls);
+      await sendGroupMessage(activeConversationId!, content, media);
     }
   };
 
@@ -192,7 +195,7 @@ export const ChatWindowFooter = () => {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.repeat) {
               e.preventDefault();
-              handleSendMessgae();
+              handleSendMessage();
             }
           }}
           className={cn('pr-8 h-10', !!files?.length && 'h-28 pt-18 transition-all')}
@@ -223,7 +226,7 @@ export const ChatWindowFooter = () => {
         size="sm"
         variant="ghost"
         className="hover:bg-accent transition-colors size-9 p-2"
-        onClick={handleSendMessgae}
+        onClick={handleSendMessage}
         disabled={!isSendable}
       >
         <Send />

@@ -137,22 +137,22 @@ export const useChatStore = create<ChatState>()(
         });
         return groupMessages;
       },
-      sendDirectMessage: async (conversationId, recipientId, content, imgUrls) => {
+      sendDirectMessage: async (conversationId, recipientId, content, media) => {
         try {
           await chatService.sendDirectMessage(
             conversationId,
             recipientId,
             content,
-            imgUrls
+            media
           );
         } catch (error) {
           console.error(error);
           toast.error("Lỗi khi gửi tin nhắn!");
         }
       },
-      sendGroupMessage: async (conversationId, content, imgUrls) => {
+      sendGroupMessage: async (conversationId, content, media) => {
         try {
-          await chatService.sendGroupMessage(conversationId, content, imgUrls);
+          await chatService.sendGroupMessage(conversationId, content, media);
         } catch (error) {
           console.error(error);
           toast.error("Lỗi khi gửi tin nhắn!");

@@ -20,7 +20,7 @@ const getMessageSeender = (seenByUsers: SeenBy[], messageId: string, userId: str
   return seenByUsers.filter((i) => i.messageId === messageId && userId !== i.userId);
 };
 
-export const FriendMessage = ({
+export const OtherMessage = ({
   message,
   indexMessageType,
 }: {
@@ -106,30 +106,38 @@ export const FriendMessage = ({
               {message.content}
             </div>
           )}
-          {message.type === 'image' &&
-            !!message.imgUrls?.length &&
-            message.imgUrls?.map((img) => (
-              <img
-                src={img}
-                className={cn(
-                  'w-full max-w-2xs rounded-md',
-                  ...(message?.content
-                    ? [
-                        indexType.isSingle && 'rounded-3xl rounded-tl-sm',
-                        indexType.isFirst && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-                        indexType.isLast && 'rounded-3xl rounded-tl-sm',
-                        indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-                      ]
-                    : [
-                        indexType.isSingle && 'rounded-2xl',
-                        indexType.isFirst && 'rounded-3xl rounded-bl-sm',
-                        indexType.isLast && 'rounded-3xl rounded-tl-sm',
-                        indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-                        isShowDes && !indexType.isFirst && 'rounded-2xl',
-                      ])
-                )}
-              />
-            ))}
+          {message.type === 'image' && message.imgUrls?.length === 1 && (
+            <img
+              src={message.imgUrls?.[0]}
+              className={cn(
+                'w-full max-w-2xs rounded-md',
+                ...(message?.content
+                  ? [
+                      indexType.isSingle && 'rounded-3xl rounded-tl-sm',
+                      indexType.isFirst && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+                      indexType.isLast && 'rounded-3xl rounded-tl-sm',
+                      indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+                    ]
+                  : [
+                      indexType.isSingle && 'rounded-2xl',
+                      indexType.isFirst && 'rounded-3xl rounded-bl-sm',
+                      indexType.isLast && 'rounded-3xl rounded-tl-sm',
+                      indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+                      isShowDes && !indexType.isFirst && 'rounded-2xl',
+                    ])
+              )}
+            />
+          )}
+          {message.type === 'image' && message?.imgUrls?.length && message.imgUrls.length > 1 && (
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+              {message.imgUrls?.map((img) => (
+                <img
+                  src={img}
+                  className={cn('w-full max-w-2xs rounded-md aspect-square object-cover')}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {seenByUsers && <SeenAvatars seenUsers={seenByUsers} />}
@@ -137,11 +145,11 @@ export const FriendMessage = ({
   );
 };
 
-export const FriendMessageGroup = ({ group }: { group: MessageGroup }) => {
+export const OtherMessageGroup = ({ group }: { group: MessageGroup }) => {
   return (
     <div className="flex flex-col gap-1 zoom-in">
       {group.messages.map((mg, idx) => (
-        <FriendMessage
+        <OtherMessage
           message={mg}
           indexMessageType={getMessageIndexType(idx, group.messages.length)}
           key={mg._id}
@@ -210,30 +218,38 @@ export const OwnerMessage = ({
             {message.content}
           </div>
         )}
-        {message.type === 'image' &&
-          !!message.imgUrls?.length &&
-          message.imgUrls?.map((img) => (
-            <img
-              src={img}
-              className={cn(
-                'w-full max-w-2xs rounded-md max-h-96',
-                ...(message?.content
-                  ? [
-                      indexType.isSingle && 'rounded-3xl rounded-tr-sm',
-                      indexType.isFirst && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-                      indexType.isLast && 'rounded-3xl rounded-tr-sm',
-                      indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-                    ]
-                  : [
-                      indexType.isSingle && 'rounded-2xl',
-                      indexType.isFirst && 'rounded-3xl rounded-br-sm',
-                      indexType.isLast && 'rounded-3xl rounded-tr-sm',
-                      indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-                      isShowDes && !indexType.isFirst && 'rounded-2xl',
-                    ])
-              )}
-            />
-          ))}
+        {message.type === 'image' && message.imgUrls?.length === 1 && (
+          <img
+            src={message.imgUrls?.[0]}
+            className={cn(
+              'w-full max-w-2xs rounded-md max-h-96',
+              ...(message?.content
+                ? [
+                    indexType.isSingle && 'rounded-3xl rounded-tr-sm',
+                    indexType.isFirst && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+                    indexType.isLast && 'rounded-3xl rounded-tr-sm',
+                    indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+                  ]
+                : [
+                    indexType.isSingle && 'rounded-2xl',
+                    indexType.isFirst && 'rounded-3xl rounded-br-sm',
+                    indexType.isLast && 'rounded-3xl rounded-tr-sm',
+                    indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+                    isShowDes && !indexType.isFirst && 'rounded-2xl',
+                  ])
+            )}
+          />
+        )}
+        {message.type === 'image' && message?.imgUrls?.length && message.imgUrls.length > 1 && (
+          <div className="w-full grid direction-rtl grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+            {message.imgUrls?.map((img) => (
+              <img
+                src={img}
+                className={cn('w-full max-w-2xs rounded-md aspect-square object-cover')}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <SeenAvatars seenUsers={seenByUsers} />
     </>

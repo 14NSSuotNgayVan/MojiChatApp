@@ -44,6 +44,8 @@ export interface ThemeState {
   setTheme: (isDark: boolean) => void;
 }
 
+export interface FileRequest { type: 'image' | 'video' | 'file', url: string }
+
 export interface ChatState {
   isSearching: boolean;
   conversations: Conversation[];
@@ -77,9 +79,9 @@ export interface ChatState {
     conversationId: string,
     recipientId: string,
     content: string,
-    imgUrls?: string[]
+    media?: FileRequest[]
   ) => Promise<void>;
-  sendGroupMessage: (conversationId: string, content: string, imgUrls: string[]) => Promise<void>;
+  sendGroupMessage: (conversationId: string, content: string, media: FileRequest[]) => Promise<void>;
   onNewMessage: (data: NewMessageResponse) => void;
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;

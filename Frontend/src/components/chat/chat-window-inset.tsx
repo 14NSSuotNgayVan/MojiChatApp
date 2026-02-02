@@ -3,7 +3,7 @@ import { useChatStore } from '../../stores/useChatStore.ts';
 import type { MessageGroup } from '../../types/chat.ts';
 import { ChatEmptyMessageWelcome } from './chat-empty-message-welcome.tsx';
 
-import { FriendMessageGroup, OwnerMessageGroup } from './message.tsx';
+import { OtherMessageGroup, OwnerMessageGroup } from './message.tsx';
 import { useChatScroll } from '../../hooks/use-chat-scroll.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { ArrowDown } from 'lucide-react';
@@ -75,7 +75,7 @@ export const ChatWindowInset = () => {
         group.isOwner ? (
           <OwnerMessageGroup group={group} key={group.senderId + group.startTime} />
         ) : (
-          <FriendMessageGroup group={group} key={group.senderId + group.startTime} />
+          <OtherMessageGroup group={group} key={group.senderId + group.startTime} />
         )
       )}
       {!isAtBottom && (
