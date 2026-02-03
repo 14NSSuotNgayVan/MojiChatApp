@@ -74,7 +74,7 @@ export const Header = () => {
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="pb-2 border-b mb-2">
+        <div className="pb-2 border-b mb-1">
           <div className="flex items-center gap-1 px-2 py-1 ">
             <div className="relative grow">
               <Input

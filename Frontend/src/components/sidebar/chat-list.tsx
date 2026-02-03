@@ -24,7 +24,7 @@ export const ChatList = () => {
 
   if (isSearching) {
     return (
-      <div className="grow flex flex-col gap-1 overflow-y-auto w-full">
+      <div className="grow flex flex-col gap-1 overflow-y-auto w-full px-0.5">
         {searchedConversations?.length ? (
           searchedConversations.map((conv) => (
             <ChatCardSearch
@@ -41,7 +41,7 @@ export const ChatList = () => {
   }
 
   return (
-    <div className="grow flex flex-col gap-1 overflow-y-auto w-full">
+    <div className="grow flex flex-col gap-1 overflow-y-auto w-full px-1">
       {conversations?.length ? (
         conversations.map((conv) => (
           <ChatCard

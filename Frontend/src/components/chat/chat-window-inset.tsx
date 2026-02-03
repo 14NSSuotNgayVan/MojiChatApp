@@ -24,7 +24,7 @@ export const ChatWindowInset = () => {
   const { user } = useAuthStore();
   const { items } = currentMessages;
 
-  const { isAtBottom, scrollRef, scrollToBottom } = useChatScroll(
+  const { isAtBottom, scrollRef, scrollToBottom, scrollContentRef } = useChatScroll(
     items,
     () => getMessages(activeConversationId!, true),
     activeConversationId
@@ -44,58 +44,57 @@ export const ChatWindowInset = () => {
     );
 
   return (
-    <div
-      className="flex h-full flex-col gap-4 p-4 overflow-y-auto text-base select-none"
-      ref={scrollRef}
-    >
-      {messageLoading && (
-        <>
-          <div className="flex w-2/3 gap-2">
-            <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
-            <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
-          </div>
-          {/* friend message */}
-          <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
-            <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
-          </div>
-          <div className="flex w-1/3 gap-2 flex-row-reverse self-end">
-            <div className="bg-muted/50 aspect-video rounded-xl grow h-12" />
-          </div>
-          <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
-            <div className="bg-muted/50 aspect-video rounded-xl grow h-12" />
-          </div>
+    <div className="h-full overflow-y-auto text-base select-none" ref={scrollRef}>
+      <div className="flex flex-col gap-4 p-4" ref={scrollContentRef}>
+        {messageLoading && (
+          <>
+            <div className="flex w-2/3 gap-2">
+              <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
+              <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+            </div>
+            {/* friend message */}
+            <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
+              <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+            </div>
+            <div className="flex w-1/3 gap-2 flex-row-reverse self-end">
+              <div className="bg-muted/50 aspect-video rounded-xl grow h-12" />
+            </div>
+            <div className="flex w-2/3 gap-2 flex-row-reverse self-end">
+              <div className="bg-muted/50 aspect-video rounded-xl grow h-12" />
+            </div>
 
-          <div className="flex w-2/3 gap-2">
-            <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
-            <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+            <div className="flex w-2/3 gap-2">
+              <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />
+              <div className="bg-muted/50 aspect-video rounded-xl grow h-20" />
+            </div>
+          </>
+        )}
+        {messageGroups?.map((group: MessageGroup) =>
+          group.isOwner ? (
+            <OwnerMessageGroup group={group} key={group.senderId + group.startTime} />
+          ) : (
+            <OtherMessageGroup group={group} key={group.senderId + group.startTime} />
+          )
+        )}
+        {!isAtBottom && (
+          <div
+            className="flex absolute gap-2 items-center p-2 bottom-4 rounded-full left-1/2 -translate-x-1/2 bg-accent cursor-pointer"
+            onClick={scrollToBottom}
+          >
+            {user && !!activeConversation?.unreadCounts?.[user._id] && (
+              <>
+                <p className="truncate max-w-3xs pl-1">{activeConversation.lastMessage?.content}</p>
+                <div className="bg-red-500 text-xs px-1 rounded-full text-white">
+                  {activeConversation.unreadCounts?.[user._id]}
+                </div>
+              </>
+            )}
+            <Button asChild variant="ghost" className="transition-colors size-6 p-1 rounded-full">
+              <ArrowDown />
+            </Button>
           </div>
-        </>
-      )}
-      {messageGroups?.map((group: MessageGroup) =>
-        group.isOwner ? (
-          <OwnerMessageGroup group={group} key={group.senderId + group.startTime} />
-        ) : (
-          <OtherMessageGroup group={group} key={group.senderId + group.startTime} />
-        )
-      )}
-      {!isAtBottom && (
-        <div
-          className="flex absolute gap-2 items-center p-2 bottom-4 rounded-full left-1/2 -translate-x-1/2 bg-accent cursor-pointer"
-          onClick={scrollToBottom}
-        >
-          {user && !!activeConversation?.unreadCounts?.[user._id] && (
-            <>
-              <p className="truncate max-w-3xs pl-1">{activeConversation.lastMessage?.content}</p>
-              <div className="bg-red-500 text-xs px-1 rounded-full text-white">
-                {activeConversation.unreadCounts?.[user._id]}
-              </div>
-            </>
-          )}
-          <Button asChild variant="ghost" className="transition-colors size-6 p-1 rounded-full">
-            <ArrowDown />
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

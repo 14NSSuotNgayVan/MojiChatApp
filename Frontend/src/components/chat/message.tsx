@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useChatStore } from '../../stores/useChatStore.ts';
-import type { Message, MessageGroup, SeenBy } from '../../types/chat.ts';
+import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
 import { cn, getMessageTime } from '../../lib/utils.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
+import { ChatVideo } from '@/components/ui/video.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -18,6 +19,34 @@ const getMessageIndexType = (idx: number, total: number): IndexMessageType => {
 
 const getMessageSeender = (seenByUsers: SeenBy[], messageId: string, userId: string) => {
   return seenByUsers.filter((i) => i.messageId === messageId && userId !== i.userId);
+};
+
+const MediaView = ({ className, media }: { className: string; media: Media }) => {
+  switch (media.type) {
+    case 'image': {
+      return <img src={media.url} className={className} />;
+    }
+
+    // case 'file': {
+    //   return (
+    //     <div className={cn('flex p-4', className)}>
+    //       <File />
+    //       {media?.meta?.name}
+    //     </div>
+    //   );
+    // }
+
+    case 'video': {
+      return (
+        <ChatVideo
+          src={media.url}
+          className={className}
+          poster={media?.meta?.poster}
+          controls={false}
+        />
+      );
+    }
+  }
 };
 
 export const OtherMessage = ({
@@ -47,6 +76,49 @@ export const OtherMessage = ({
     setIsShowDes((prev) => !prev);
   };
 
+  const renderMediaGrid = () => {
+    if (message.type === 'media' && message.medias?.length === 1) {
+      return (
+        <MediaView
+          className={cn(
+            'w-full max-w-2xs rounded-md overflow-hidden',
+            indexType.isSingle && 'rounded-2xl',
+            indexType.isFirst && 'rounded-3xl rounded-bl-sm',
+            indexType.isLast && 'rounded-3xl rounded-tl-sm',
+            indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+            isShowDes && !indexType.isFirst && 'rounded-2xl'
+          )}
+          media={message.medias[0]}
+        />
+      );
+    }
+    if (message.type === 'mixed' && message.medias?.length === 1) {
+      return (
+        <MediaView
+          media={message.medias?.[0]}
+          className={cn(
+            'w-full max-w-2xs rounded-md overflow-hidden',
+            indexType.isSingle && 'rounded-3xl rounded-tl-sm',
+            indexType.isFirst && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+            indexType.isLast && 'rounded-3xl rounded-tl-sm',
+            indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm'
+          )}
+        />
+      );
+    }
+
+    if (message.medias?.length && message.medias?.length > 1) {
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+        {message.medias?.map((mda) => (
+          <MediaView
+            media={mda}
+            className={cn('w-full max-w-2xs rounded-md aspect-square object-cover overflow-hidden')}
+          />
+        ))}
+      </div>;
+    }
+  };
+
   return (
     <>
       <p
@@ -62,7 +134,7 @@ export const OtherMessage = ({
           {sender ? users[sender._id!]?.displayName : ''}
         </p>
       )}
-      <div className="flex max-w-2/3 gap-2 items-end">
+      <div className="flex max-w-2/3 gap-1 items-end">
         {indexType.isLast || indexType.isSingle ? (
           <Popover>
             <PopoverTrigger>
@@ -81,11 +153,11 @@ export const OtherMessage = ({
           <div className="w-10 shrink-0"></div>
         )}
         <div className={cn('flex flex-col gap-1 max-w-full')}>
-          {message.content && (
+          {Boolean(message?.content) && (
             <div
               className={cn(
                 'bg-secondary px-3 py-2 hover:bg-accent',
-                ...(message.type === 'image'
+                ...(message.type === 'mixed'
                   ? [
                       'w-max max-w-full',
                       indexType.isSingle && 'rounded-3xl rounded-bl-sm',
@@ -106,38 +178,7 @@ export const OtherMessage = ({
               {message.content}
             </div>
           )}
-          {message.type === 'image' && message.imgUrls?.length === 1 && (
-            <img
-              src={message.imgUrls?.[0]}
-              className={cn(
-                'w-full max-w-2xs rounded-md',
-                ...(message?.content
-                  ? [
-                      indexType.isSingle && 'rounded-3xl rounded-tl-sm',
-                      indexType.isFirst && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-                      indexType.isLast && 'rounded-3xl rounded-tl-sm',
-                      indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-                    ]
-                  : [
-                      indexType.isSingle && 'rounded-2xl',
-                      indexType.isFirst && 'rounded-3xl rounded-bl-sm',
-                      indexType.isLast && 'rounded-3xl rounded-tl-sm',
-                      indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-                      isShowDes && !indexType.isFirst && 'rounded-2xl',
-                    ])
-              )}
-            />
-          )}
-          {message.type === 'image' && message?.imgUrls?.length && message.imgUrls.length > 1 && (
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-              {message.imgUrls?.map((img) => (
-                <img
-                  src={img}
-                  className={cn('w-full max-w-2xs rounded-md aspect-square object-cover')}
-                />
-              ))}
-            </div>
-          )}
+          {renderMediaGrid()}
         </div>
       </div>
       {seenByUsers && <SeenAvatars seenUsers={seenByUsers} />}
@@ -182,6 +223,49 @@ export const OwnerMessage = ({
     setIsShowDes((prev) => !prev);
   };
 
+  const renderMediaGrid = () => {
+    if (message.type === 'media' && message.medias?.length === 1) {
+      return (
+        <MediaView
+          className={cn(
+            'w-full max-w-2xs rounded-md max-h-96 overflow-hidden',
+            indexType.isSingle && 'rounded-2xl',
+            indexType.isFirst && 'rounded-3xl rounded-br-sm',
+            indexType.isLast && 'rounded-3xl rounded-tr-sm',
+            indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+            isShowDes && !indexType.isFirst && 'rounded-2xl'
+          )}
+          media={message.medias[0]}
+        />
+      );
+    }
+    if (message.type === 'mixed' && message.medias?.length === 1) {
+      return (
+        <MediaView
+          media={message.medias?.[0]}
+          className={cn(
+            'w-full max-w-2xs rounded-md max-h-96 overflow-hidden',
+            indexType.isSingle && 'rounded-3xl rounded-tr-sm',
+            indexType.isFirst && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+            indexType.isLast && 'rounded-3xl rounded-tr-sm',
+            indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm'
+          )}
+        />
+      );
+    }
+
+    if (message.medias?.length && message.medias?.length > 1) {
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+        {message.medias?.map((mda) => (
+          <MediaView
+            media={mda}
+            className={'w-full max-w-2xs rounded-md aspect-square object-cover'}
+          />
+        ))}
+      </div>;
+    }
+  };
+
   return (
     <>
       <p
@@ -192,12 +276,12 @@ export const OwnerMessage = ({
       >
         {getMessageTime(message.createdAt)}
       </p>
-      <div className="self-end max-w-2/3 flex flex-col gap-2 items-end">
+      <div className="self-end max-w-2/3 flex flex-col gap-1 items-end">
         {message.content && (
           <div
             className={cn(
               'bg-primary/40 px-3 py-2 hover:bg-accent',
-              ...(message.type === 'image'
+              ...(message.type === 'mixed'
                 ? [
                     'w-max max-w-full',
                     indexType.isSingle && 'rounded-3xl rounded-br-sm',
@@ -218,38 +302,7 @@ export const OwnerMessage = ({
             {message.content}
           </div>
         )}
-        {message.type === 'image' && message.imgUrls?.length === 1 && (
-          <img
-            src={message.imgUrls?.[0]}
-            className={cn(
-              'w-full max-w-2xs rounded-md max-h-96',
-              ...(message?.content
-                ? [
-                    indexType.isSingle && 'rounded-3xl rounded-tr-sm',
-                    indexType.isFirst && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-                    indexType.isLast && 'rounded-3xl rounded-tr-sm',
-                    indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-                  ]
-                : [
-                    indexType.isSingle && 'rounded-2xl',
-                    indexType.isFirst && 'rounded-3xl rounded-br-sm',
-                    indexType.isLast && 'rounded-3xl rounded-tr-sm',
-                    indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-                    isShowDes && !indexType.isFirst && 'rounded-2xl',
-                  ])
-            )}
-          />
-        )}
-        {message.type === 'image' && message?.imgUrls?.length && message.imgUrls.length > 1 && (
-          <div className="w-full grid direction-rtl grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-            {message.imgUrls?.map((img) => (
-              <img
-                src={img}
-                className={cn('w-full max-w-2xs rounded-md aspect-square object-cover')}
-              />
-            ))}
-          </div>
-        )}
+        {renderMediaGrid()}
       </div>
       <SeenAvatars seenUsers={seenByUsers} />
     </>

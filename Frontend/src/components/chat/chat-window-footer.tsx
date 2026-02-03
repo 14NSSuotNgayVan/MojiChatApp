@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
-import { CircleX, ImagePlus, Send, Smile } from 'lucide-react';
+import { CircleX, ImagePlus, Play, Send, Smile } from 'lucide-react';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerSearch } from '../ui/emoji-picker.tsx';
 import { Button } from '../ui/button.tsx';
 import { Input } from '../ui/input.tsx';
@@ -18,13 +18,15 @@ type UploadImage = {
   publicUrl?: string; // url Cloudinary
   publicId?: string; // id Cloudinary
   status: 'pending' | 'uploading' | 'done' | 'error';
-  type: 'image' | 'video' | 'file';
+  type: 'image' | 'video';
+  duration?: number;
+  poster?: string;
 };
 
 export const ChatWindowFooter = () => {
   const [value, setValue] = useState<string>('');
   const [files, setFiles] = useState<UploadImage[]>([]);
-
+  const [fileInputKey, setFileInputKey] = useState<string>(crypto.randomUUID());
   const { activeConversationId, activeConversation, sendDirectMessage, sendGroupMessage } =
     useChatStore();
   const { user } = useAuthStore();
@@ -32,6 +34,7 @@ export const ChatWindowFooter = () => {
   const { getRootProps, getInputProps, isDragAccept } = useDropzone({
     accept: {
       'image/*': [],
+      'video/*': [],
     },
     noClick: true,
     noKeyboard: true,
@@ -50,32 +53,33 @@ export const ChatWindowFooter = () => {
                 file,
                 preview: (e.target?.result as string) || '',
                 status: 'uploading',
-                type: 'image',
+                type: file.type === 'video/mp4' ? 'video' : 'image',
               },
             ]);
           }
           try {
             // 2️⃣ upload Cloudinary
-            const res = await handleUploadImage(file);
+            const res = await handleUploadMedia(file);
 
             // 3️⃣ update publicUrl
             setFiles((prev) =>
-              prev.map((img) =>
-                img.id === id
+              prev.map((file) =>
+                file.id === id
                   ? {
-                      ...img,
+                      ...file,
                       publicUrl: res.secure_url,
                       publicId: res.public_id,
+                      poster: `${res.url.split('/video/upload')[0]}/video/upload/so_1/${res.public_id}.jpg`,
+                      duration: res?.duration,
                       status: 'done',
-                      type: 'image',
                     }
-                  : img
+                  : file
               )
             );
           } catch (err) {
             console.log(err);
             setFiles((prev) =>
-              prev.map((img) => (img.id === id ? { ...img, status: 'error' } : img))
+              prev.map((file) => (file.id === id ? { ...file, status: 'error' } : file))
             );
           }
         };
@@ -86,9 +90,15 @@ export const ChatWindowFooter = () => {
 
   const handleSendMessage = async () => {
     const content = value;
-    const media = files?.map((i) => ({ url: i.publicUrl!, type: i?.type }));
+    const media = files?.map((file) => ({
+      url: file.publicUrl!,
+      type: file?.type,
+      poster: file?.poster,
+      duration: file?.duration,
+    }));
     setValue('');
     setFiles([]);
+    setFileInputKey(crypto.randomUUID());
     if (activeConversation?.type === 'direct') {
       const friend = activeConversation.participants.find((u) => u._id !== user!._id);
 
@@ -98,21 +108,24 @@ export const ChatWindowFooter = () => {
     }
   };
 
-  const handleUploadImage = async (file: File) => {
+  const handleUploadMedia = async (file: File) => {
     try {
       if (!activeConversationId) return;
-      const res = await fileService.uploadImage(file, activeConversationId);
+      const res = await fileService.uploadMedia(file, activeConversationId);
       return res;
     } catch (error) {
-      console.error('Lỗi khi gọi handleUploadImage:', error);
+      console.error('Lỗi khi gọi handleUploadMedia:', error);
     }
   };
 
-  const handleDeleteImage = (img: UploadImage) => {
-    setFiles((prev) => prev.filter((f) => f.id !== img.id));
-    if (!img.publicId) return;
+  const handleDeleteImage = (file: UploadImage) => {
+    setFiles((prev) => prev.filter((f) => f.id !== file.id));
+    URL.revokeObjectURL(file.preview);
+    setFileInputKey(crypto.randomUUID());
+
+    if (!file.publicId) return;
     try {
-      fileService.deleteFile(img.publicId);
+      fileService.deleteFile(file.publicId, file.type);
     } catch (error) {
       console.log(error);
     }
@@ -139,7 +152,8 @@ export const ChatWindowFooter = () => {
   };
 
   const isSendable =
-    value.trim() || (files?.length ? files?.every((f) => f?.status === 'done') : false);
+    (value.trim() && !files?.length) ||
+    (files?.length && files?.every((f) => f?.status === 'done'));
 
   return (
     <footer className="p-2 flex border-t gap-2 items-center">
@@ -160,13 +174,13 @@ export const ChatWindowFooter = () => {
       >
         {/* vùng xem trước ảnh */}
         <div className="absolute pt-2 mx-4 flex gap-2 overflow-x-auto">
-          {files.map((i) => (
-            <div className="relative shrink-0">
+          {files.map((file) => (
+            <div className="relative shrink-0" key={file.id}>
               {/* progress */}
               <div
                 className={cn(
                   'absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 z-30',
-                  i.status === 'done' && 'progress-faded-out'
+                  file.status === 'done' && 'progress-faded-out'
                 )}
               >
                 <CircularProgress
@@ -174,19 +188,31 @@ export const ChatWindowFooter = () => {
                   progressClassName="stroke-white"
                   size={40}
                   strokeWidth={4}
-                  value={getProgress(i.status)}
+                  value={getProgress(file.status)}
                 />
               </div>
               {/* nút xóa */}
               <CircleX
-                className="absolute right-0 size-4 text-white bg-muted-foreground dark:bg-muted-foreground/50 rounded-full cursor-pointer"
-                onClick={() => handleDeleteImage(i)}
+                className="absolute right-0 z-10 size-4 text-white bg-muted-foreground dark:bg-muted-foreground/50 rounded-full cursor-pointer"
+                onClick={() => handleDeleteImage(file)}
               />
-              <img src={i.preview} className="w-14 h-14 rounded-md object-contain border" />
+              {file.type === 'image' ? (
+                <img src={file.preview} className="w-14 h-14 rounded-md object-contain border" />
+              ) : (
+                <>
+                  <video
+                    poster={file?.poster}
+                    className="w-14 h-14 rounded-md object-contain border"
+                  >
+                    <source src={file.preview}></source>
+                  </video>
+                  <Play className="size-4 absolute inset-0 top-1/2 left-1/2 -translate-1/2" />
+                </>
+              )}
             </div>
           ))}
         </div>
-        <input id="chat-file-input" {...getInputProps()}></input>
+        <input id="chat-file-input" key={fileInputKey} {...getInputProps()}></input>
 
         {/* Input nhập tin nhắn */}
         <Input

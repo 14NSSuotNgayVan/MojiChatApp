@@ -1,4 +1,4 @@
-import type { Conversation } from '../../types/chat.ts';
+import type { Conversation, LastMessage } from '../../types/chat.ts';
 import { OnlineAvatar } from '../avatars/avatar.tsx';
 import { GroupAvatar } from '../avatars/group-avatar.tsx';
 import { cn, fromNow } from '../../lib/utils.ts';
@@ -42,6 +42,16 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
     setActiveConversation(success ? conversation : null);
   };
 
+  const getLastMessagePreview = (lastMessage: LastMessage) => {
+    const senderName =
+      lastMessage?.senderId === user?._id ? 'Bạn' : users[lastMessage.senderId]?.displayName;
+    if (lastMessage.type === 'text') {
+      return `${senderName}: ${lastMessage.content}`;
+    }
+
+    return `${senderName} đã gửi 1 ${lastMessage.medias?.[lastMessage.medias.length - 1].type === 'image' ? 'ảnh' : 'video'}`;
+  };
+
   return (
     <div
       className={cn(
@@ -77,8 +87,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
               !!unreadCounts?.[user._id] && 'text-[unset]'
             )}
           >
-            {lastMessage?.senderId === user?._id ? 'Bạn' : users[lastMessage.senderId]?.displayName}
-            : {lastMessage?.content}
+            {getLastMessagePreview(lastMessage)}
           </div>
         ) : (
           <div className="h-4"></div>

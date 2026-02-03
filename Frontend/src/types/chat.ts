@@ -1,5 +1,7 @@
 import type { User } from "./user.ts";
 
+export type MESSAGE_TYPE = 'text' | 'media' | 'mixed' | 'system';
+export type MEDIA_TYPE = 'image' | 'video';
 export interface Participant {
   _id: string;
   joinedAt: string;
@@ -22,6 +24,8 @@ export interface LastMessage {
   content: string;
   createdAt: string;
   senderId: string;
+  type: MESSAGE_TYPE;
+  medias?: Media[];
 }
 
 export interface Conversation {
@@ -42,13 +46,27 @@ export interface ConversationResponse {
   users: Record<string, User>,
 }
 
+export interface Media {
+  type: MEDIA_TYPE;
+  url: string;
+  isDeleted: boolean;
+  createdAt: string;
+  meta: {
+    width?: number,
+    height?: number,
+    duration?: number,
+    size?: number,
+    poster?: string
+  }
+}
+
 export interface Message {
   _id: string;
-  type: 'text' | 'image' | 'system',
+  type: MESSAGE_TYPE;
   conversationId: string;
   senderId: string;
   content: string | null;
-  imgUrls?: [string];
+  medias?: Media[];
   updatedAt?: string | null;
   createdAt: string;
   isOwner?: boolean;

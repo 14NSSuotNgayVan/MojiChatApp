@@ -41,8 +41,8 @@ export const fileService = {
 
     return res.json();
   },
-  uploadImage: async (file: File, conversationId: string) => {
-    const sigRes = await api.get("/file/signature/image", { params: { conversationId } });
+  uploadMedia: async (file: File, conversationId: string) => {
+    const sigRes = await api.get("/file/signature/media", { params: { conversationId } });
 
     const formData = new FormData();
     formData.append("file", file);
@@ -52,7 +52,7 @@ export const fileService = {
     formData.append("folder", sigRes.data.folder);
 
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${sigRes.data.cloudName}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${sigRes.data.cloudName}/auto/upload`,
       {
         method: "POST",
         body: formData,
@@ -61,8 +61,8 @@ export const fileService = {
 
     return res.json();
   },
-  deleteFile: async (publicId: string) => {
-    const res = await api.delete(`/file/delete`, { params: { publicId } });
+  deleteFile: async (publicId: string, resourceType: 'image' | 'video' = 'image') => {
+    const res = await api.delete(`/file/delete`, { params: { publicId, resourceType } });
     return res.data;
   },
 };
