@@ -48,7 +48,7 @@ const lastMessageSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['text', 'image', 'system'],
+        enum: ['text', 'media', 'mixed', 'system'],
         default: 'text'
     },
     createdAt: { type: Date, default: null }
@@ -69,20 +69,6 @@ const seenSchema = new mongoose.Schema({
         type: String
     }
 })
-
-const messageCountSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    },
-    messageCount: {
-        type: Number,
-        default: 0
-    }
-},
-    {
-        _id: false
-    })
 
 const conversationSchema = new mongoose.Schema({
     type: {

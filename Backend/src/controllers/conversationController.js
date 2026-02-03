@@ -257,12 +257,25 @@ export const getMessages = async (req, res) => {
             query.createdAt = { $lt: new Date(cursor) };
         }
 
-        let messages = await Message.find(query).sort({ createdAt: -1 }).limit(Number(limit) + 1).lean({
-            transform: (doc) => {
-                doc.isOwner = doc.senderId.toString() === userId;
-                return doc;
-            }
-        });
+        let messages = await Message.find(query).sort({ createdAt: -1 }).limit(Number(limit) + 1)
+            .populate([
+                {
+                    path: 'replyTo', select: 'senderId type content createdAt',
+                    options: { lean: true }
+                },
+                {
+                    path: 'mediaIds', select: 'type url isDeleted createdAt',
+                    options: { lean: true }
+                }
+            ])
+            .lean({
+                transform: (doc) => {
+                    doc.isOwner = doc.senderId.toString() === userId;
+                    doc.medias = doc.mediaIds;
+                    delete doc.mediaIds;
+                    return doc;
+                }
+            });
 
         let nextCursor;
 
@@ -271,9 +284,19 @@ export const getMessages = async (req, res) => {
             messages.pop();
         }
 
-        messages.reverse();
+        const messageRes = [];
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const currentMsg = messages[i];
+            const medias = currentMsg.mediaIds;
+            delete currentMsg.mediaIds;
+            messageRes.push({
+                ...currentMsg,
+                isOwner: currentMsg.senderId.toString() === userId,
+                medias
+            })
+        }
 
-        return res.status(200).json({ messages: "Get messages success!", messages, nextCursor })
+        return res.status(200).json({ messages: "Get messages success!", messages: messageRes, nextCursor })
     } catch (error) {
         console.error("Error when calling getMessages: " + error);
         return res.status(500).send();
