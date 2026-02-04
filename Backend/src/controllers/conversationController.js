@@ -264,7 +264,7 @@ export const getMessages = async (req, res) => {
                     options: { lean: true }
                 },
                 {
-                    path: 'mediaIds', select: 'type url isDeleted createdAt',
+                    path: 'mediaIds', select: 'type url isDeleted createdAt meta',
                     options: { lean: true }
                 }
             ])

@@ -25,6 +25,9 @@ export const sendDirectMessage = async (req, res) => {
                 return res.status(400).json({ message: "Conversation not found!" })
             }
 
+            if (!conversation.participants.some(p => p.userId.toString() === senderId.toString())) {
+                return res.status(403).json({ message: 'User does not belong to the conversation!' })
+            }
         } else {
             if (!recipientId) {
                 return res.status(400).json({ message: "recipientId must not be empty!" })
@@ -38,10 +41,6 @@ export const sendDirectMessage = async (req, res) => {
             if (!conversation) {
                 return res.status(400).json({ message: "conversation not existed!" })
             }
-        }
-
-        if (!conversation.participants.some(p => p.userId.toString() === senderId.toString())) {
-            return res.status(403).json({ message: 'User does not belong to the conversation!' })
         }
 
         const [message] = await Message.create([{
@@ -59,7 +58,11 @@ export const sendDirectMessage = async (req, res) => {
                     messageId: message._id,
                     senderId,
                     type: file.type,
-                    url: file.url
+                    url: file.url,
+                    meta: {
+                        duration: file?.duration,
+                        poster: file.poster
+                    }
                 })),
                 { session }
             )
@@ -93,12 +96,18 @@ export const sendDirectMessage = async (req, res) => {
                 }
             ])).toObject()
 
-        updateConversationAfterCreateMessage(conversation, fullMessage, senderId);
+        const newMessage = {
+            ...fullMessage,
+            medias: fullMessage.mediaIds,
+            mediaIds: undefined
+        };
+
+        updateConversationAfterCreateMessage(conversation, newMessage, senderId);
 
         await conversation.save();
-        emmitNewMessage(io, conversation, fullMessage, req.user)
+        emmitNewMessage(io, conversation, newMessage, req.user)
 
-        return res.status(201).json({ fullMessage })
+        return res.status(201).json({ message: newMessage })
 
     } catch (error) {
         console.error("Error when calling sendDirectMessage: " + error);
@@ -110,22 +119,46 @@ export const sendDirectMessage = async (req, res) => {
 }
 
 export const senGroupMessage = async (req, res) => {
+    const session = await mongoose.startSession()
+    session.startTransaction()
     try {
-        const { content, imgUrls } = req.body;
+        const { content, media } = req.body;
         const senderId = req.user._id;
         const conversation = req.conversation;
 
-        if (!content && !imgUrls?.length) {
+        if (!content && !media?.length) {
             return res.status(400).json({ message: "content must not be empty!" })
         }
 
-        const message = await Message.create({
+        const [message] = await Message.create([{
             conversationId: conversation._id,
             content: content,
             senderId: senderId,
-            imgUrls: imgUrls,
-            type: imgUrls?.length ? 'image' : 'text'
-        })
+            type: media?.length ? (content ? 'mixed' : 'media') : 'text'
+        }], { session })
+
+        if (media?.length) {
+            const attachments = await Attachment.insertMany(
+                media.map(file => ({
+                    conversationId: conversation._id,
+                    messageId: message._id,
+                    senderId,
+                    type: file.type,
+                    url: file.url,
+                    meta: {
+                        duration: file?.duration,
+                        poster: file.poster
+                    }
+                })),
+                { session }
+            )
+
+            await Message.updateOne(
+                { _id: message._id },
+                { $set: { mediaIds: attachments.map(a => a._id) } },
+                { session }
+            )
+        }
 
         await ConversationStats.updateOne({
             userId: senderId,
@@ -136,16 +169,36 @@ export const senGroupMessage = async (req, res) => {
                 $set: { lastMessageAt: message.createdAt }
             },
             {
-                upsert: true// cập nhật nếu tồn tại - nếu không => tạo mới
+                upsert: true,// cập nhật nếu tồn tại - nếu không => tạo mới
+                session
             })
-        updateConversationAfterCreateMessage(conversation, message, senderId);
-        emmitNewMessage(io, conversation, message, req.user);
+
+        await session.commitTransaction()
+
+        const fullMessage = (await Message.findById(message._id)
+            .populate([
+                {
+                    path: 'mediaIds', select: 'type url isDeleted createdAt'
+                }
+            ])).toObject()
+
+        const newMessage = {
+            ...fullMessage,
+            medias: fullMessage.mediaIds,
+            mediaIds: undefined
+        };
+
+        updateConversationAfterCreateMessage(conversation, newMessage, senderId);
+        emmitNewMessage(io, conversation, newMessage, req.user);
 
         await conversation.save();
 
-        return res.status(201).json({ message })
+        return res.status(201).json({ message: newMessage })
     } catch (error) {
         console.error("Error when calling senGroupMessage: " + error);
+        await session.abortTransaction();
         return res.status(500).send();
+    } finally {
+        session.endSession()
     }
 }

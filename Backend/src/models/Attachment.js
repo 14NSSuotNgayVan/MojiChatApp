@@ -17,14 +17,15 @@ const attachmentSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['image', 'video', 'file']
+        enum: ['image', 'video']
     },
     url: String,
     meta: {
         width: Number,
         height: Number,
         duration: Number,
-        size: Number
+        size: Number,
+        poster: String
     },
     isDeleted: {
         type: Boolean,

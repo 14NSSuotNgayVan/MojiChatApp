@@ -48,7 +48,7 @@ export const getBgSignature = async (req, res) => {
     }
 }
 
-export const getImageSignature = async (req, res) => {
+export const getMediaSignature = async (req, res) => {
     try {
         const user = req.user;
         const { conversationId } = req.query;
@@ -63,23 +63,29 @@ export const getImageSignature = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error when calling getImageSignature: " + error);
+        console.error("Error when calling getMediaSignature: " + error);
         return res.status(500).send();
     }
 }
 
 export const deleteFile = async (req, res) => {
     try {
-        const user = req.user;
-        const { publicId } = req.query;
+        const {
+            publicId,
+            resourceType = "image", // image | video
+            type = "upload",        // upload | private | authenticated
+        } = req.query;
 
-        if (!publicId) return res.status(400).json({ message: "publicId must not be empty!" })
+        if (!publicId) {
+            return res.status(400).json({ message: "publicId must not be empty!" });
+        }
 
         const timestamp = Math.round(Date.now() / 1000);
+
         const signature = crypto
             .createHash("sha1")
             .update(
-                `public_id=${publicId}&timestamp=${timestamp}${process.env.CLOUD_API_SECRET}`
+                `public_id=${publicId}&timestamp=${timestamp}&type=${type}${process.env.CLOUD_API_SECRET}`
             )
             .digest("hex");
 
@@ -87,11 +93,12 @@ export const deleteFile = async (req, res) => {
             public_id: publicId,
             api_key: process.env.CLOUD_API_KEY,
             timestamp: timestamp.toString(),
+            type,
             signature,
         });
 
-        const deleteRes = await fetch(
-            `https://api.cloudinary.com/v1_1/${process.env.CLOUD_NAME}/image/destroy`,
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${process.env.CLOUD_NAME}/${resourceType}/destroy`,
             {
                 method: "POST",
                 headers: {
@@ -100,12 +107,21 @@ export const deleteFile = async (req, res) => {
                 body: body.toString(),
             }
         );
-        console.log(`Delete file: ${publicId}`);
+
+        const result = await response.json();
+
+        if (result.result !== "ok") {
+            return res.status(400).json({
+                message: "Delete failed",
+                cloudinary: result,
+            });
+        }
+
         res.status(200).json({
-            message: "Delete file success!"
-        })
+            message: "Delete file success!",
+        });
     } catch (error) {
-        console.error("Error when calling deleteFile: " + error);
-        return res.status(500).send();
+        console.error("Error when calling deleteFile:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
-}
+};
