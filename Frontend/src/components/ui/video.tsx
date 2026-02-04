@@ -9,6 +9,7 @@ export interface ChatVideoProps {
   muted?: boolean;
   controls?: boolean;
   className?: string;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 export function ChatVideo({
@@ -17,6 +18,7 @@ export function ChatVideo({
   autoPlay = false,
   muted = false,
   className,
+  onClick,
 }: ChatVideoProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,7 +32,8 @@ export function ChatVideo({
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
-  const handlePlay = () => {
+  const handlePlay = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
@@ -38,7 +41,8 @@ export function ChatVideo({
     setIsPlaying(true);
   };
 
-  const handlePause = () => {
+  const handlePause = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
@@ -49,7 +53,8 @@ export function ChatVideo({
     setIsPlaying(false);
   };
 
-  const handleToggleMute = () => {
+  const handleToggleMute = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
@@ -75,6 +80,7 @@ export function ChatVideo({
         onTimeUpdate={(e) => {
           setCurrentTime(e.currentTarget.currentTime);
         }}
+        onClick={onClick && onClick}
       />
 
       {!isPlaying ? (

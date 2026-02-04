@@ -9,9 +9,26 @@ export function useChatScroll(
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
+  const isLoadingMoreRef = useRef<boolean>(false)
   const prevScrollHeightRef = useRef(0);
+
+  const scrollToBottom = () => {
+    const scrollDiv = scrollRef.current;
+    if (!scrollDiv) return;
+
+    scrollDiv.scrollTop = scrollDiv.scrollHeight;
+    setIsAtBottom(true);
+  };
+
+  //Gọi API getmessages
+  const onLoadMore = async () => {
+    const el = scrollRef.current;
+    if (!el || isLoadingMoreRef.current) return;
+
+    isLoadingMoreRef.current = true;
+    prevScrollHeightRef.current = el.scrollHeight;
+    await loadMore();
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -29,7 +46,7 @@ export function useChatScroll(
         scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight <
         50;
 
-      if (nearTop && !isLoadingMore) onLoadMore();
+      if (nearTop && !isLoadingMoreRef.current) onLoadMore();
 
       setIsAtBottom(nearBottom);
     };
@@ -39,7 +56,7 @@ export function useChatScroll(
     return () => {
       scrollDiv.removeEventListener("scroll", handleScroll);
     };
-  }, [isLoadingMore]);
+  }, []);
 
   // Scroll xuống cuối đoạn chat
 
@@ -72,18 +89,8 @@ export function useChatScroll(
     return () => observer.disconnect()
   }, [activeConversationId])
 
-  //Gọi API getmessages
-  const onLoadMore = async () => {
-    const el = scrollRef.current;
-    if (!el || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-    prevScrollHeightRef.current = el.scrollHeight;
-    await loadMore();
-  };
-
   useLayoutEffect(() => {
-    if (!isLoadingMore) return;
+    if (!isLoadingMoreRef.current) return;
 
     const el = scrollRef.current;
     if (!el) return;
@@ -92,16 +99,8 @@ export function useChatScroll(
     const diff = newScrollHeight - prevScrollHeightRef.current;
 
     el.scrollTop = diff;
-    setIsLoadingMore(false);
+    isLoadingMoreRef.current = false;
   }, [activeConversationId, items?.length]);
-
-  const scrollToBottom = () => {
-    const scrollDiv = scrollRef.current;
-    if (!scrollDiv) return;
-
-    scrollDiv.scrollTop = scrollDiv.scrollHeight;
-    setIsAtBottom(true);
-  };
 
   return {
     scrollRef,

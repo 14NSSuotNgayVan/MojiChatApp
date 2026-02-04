@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
+import { MediaGalleryDialog } from '@/components/gallery/gallery.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -22,31 +23,51 @@ const getMessageSeender = (seenByUsers: SeenBy[], messageId: string, userId: str
 };
 
 const MediaView = ({ className, media }: { className: string; media: Media }) => {
-  switch (media.type) {
-    case 'image': {
-      return <img src={media.url} className={className} />;
-    }
+  const [openGallery, setOpenGallery] = useState<boolean>(false);
+  const renderMedia = () => {
+    switch (media.type) {
+      case 'image': {
+        return (
+          <img
+            src={media.url}
+            className={className}
+            onClick={() => {
+              setOpenGallery(true);
+            }}
+          />
+        );
+      }
 
-    // case 'file': {
-    //   return (
-    //     <div className={cn('flex p-4', className)}>
-    //       <File />
-    //       {media?.meta?.name}
-    //     </div>
-    //   );
-    // }
+      // case 'file': {
+      //   return (
+      //     <div className={cn('flex p-4', className)}>
+      //       <File />
+      //       {media?.meta?.name}
+      //     </div>
+      //   );
+      // }
 
-    case 'video': {
-      return (
-        <ChatVideo
-          src={media.url}
-          className={className}
-          poster={media?.meta?.poster}
-          controls={false}
-        />
-      );
+      case 'video': {
+        return (
+          <ChatVideo
+            src={media.url}
+            className={className}
+            poster={media?.meta?.poster}
+            onClick={() => {
+              setOpenGallery(true);
+            }}
+          />
+        );
+      }
     }
-  }
+  };
+
+  return (
+    <>
+      <MediaGalleryDialog open={openGallery} onOpenChange={setOpenGallery} currentMedia={media} />
+      {renderMedia()}
+    </>
+  );
 };
 
 export const OtherMessage = ({
