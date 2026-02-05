@@ -9,6 +9,7 @@ export interface ChatVideoProps {
   muted?: boolean;
   controls?: boolean;
   className?: string;
+  videoClassName?: string;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -19,6 +20,7 @@ export function ChatVideo({
   muted = false,
   className,
   onClick,
+  videoClassName,
 }: ChatVideoProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -69,7 +71,7 @@ export function ChatVideo({
         ref={videoRef}
         src={src}
         poster={poster}
-        className="w-full h-full object-cover"
+        className={cn('w-full h-full', videoClassName)}
         controls={false}
         muted={muted}
         autoPlay={autoPlay}

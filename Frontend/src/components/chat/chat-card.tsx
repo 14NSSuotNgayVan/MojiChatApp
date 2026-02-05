@@ -49,7 +49,7 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
       return `${senderName}: ${lastMessage.content}`;
     }
 
-    return `${senderName} đã gửi 1 ${lastMessage.medias?.[lastMessage.medias.length - 1].type === 'image' ? 'ảnh' : 'video'}`;
+    return `${senderName} đã gửi 1 ${lastMessage.lastMediaType === 'image' ? 'ảnh' : 'video'}`;
   };
 
   return (

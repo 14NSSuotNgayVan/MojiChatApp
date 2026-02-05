@@ -25,7 +25,7 @@ export interface LastMessage {
   createdAt: string;
   senderId: string;
   type: MESSAGE_TYPE;
-  medias?: Media[];
+  lastMediaType: MEDIA_TYPE;
 }
 
 export interface Conversation {
@@ -47,6 +47,7 @@ export interface ConversationResponse {
 }
 
 export interface Media {
+  _id: string;
   type: MEDIA_TYPE;
   url: string;
   isDeleted: boolean;

@@ -7,7 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
-import { MediaGalleryDialog } from '@/components/gallery/gallery.tsx';
+import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -24,6 +24,7 @@ const getMessageSeender = (seenByUsers: SeenBy[], messageId: string, userId: str
 
 const MediaView = ({ className, media }: { className: string; media: Media }) => {
   const [openGallery, setOpenGallery] = useState<boolean>(false);
+
   const renderMedia = () => {
     switch (media.type) {
       case 'image': {
@@ -37,16 +38,6 @@ const MediaView = ({ className, media }: { className: string; media: Media }) =>
           />
         );
       }
-
-      // case 'file': {
-      //   return (
-      //     <div className={cn('flex p-4', className)}>
-      //       <File />
-      //       {media?.meta?.name}
-      //     </div>
-      //   );
-      // }
-
       case 'video': {
         return (
           <ChatVideo
@@ -64,7 +55,9 @@ const MediaView = ({ className, media }: { className: string; media: Media }) =>
 
   return (
     <>
-      <MediaGalleryDialog open={openGallery} onOpenChange={setOpenGallery} currentMedia={media} />
+      {openGallery && (
+        <MediaGalleryDialog open={openGallery} onOpenChange={setOpenGallery} currentMedia={media} />
+      )}
       {renderMedia()}
     </>
   );
@@ -129,14 +122,18 @@ export const OtherMessage = ({
     }
 
     if (message.medias?.length && message.medias?.length > 1) {
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-        {message.medias?.map((mda) => (
-          <MediaView
-            media={mda}
-            className={cn('w-full max-w-2xs rounded-md aspect-square object-cover overflow-hidden')}
-          />
-        ))}
-      </div>;
+      return (
+        <div className="w-full flex flex-wrap gap-1">
+          {message.medias?.map((mda) => (
+            <MediaView
+              media={mda}
+              className={cn(
+                'w-full max-w-2xs rounded-md aspect-square object-cover overflow-hidden grow'
+              )}
+            />
+          ))}
+        </div>
+      );
     }
   };
 

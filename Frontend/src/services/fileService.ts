@@ -65,4 +65,8 @@ export const fileService = {
     const res = await api.delete(`/file/delete`, { params: { publicId, resourceType } });
     return res.data;
   },
+  getMediasByMediaId: async (mediaId: string, params?: { limit: number }) => {
+    const res = await api.get(`/file/media/${mediaId}`, { params })
+    return res.data.medias;
+  }
 };
