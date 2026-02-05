@@ -1,8 +1,7 @@
-import cloudinary from "cloudinary";
-import {
-    generateSignature
-} from "../utils/uploadFileHelper.js";
-import crypto from "crypto";
+import cloudinary from 'cloudinary';
+import { generateSignature } from '../utils/uploadFileHelper.js';
+import crypto from 'crypto';
+import Attachment from '../models/Attachment.js';
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -22,12 +21,11 @@ export const getAvatarSignature = async (req, res) => {
             folder,
             ...sig,
         });
-
     } catch (error) {
-        console.error("Error when calling getAvatarSignature: " + error);
+        console.error('Error when calling getAvatarSignature: ' + error);
         return res.status(500).send();
     }
-}
+};
 
 export const getBgSignature = async (req, res) => {
     try {
@@ -41,12 +39,11 @@ export const getBgSignature = async (req, res) => {
             folder,
             ...sig,
         });
-
     } catch (error) {
-        console.error("Error when calling getBgSignature: " + error);
+        console.error('Error when calling getBgSignature: ' + error);
         return res.status(500).send();
     }
-}
+};
 
 export const getMediaSignature = async (req, res) => {
     try {
@@ -61,33 +58,32 @@ export const getMediaSignature = async (req, res) => {
             folder,
             ...sig,
         });
-
     } catch (error) {
-        console.error("Error when calling getMediaSignature: " + error);
+        console.error('Error when calling getMediaSignature: ' + error);
         return res.status(500).send();
     }
-}
+};
 
 export const deleteFile = async (req, res) => {
     try {
         const {
             publicId,
-            resourceType = "image", // image | video
-            type = "upload",        // upload | private | authenticated
+            resourceType = 'image', // image | video
+            type = 'upload', // upload | private | authenticated
         } = req.query;
 
         if (!publicId) {
-            return res.status(400).json({ message: "publicId must not be empty!" });
+            return res.status(400).json({ message: 'publicId must not be empty!' });
         }
 
         const timestamp = Math.round(Date.now() / 1000);
 
         const signature = crypto
-            .createHash("sha1")
+            .createHash('sha1')
             .update(
                 `public_id=${publicId}&timestamp=${timestamp}&type=${type}${process.env.CLOUD_API_SECRET}`
             )
-            .digest("hex");
+            .digest('hex');
 
         const body = new URLSearchParams({
             public_id: publicId,
@@ -100,9 +96,9 @@ export const deleteFile = async (req, res) => {
         const response = await fetch(
             `https://api.cloudinary.com/v1_1/${process.env.CLOUD_NAME}/${resourceType}/destroy`,
             {
-                method: "POST",
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: body.toString(),
             }
@@ -110,18 +106,169 @@ export const deleteFile = async (req, res) => {
 
         const result = await response.json();
 
-        if (result.result !== "ok") {
+        if (result.result !== 'ok') {
             return res.status(400).json({
-                message: "Delete failed",
+                message: 'Delete failed',
                 cloudinary: result,
             });
         }
 
         res.status(200).json({
-            message: "Delete file success!",
+            message: 'Delete file success!',
         });
     } catch (error) {
-        console.error("Error when calling deleteFile:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error('Error when calling deleteFile:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const getConversationMedias = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const {
+            cursor,
+            limit = 20,
+            direction = 'next' // 'prev' | 'next'
+        } = req.query;
+        const userId = req.user._id.toString();
+
+        if (!conversationId)
+            return res.status(400).json({ message: 'conversationId must not be empty!' });
+
+        const query = {
+            conversationId,
+        };
+
+        if (cursor) {
+            if (direction === 'next') {
+                query.createdAt = { $lt: new Date(cursor) };
+            }
+            if (direction === 'prev') {
+                query.createdAt = { $gt: new Date(cursor) };
+            }
+        }
+
+        const medias = await Attachment.find(query)
+            .sort({ createdAt: direction === 'next' ? -1 : 1 })
+            .limit(limit + 1)
+            .populate([
+                {
+                    path: "senderId", select: 'displayName avtUrl',
+                    options: { lean: true }
+                }
+            ])
+            .lean()
+
+
+        let nextCursor;
+        let prevCursor;
+        if (medias?.length > Number(limit)) {
+            medias.pop();
+            nextCursor = medias[medias.length - 1].createdAt.toISOString();
+        }
+
+        const mediasRes = [];
+        for (let i = medias.length - 1; i >= 0; i--) {
+            const currentMedia = medias[i];
+            currentMedia.isOwner = currentMedia.senderId._id.toString() === userId
+            mediasRes.push(currentMedia)
+        }
+
+        return res.status(200).json({
+            message: 'Get medias success!',
+            medias: mediasRes,
+            nextCursor,
+            prevCursor
+        });
+    } catch (error) {
+        console.error('Error when calling getConversationMedias:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const getMediasGalleryById = async (req, res) => {
+    try {
+        const { mediaId } = req.params;
+        const { limit = 20 } = req.query;
+        const userId = req.user._id.toString();
+        if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
+
+        const media = await Attachment.findById(mediaId).populate([
+            {
+                senderId: 'displayName avtUrl',
+            },
+        ]);
+
+        const query = {
+            _id: mediaId,
+            conversationId: media.conversationId
+        };
+
+        let cursor = media.createdAt;
+
+        const nextMedias = await Attachment.find({
+            ...query,
+            createdAt: { $gt: new Date(cursor) }
+        })
+            .sort({ createdAt: 1 })
+            .limit(limit + 1)
+            .populate([
+                {
+                    path: "senderId", select: 'displayName avtUrl',
+                    options: { lean: true }
+                }
+            ])
+            .lean({
+                transform: (doc) => {
+                    doc.isOwner = doc.senderId._id.toString() === userId;
+                    return doc;
+                },
+            });
+
+        const prevMedias = await Attachment.find({
+            ...query,
+            createdAt: { $lt: new Date(cursor) }
+        })
+            .sort({ createdAt: -1 })
+            .limit(limit + 1)
+            .populate([
+                {
+                    path: "senderId", select: 'displayName avtUrl',
+                    options: { lean: true }
+                }
+            ])
+            .lean({
+                transform: (doc) => {
+                    doc.isOwner = doc.senderId._id.toString() === userId;
+                    return doc;
+                },
+            });
+
+        let nextCursor;
+        let prevCursor;
+
+        if (nextMedias?.length > Number(limit)) {
+            nextMedias.pop();
+            nextCursor = nextMedias[nextMedias.length - 1].createdAt.toISOString();
+        }
+
+        if (prevMedias?.length > Number(limit)) {
+            prevMedias.pop();
+            prevCursor = prevMedias[prevMedias.length - 1].createdAt.toISOString();
+        }
+
+        return res.status(200).json({
+            message: 'Get medias success!',
+            medias: [
+                ...prevMedias.reverse(),
+                media.toObject(),
+                ...nextMedias
+            ],
+            nextCursor,
+            prevCursor
+        });
+    } catch (error) {
+        console.error('Error when calling getConversationMedias:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 };
