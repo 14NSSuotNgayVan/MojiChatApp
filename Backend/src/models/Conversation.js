@@ -51,7 +51,12 @@ const lastMessageSchema = new mongoose.Schema({
         enum: ['text', 'media', 'mixed', 'system'],
         default: 'text'
     },
+    lastMediaType: {
+        type: String,
+        enum: ['image', 'video']
+    },
     createdAt: { type: Date, default: null }
+
 },
     {
         _id: false

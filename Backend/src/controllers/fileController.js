@@ -141,23 +141,26 @@ export const getConversationMedias = async (req, res) => {
 
         if (cursor) {
             if (direction === 'next') {
-                query.createdAt = { $lt: new Date(cursor) };
+                query.createdAt = { $gt: new Date(cursor) };
             }
             if (direction === 'prev') {
-                query.createdAt = { $gt: new Date(cursor) };
+                query.createdAt = { $lt: new Date(cursor) };
             }
         }
 
         const medias = await Attachment.find(query)
-            .sort({ createdAt: direction === 'next' ? -1 : 1 })
-            .limit(limit + 1)
+            .sort({ createdAt: direction === 'next' ? 1 : -1 })
+            .limit(Number(limit) + 1)
             .populate([
                 {
                     path: "senderId", select: 'displayName avtUrl',
                     options: { lean: true }
                 }
             ])
-            .lean()
+            .lean().then(docs => docs.map(doc => ({
+                ...doc,
+                isOwner: doc.senderId?._id?.toString() === userId
+            })))
 
 
         let nextCursor;
@@ -167,16 +170,9 @@ export const getConversationMedias = async (req, res) => {
             nextCursor = medias[medias.length - 1].createdAt.toISOString();
         }
 
-        const mediasRes = [];
-        for (let i = medias.length - 1; i >= 0; i--) {
-            const currentMedia = medias[i];
-            currentMedia.isOwner = currentMedia.senderId._id.toString() === userId
-            mediasRes.push(currentMedia)
-        }
-
         return res.status(200).json({
             message: 'Get medias success!',
-            medias: mediasRes,
+            medias: direction === 'next' ? medias : medias.reverse(),
             nextCursor,
             prevCursor
         });
@@ -193,14 +189,13 @@ export const getMediasGalleryById = async (req, res) => {
         const userId = req.user._id.toString();
         if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
 
-        const media = await Attachment.findById(mediaId).populate([
+        const media = await Attachment.findById(mediaId).populate(
             {
-                senderId: 'displayName avtUrl',
+                path: "senderId", select: 'displayName avtUrl',
             },
-        ]);
+        );
 
         const query = {
-            _id: mediaId,
             conversationId: media.conversationId
         };
 
@@ -211,38 +206,36 @@ export const getMediasGalleryById = async (req, res) => {
             createdAt: { $gt: new Date(cursor) }
         })
             .sort({ createdAt: 1 })
-            .limit(limit + 1)
+            .limit(Number(limit) + 1)
             .populate([
                 {
                     path: "senderId", select: 'displayName avtUrl',
                     options: { lean: true }
                 }
             ])
-            .lean({
-                transform: (doc) => {
-                    doc.isOwner = doc.senderId._id.toString() === userId;
-                    return doc;
-                },
-            });
+            .lean()
+            .then(docs => docs.map(doc => ({
+                ...doc,
+                isOwner: doc.senderId?._id?.toString() === userId
+            })))
 
         const prevMedias = await Attachment.find({
             ...query,
             createdAt: { $lt: new Date(cursor) }
         })
             .sort({ createdAt: -1 })
-            .limit(limit + 1)
+            .limit(Number(limit) + 1)
             .populate([
                 {
                     path: "senderId", select: 'displayName avtUrl',
                     options: { lean: true }
                 }
             ])
-            .lean({
-                transform: (doc) => {
-                    doc.isOwner = doc.senderId._id.toString() === userId;
-                    return doc;
-                },
-            });
+            .lean()
+            .then(docs => docs.map(doc => ({
+                ...doc,
+                isOwner: doc.senderId?._id?.toString() === userId
+            })))
 
         let nextCursor;
         let prevCursor;
