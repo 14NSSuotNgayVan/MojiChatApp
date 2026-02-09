@@ -185,7 +185,7 @@ export const getConversationMedias = async (req, res) => {
 export const getMediasGalleryById = async (req, res) => {
     try {
         const { mediaId } = req.params;
-        const { limit = 20 } = req.query;
+        const { limit = 10 } = req.query;
         const userId = req.user._id.toString();
         if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
 
