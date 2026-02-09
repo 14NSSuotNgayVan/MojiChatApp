@@ -122,11 +122,12 @@ export const deleteFile = async (req, res) => {
     }
 };
 
-export const getConversationMedias = async (req, res) => {
+export const getConversationMediasByDirection = async (req, res) => {
     try {
         const { conversationId } = req.params;
+
         const {
-            cursor,
+            mediaId,
             limit = 20,
             direction = 'next' // 'prev' | 'next'
         } = req.query;
@@ -135,16 +136,38 @@ export const getConversationMedias = async (req, res) => {
         if (!conversationId)
             return res.status(400).json({ message: 'conversationId must not be empty!' });
 
+        if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
+
+        if (direction !== 'next' || direction !== 'prev') return res.status(400).json({ message: 'direction must be "prev" or "next"!' });
+
+        const media = await Attachment.findById(mediaId).populate(
+            {
+                path: "senderId", select: 'displayName avtUrl',
+            },
+        );
+
         const query = {
             conversationId,
         };
 
-        if (cursor) {
+        if (media.createdAt) {
             if (direction === 'next') {
-                query.createdAt = { $gt: new Date(cursor) };
+                query.$or = [
+                    { createdAt: { $gt: new Date(media.createdAt) } },
+                    {
+                        createdAt: new Date(media.createdAt),
+                        _id: { $gt: mediaId }
+                    }
+                ]
             }
             if (direction === 'prev') {
-                query.createdAt = { $lt: new Date(cursor) };
+                query.$or = [
+                    { createdAt: { $lt: new Date(media.createdAt) } },
+                    {
+                        createdAt: new Date(media.createdAt),
+                        _id: { $lt: mediaId }
+                    }
+                ]
             }
         }
 
@@ -167,7 +190,8 @@ export const getConversationMedias = async (req, res) => {
         let prevCursor;
         if (medias?.length > Number(limit)) {
             medias.pop();
-            nextCursor = medias[medias.length - 1].createdAt.toISOString();
+            if (direction === 'next') nextCursor = medias[medias.length - 1]._id;
+            if (direction === 'prev') prevCursor = medias[medias.length - 1]._id;
         }
 
         return res.status(200).json({
@@ -185,7 +209,7 @@ export const getConversationMedias = async (req, res) => {
 export const getMediasGalleryById = async (req, res) => {
     try {
         const { mediaId } = req.params;
-        const { limit = 10 } = req.query;
+        const { limit = 10, begining, end } = req.query;
         const userId = req.user._id.toString();
         if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
 
@@ -203,7 +227,13 @@ export const getMediasGalleryById = async (req, res) => {
 
         const nextMedias = await Attachment.find({
             ...query,
-            createdAt: { $gt: new Date(cursor) }
+            $or: [
+                { createdAt: { $gt: new Date(cursor) } },
+                {
+                    createdAt: new Date(cursor),
+                    _id: { $gt: mediaId }
+                }
+            ]
         })
             .sort({ createdAt: 1 })
             .limit(Number(limit) + 1)
@@ -221,7 +251,13 @@ export const getMediasGalleryById = async (req, res) => {
 
         const prevMedias = await Attachment.find({
             ...query,
-            createdAt: { $lt: new Date(cursor) }
+            $or: [
+                { createdAt: { $lt: new Date(cursor) } },
+                {
+                    createdAt: new Date(cursor),
+                    _id: { $lt: mediaId }
+                }
+            ]
         })
             .sort({ createdAt: -1 })
             .limit(Number(limit) + 1)
@@ -249,12 +285,15 @@ export const getMediasGalleryById = async (req, res) => {
             prevMedias.pop();
             prevCursor = prevMedias[prevMedias.length - 1].createdAt.toISOString();
         }
+        const middleMedia = media.toObject();
+
+        middleMedia.isOwner = middleMedia.senderId?._id?.toString() === userId
 
         return res.status(200).json({
             message: 'Get medias success!',
             medias: [
                 ...prevMedias.reverse(),
-                media.toObject(),
+                middleMedia,
                 ...nextMedias
             ],
             nextCursor,
