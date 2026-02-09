@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -106,6 +107,7 @@ export const OtherMessage = ({
         />
       );
     }
+
     if (message.type === 'mixed' && message.medias?.length === 1) {
       return (
         <MediaView

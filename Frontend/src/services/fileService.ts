@@ -65,8 +65,12 @@ export const fileService = {
     const res = await api.delete(`/file/delete`, { params: { publicId, resourceType } });
     return res.data;
   },
-  getMediasByMediaId: async (mediaId: string, params?: { limit: number }) => {
+  getMediasByMediaId: async (mediaId: string, params?: { limit?: number }) => {
     const res = await api.get(`/file/media/${mediaId}`, { params })
-    return res.data.medias;
+    return res.data;
+  },
+  getMedias: async (convId: string, params?: { limit?: number, cursor: string, direction: "next" | "prev" }) => {
+    const res = await api.get(`/file/media/conversation/${convId}`, { params })
+    return res.data;
   }
 };
