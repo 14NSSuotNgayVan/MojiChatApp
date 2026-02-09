@@ -8,7 +8,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -128,6 +127,7 @@ export const OtherMessage = ({
         <div className="w-full flex flex-wrap gap-1">
           {message.medias?.map((mda) => (
             <MediaView
+              key={mda._id}
               media={mda}
               className={cn(
                 'w-full max-w-2xs rounded-md aspect-square object-cover overflow-hidden grow'

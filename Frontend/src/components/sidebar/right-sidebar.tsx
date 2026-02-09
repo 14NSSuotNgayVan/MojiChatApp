@@ -57,6 +57,8 @@ export const RightSidebarHeader = () => {
 export const RightSidebarContent = () => {
   const { activeConversation } = useChatStore();
 
+  
+
   if (activeConversation?.type === 'direct') {
     return (
       <>

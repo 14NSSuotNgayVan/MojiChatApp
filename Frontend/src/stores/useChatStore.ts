@@ -14,6 +14,7 @@ export const useChatStore = create<ChatState>()(
       isSearching: false,
       conversations: [],
       messages: {},
+      medias: {},
       users: {},
       activeConversationId: null,
       activeConversation: null,
@@ -30,6 +31,14 @@ export const useChatStore = create<ChatState>()(
           users: {
             ...prev.users,
             [user._id]: user
+          }
+        }))
+      },
+      setMedia: (id, fnc) => {
+        set((prev) => ({
+          medias: {
+            ...prev.medias,
+            [id]: prev.medias?.[id] ? fnc(prev.medias[id]) : fnc(undefined)
           }
         }))
       },

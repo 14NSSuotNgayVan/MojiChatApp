@@ -69,8 +69,8 @@ export const fileService = {
     const res = await api.get(`/file/media/${mediaId}`, { params })
     return res.data;
   },
-  getMedias: async (convId: string, params?: { limit?: number, cursor: string, direction: "next" | "prev" }) => {
-    const res = await api.get(`/file/media/conversation/${convId}`, { params })
+  getMedias: async (convId: string, params?: { limit?: number, cursor: string, direction: "next" | "prev", mediaId: string }) => {
+    const res = await api.get(`/file/media/conversation/direction/${convId}`, { params })
     return res.data;
   }
 };

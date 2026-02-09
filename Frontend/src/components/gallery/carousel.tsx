@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Media } from '@/types/chat.ts';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { cn } from '@/lib/utils.ts';
 import { ArrowLeft, ArrowRight, Play } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton.tsx';
+
+const ThumbSkeleton = (number: number) => {
+  return Array.from(new Array(number)).map(() => (
+    <Skeleton className="grow-0 shrink-0 aspect-square h-full rounded-md overflow-hidden "></Skeleton>
+  ));
+};
 
 type ThumbPropType = {
   selected: boolean;
@@ -53,15 +60,16 @@ export const Thumb = (props: ThumbPropType) => {
 type PropType = {
   slides: Media[];
   defaultSelect: Media;
-  onClickLast?: () => void;
-  onClickFirst?: () => void;
+  onClickLast?: (mediaId: string) => void;
+  onClickFirst?: (mediaId: string) => void;
+  nextLoading?: boolean;
+  prevLoading?: boolean;
 };
 
 const MediaCarousel = (props: PropType) => {
-  const { slides, defaultSelect, onClickLast, onClickFirst } = props;
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const { slides, defaultSelect, onClickLast, onClickFirst, prevLoading, nextLoading } = props;
   const [selected, setSelected] = useState<Media>(defaultSelect);
-
+  const selectedIndex = slides.findIndex((i) => i._id === selected._id);
   const renderMedia = (media: Media) => {
     switch (media.type) {
       case 'image': {
@@ -93,49 +101,51 @@ const MediaCarousel = (props: PropType) => {
 
   const onThumbClick = (media: Media, index: number) => {
     setSelected(media);
-    setSelectedIndex(index);
     handleScrollThumb(index);
     if (index === 0) {
-      if (onClickFirst) onClickFirst();
+      if (onClickFirst) onClickFirst(media._id);
     }
 
     if (index === slides.length - 1) {
-      if (onClickLast) onClickLast();
+      if (onClickLast) onClickLast(media._id);
     }
   };
 
-  const handleClickNext = () => {
+  const handleClickNext = useCallback(() => {
     if (selectedIndex + 1 < slides.length) {
       setSelected(slides[selectedIndex + 1]);
       handleScrollThumb(selectedIndex + 1);
-    } else if (onClickLast) onClickLast();
-  };
+      if (selectedIndex + 1 === slides.length - 1 && onClickLast)
+        onClickLast(slides[selectedIndex + 1]._id);
+    }
+  }, [selectedIndex, slides, onClickLast]);
 
-  const handleClickPrevious = () => {
+  const handleClickPrevious = useCallback(() => {
     if (selectedIndex > 0) {
       setSelected(slides[selectedIndex - 1]);
       handleScrollThumb(selectedIndex - 1);
-    } else if (onClickFirst) onClickFirst();
-  };
+      if (selectedIndex - 1 === 0 && onClickFirst) onClickFirst(slides[selectedIndex - 1]._id);
+    }
+  }, [selectedIndex, slides, onClickFirst]);
 
   useEffect(() => {
-    setSelectedIndex(slides.findIndex((i) => i._id === selected._id));
-  }, [slides, selected]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        handleClickPrevious();
+      }
+      if (e.key === 'ArrowRight') {
+        handleClickNext();
+      }
+    };
 
-  // useEffect(() => {
-  //   const handleKeyDown = (e: KeyboardEvent) => {
-  //     if (e.key === 'ArrowLeft') {
-  //       handleClickPrevious();
-  //     }
-  //     if (e.key === 'ArrowRight') {
-  //       handleClickNext();
-  //     }
-  //   };
+    document.addEventListener('keydown', handleKeyDown);
 
-  //   document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleClickPrevious, handleClickNext]);
 
-  //   return () => document.removeEventListener('keydown', handleKeyDown);
-  // }, []);
+  useEffect(() => {
+    handleScrollThumb(slides.findIndex((i) => i._id === defaultSelect._id));
+  }, [slides, defaultSelect]);
 
   return (
     <div className="m-auto h-full flex flex-col">
@@ -163,12 +173,10 @@ const MediaCarousel = (props: PropType) => {
         </div>
       </div>
 
-      <div className="mt-3 h-1/9">
-        <div className="overflow-x-auto h-full transition-all">
-          <div
-            id="thumb-slide"
-            className="srhink-0 h-[calc(100%-0.25rem)] flex gap-3 pb-1 m-auto w-max my-0.5"
-          >
+      <div className="mt-3">
+        <div className="overflow-x-auto overflow-y-hidden transition-transform -mb-[7px]">
+          <div id="thumb-slide" className="srhink-0 h-14 flex gap-3 pb-1 m-auto w-max my-0.5">
+            {prevLoading && ThumbSkeleton(5)}
             {slides.map((media, index) => (
               <Thumb
                 key={media._id}
@@ -177,6 +185,7 @@ const MediaCarousel = (props: PropType) => {
                 media={media}
               />
             ))}
+            {nextLoading && ThumbSkeleton(5)}
           </div>
         </div>
       </div>

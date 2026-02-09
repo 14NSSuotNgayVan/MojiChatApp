@@ -109,3 +109,7 @@ input[type="search"]::-webkit-search-cancel-button {
 .direction-rtl {
   direction: rtl
 }
+
+.scrollbar-stable {
+  scrollbar-gutter: stable;
+}

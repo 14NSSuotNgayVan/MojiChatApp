@@ -12,58 +12,76 @@ type DialogProps = {
 };
 
 export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogProps) => {
-  const [data, setData] = useState<Media[]>([]);
-  const [nextCursor, setNextCursor] = useState<string>('');
-  const [prevCursor, setPrevCursor] = useState<string>('');
-  const { activeConversationId } = useChatStore();
+  const { medias, activeConversationId, setMedia } = useChatStore();
+  const currentConvMedias = activeConversationId ? medias?.[activeConversationId] : null;
+
+  const [prevLoading, setPrevLoading] = useState<boolean>(false);
+  const [nextLoading, setNextLoading] = useState<boolean>(false);
+
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open);
-    if (!open) {
-      setData([]);
-    }
   };
 
   useEffect(() => {
     const handleGetGalleryById = async () => {
       try {
-        const res = await fileService.getMediasByMediaId(currentMedia._id);
-        setData(res.medias);
-        setNextCursor(res.nextCursor);
-        setPrevCursor(res.prevCursor);
+        const res = await fileService.getMediasByMediaId(currentMedia._id, { limit: 2 });
+        setMedia(activeConversationId!, (prev) => ({
+          ...prev,
+          items: res.medias,
+          nextCursor: res.nextCursor,
+          prevCursor: res.prevCursor,
+        }));
       } catch (error) {
         console.error(error);
       }
     };
-    handleGetGalleryById();
-  }, [currentMedia._id]);
 
-  const handleGetPrev = async () => {
-    if (!prevCursor || !activeConversationId) return;
+    if (!currentConvMedias) handleGetGalleryById();
+  }, [currentMedia._id, setMedia, activeConversationId, currentConvMedias]);
+
+  const handleGetPrev = async (mediaId: string) => {
+    if (!currentConvMedias?.prevCursor || !activeConversationId) return;
     try {
+      setPrevLoading(true);
       const res = await fileService.getMedias(activeConversationId, {
-        cursor: prevCursor,
+        cursor: currentConvMedias?.prevCursor,
         direction: 'prev',
+        mediaId,
       });
-      setData((prev) => [...res.medias, ...prev]);
-      setPrevCursor(res.prevCursor);
+      setMedia(activeConversationId, (prev) => ({
+        ...prev,
+        items: [...res.medias, ...(prev?.items || [])],
+        prevCursor: res.prevCursor,
+      }));
     } catch (error) {
       console.error(error);
+    } finally {
+      setPrevLoading(false);
     }
   };
 
-  const handleGetNext = async () => {
-    if (!nextCursor || !activeConversationId) return;
+  const handleGetNext = async (mediaId: string) => {
+    if (!currentConvMedias?.nextCursor || !activeConversationId) return;
     try {
+      setNextLoading(true);
       const res = await fileService.getMedias(activeConversationId, {
-        cursor: nextCursor,
+        cursor: currentConvMedias?.nextCursor,
         direction: 'next',
+        mediaId,
       });
-      setData((prev) => [...prev, ...res.medias]);
-      setNextCursor(res.nextCursor);
+      setMedia(activeConversationId, (prev) => ({
+        ...prev,
+        items: [...(prev?.items || []), ...res.medias],
+        nextCursor: res.nextCursor,
+      }));
     } catch (error) {
       console.error(error);
+    } finally {
+      setNextLoading(false);
     }
   };
+  console.log(medias);
 
   return (
     <>
@@ -76,13 +94,15 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
             <DialogTitle>MOJI</DialogTitle>
           </DialogHeader>
           <div className="w-full grow overflow-hidden">
-            {data?.length ? (
+            {currentConvMedias?.items?.length ? (
               <MediaCarousel
                 key="carousel-main"
-                slides={data}
+                slides={currentConvMedias?.items}
                 defaultSelect={currentMedia}
                 onClickFirst={handleGetPrev}
                 onClickLast={handleGetNext}
+                prevLoading={prevLoading}
+                nextLoading={nextLoading}
               />
             ) : (
               <MediaCarousel

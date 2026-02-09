@@ -1,6 +1,7 @@
 import type { Socket } from "socket.io-client";
 import type {
   Conversation,
+  Media,
   Message,
   MessageGroup,
   Participant,
@@ -59,6 +60,23 @@ export interface ChatState {
       nextCursor?: string | null;
     }
   >;
+  medias: Record<
+    string,
+    {
+      items: Media[];
+      nextCursor?: string | null;
+      prevCursor?: string | null;
+    }
+  >;
+  setMedia: (id: string, setFunc: (media: {
+    items: Media[];
+    nextCursor?: string | null;
+    prevCursor?: string | null;
+  } | undefined) => {
+    items: Media[];
+    nextCursor?: string | null;
+    prevCursor?: string | null;
+  }) => void;
   activeConversationId: string | null;
   loading: boolean;
   messageLoading: boolean;
