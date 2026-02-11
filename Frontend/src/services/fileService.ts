@@ -69,8 +69,12 @@ export const fileService = {
     const res = await api.get(`/file/media/${mediaId}`, { params })
     return res.data;
   },
-  getMedias: async (convId: string, params?: { limit?: number, cursor: string, direction: "next" | "prev", mediaId: string }) => {
-    const res = await api.get(`/file/media/conversation/direction/${convId}`, { params })
+  getMediasByRange: async (convId: string, params?: { direction: "next" | "prev", startId: string, endId: string }) => {
+    const res = await api.get(`/file/media/start-end/conversation/${convId}`, { params })
+    return res.data;
+  },
+  getMedias: async (convId: string, params?: { limit?: number, direction: "next" | "prev", mediaId: string }) => {
+    const res = await api.get(`/file/media/direction/conversation/${convId}`, { params })
     return res.data;
   }
 };

@@ -47,6 +47,18 @@ export interface ThemeState {
 
 export interface FileRequest { type: 'image' | 'video' | 'file', url: string }
 
+export interface MediaRecord {
+  items: Media[];
+  nextCursor?: {
+    _id: string,
+    createdAt: string
+  };
+  prevCursor?: {
+    _id: string,
+    createdAt: string
+  };
+}
+
 export interface ChatState {
   isSearching: boolean;
   conversations: Conversation[];
@@ -62,21 +74,9 @@ export interface ChatState {
   >;
   medias: Record<
     string,
-    {
-      items: Media[];
-      nextCursor?: string | null;
-      prevCursor?: string | null;
-    }
+    MediaRecord
   >;
-  setMedia: (id: string, setFunc: (media: {
-    items: Media[];
-    nextCursor?: string | null;
-    prevCursor?: string | null;
-  } | undefined) => {
-    items: Media[];
-    nextCursor?: string | null;
-    prevCursor?: string | null;
-  }) => void;
+  setMedia: (id: string, setFunc: (media: MediaRecord | undefined) => MediaRecord) => void;
   activeConversationId: string | null;
   loading: boolean;
   messageLoading: boolean;

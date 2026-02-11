@@ -1,5 +1,6 @@
 import MediaCarousel from '@/components/gallery/carousel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
+import { mergeById } from '@/lib/utils.ts';
 import { fileService } from '@/services/fileService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { type Media } from '@/types/chat.ts';
@@ -13,8 +14,9 @@ type DialogProps = {
 
 export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogProps) => {
   const { medias, activeConversationId, setMedia } = useChatStore();
-  const currentConvMedias = activeConversationId ? medias?.[activeConversationId] : null;
+  const currentConvMedia = activeConversationId ? medias?.[activeConversationId] : null;
 
+  const [loading, setLoading] = useState<boolean>(false);
   const [prevLoading, setPrevLoading] = useState<boolean>(false);
   const [nextLoading, setNextLoading] = useState<boolean>(false);
 
@@ -25,6 +27,7 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
   useEffect(() => {
     const handleGetGalleryById = async () => {
       try {
+        setLoading(true);
         const res = await fileService.getMediasByMediaId(currentMedia._id, { limit: 2 });
         setMedia(activeConversationId!, (prev) => ({
           ...prev,
@@ -34,18 +37,69 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
         }));
       } catch (error) {
         console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (!currentConvMedias) handleGetGalleryById();
-  }, [currentMedia._id, setMedia, activeConversationId, currentConvMedias]);
+    if (!currentConvMedia) {
+      handleGetGalleryById();
+      return;
+    }
+
+    const handleGetGalleryByRange = async (
+      startId: string,
+      endId: string,
+      direction: 'next' | 'prev'
+    ) => {
+      try {
+        setLoading(true);
+        const res = await fileService.getMediasByRange(activeConversationId!, {
+          startId,
+          endId,
+          direction,
+        });
+        setMedia(activeConversationId!, (prev) => ({
+          ...prev,
+          items:
+            direction === 'prev'
+              ? mergeById(res.medias, prev?.items || [])
+              : mergeById(prev?.items || [], res.medias),
+          nextCursor: direction === 'next' ? res?.nextCursor : prev?.nextCursor,
+          prevCursor: direction === 'prev' ? res?.prevCursor : prev?.prevCursor,
+        }));
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const isExisted = currentConvMedia.items.findIndex((i) => i._id === currentMedia._id) == -1;
+
+    if (isExisted) {
+      if (
+        //onLeft
+        currentConvMedia?.prevCursor?.createdAt &&
+        new Date(currentMedia.createdAt) <= new Date(currentConvMedia?.prevCursor.createdAt)
+      ) {
+        handleGetGalleryByRange(currentMedia._id, currentConvMedia.prevCursor._id, 'prev');
+      }
+      if (
+        //onRight
+        currentConvMedia?.nextCursor?.createdAt &&
+        new Date(currentMedia.createdAt) >= new Date(currentConvMedia?.nextCursor.createdAt)
+      ) {
+        handleGetGalleryByRange(currentConvMedia.nextCursor._id, currentMedia._id, 'next');
+      }
+    }
+  }, []);
 
   const handleGetPrev = async (mediaId: string) => {
-    if (!currentConvMedias?.prevCursor || !activeConversationId) return;
+    if (!currentConvMedia?.prevCursor || !activeConversationId) return;
     try {
       setPrevLoading(true);
       const res = await fileService.getMedias(activeConversationId, {
-        cursor: currentConvMedias?.prevCursor,
         direction: 'prev',
         mediaId,
       });
@@ -62,11 +116,10 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
   };
 
   const handleGetNext = async (mediaId: string) => {
-    if (!currentConvMedias?.nextCursor || !activeConversationId) return;
+    if (!currentConvMedia?.nextCursor || !activeConversationId) return;
     try {
       setNextLoading(true);
       const res = await fileService.getMedias(activeConversationId, {
-        cursor: currentConvMedias?.nextCursor,
         direction: 'next',
         mediaId,
       });
@@ -81,7 +134,6 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
       setNextLoading(false);
     }
   };
-  console.log(medias);
 
   return (
     <>
@@ -94,10 +146,10 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
             <DialogTitle>MOJI</DialogTitle>
           </DialogHeader>
           <div className="w-full grow overflow-hidden">
-            {currentConvMedias?.items?.length ? (
+            {currentConvMedia?.items?.length && !loading ? (
               <MediaCarousel
                 key="carousel-main"
-                slides={currentConvMedias?.items}
+                slides={currentConvMedia?.items}
                 defaultSelect={currentMedia}
                 onClickFirst={handleGetPrev}
                 onClickLast={handleGetNext}

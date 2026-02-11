@@ -112,3 +112,16 @@ export function debounce<T extends (...args: any[]) => void>(
     }, delay);
   };
 }
+
+export function mergeById<T extends { _id: string }>(
+  existing: T[],
+  incoming: T[]
+): T[] {
+  const map = new Map<string, T>();
+
+  for (const item of [...existing, ...incoming]) {
+    map.set(item._id, item);
+  }
+
+  return Array.from(map.values());
+}
