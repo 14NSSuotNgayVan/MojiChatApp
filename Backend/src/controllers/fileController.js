@@ -138,7 +138,7 @@ export const getConversationMediasByDirection = async (req, res) => {
 
         if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
 
-        if (direction !== 'next' || direction !== 'prev') return res.status(400).json({ message: 'direction must be "prev" or "next"!' });
+        if (direction !== 'next' && direction !== 'prev') return res.status(400).json({ message: 'direction must be "prev" or "next"!' });
 
         const media = await Attachment.findById(mediaId).populate(
             {
@@ -172,7 +172,7 @@ export const getConversationMediasByDirection = async (req, res) => {
         }
 
         const medias = await Attachment.find(query)
-            .sort({ createdAt: direction === 'next' ? 1 : -1 })
+            .sort({ createdAt: direction === 'next' ? 1 : -1, _id: 1 })
             .limit(Number(limit) + 1)
             .populate([
                 {
@@ -189,9 +189,9 @@ export const getConversationMediasByDirection = async (req, res) => {
         let nextCursor;
         let prevCursor;
         if (medias?.length > Number(limit)) {
+            if (direction === 'next') nextCursor = medias[medias.length - 1];
+            if (direction === 'prev') prevCursor = medias[medias.length - 1];
             medias.pop();
-            if (direction === 'next') nextCursor = medias[medias.length - 1]._id;
-            if (direction === 'prev') prevCursor = medias[medias.length - 1]._id;
         }
 
         return res.status(200).json({
@@ -209,7 +209,7 @@ export const getConversationMediasByDirection = async (req, res) => {
 export const getMediasGalleryById = async (req, res) => {
     try {
         const { mediaId } = req.params;
-        const { limit = 10, begining, end } = req.query;
+        const { limit = 10 } = req.query;
         const userId = req.user._id.toString();
         if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
 
@@ -235,7 +235,7 @@ export const getMediasGalleryById = async (req, res) => {
                 }
             ]
         })
-            .sort({ createdAt: 1 })
+            .sort({ createdAt: 1, _id: 1 })
             .limit(Number(limit) + 1)
             .populate([
                 {
@@ -259,7 +259,7 @@ export const getMediasGalleryById = async (req, res) => {
                 }
             ]
         })
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: -1, _id: -1 })
             .limit(Number(limit) + 1)
             .populate([
                 {
@@ -277,13 +277,13 @@ export const getMediasGalleryById = async (req, res) => {
         let prevCursor;
 
         if (nextMedias?.length > Number(limit)) {
+            nextCursor = { _id: nextMedias[nextMedias.length - 1]._id, createdAt: nextMedias[nextMedias.length - 1].createdAt.toISOString() };
             nextMedias.pop();
-            nextCursor = nextMedias[nextMedias.length - 1].createdAt.toISOString();
         }
 
         if (prevMedias?.length > Number(limit)) {
+            prevCursor = { _id: prevMedias[prevMedias.length - 1]._id, createdAt: prevMedias[prevMedias.length - 1].createdAt.toISOString() };
             prevMedias.pop();
-            prevCursor = prevMedias[prevMedias.length - 1].createdAt.toISOString();
         }
         const middleMedia = media.toObject();
 
@@ -304,3 +304,129 @@ export const getMediasGalleryById = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+const buildRangeQuery = (start, end) => {
+    return {
+        $and: [
+            {
+                $or: [
+                    { createdAt: { $gte: start.createdAt } },
+                    {
+                        createdAt: start.createdAt,
+                        _id: { $gte: start._id }
+                    }
+                ]
+            },
+            {
+                $or: [
+                    { createdAt: { $lte: end.createdAt } },
+                    {
+                        createdAt: end.createdAt,
+                        _id: { $lte: end._id }
+                    }
+                ]
+            }
+        ]
+    };
+}
+
+export const getMediasGalleryByStartEnd = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const {
+            startId,
+            endId,
+            direction = 'next', // 'prev' | 'next'
+        } = req.query;
+        const userId = req.user._id.toString();
+
+        if (!startId || !endId) return res.status(400).json({ message: '"startId" and "endId" must not be empty!' });
+
+        if (direction !== 'next' && direction !== 'prev') return res.status(400).json({ message: 'direction must be "prev" or "next"!' });
+
+        const mediaStart = await Attachment.findById(startId).populate(
+            {
+                path: "senderId", select: 'displayName avtUrl',
+            },
+        );
+
+        const mediaEnd = await Attachment.findById(endId).populate(
+            {
+                path: "senderId", select: 'displayName avtUrl',
+            },
+        );
+
+        if (!(mediaStart.conversationId.toString() === conversationId && mediaEnd.conversationId.toString() === conversationId))
+            return res.status(400).json({ message: '"startId" and "endId" must be in the same conversation with conversationId!' });
+
+        const query = {
+            conversationId: conversationId
+        };
+
+        const medias = await Attachment.find({
+            ...query,
+            ...buildRangeQuery(mediaStart, mediaEnd)
+        })
+            .sort({ createdAt: 1, _id: 1 })
+            .populate([
+                {
+                    path: "senderId", select: 'displayName avtUrl',
+                    options: { lean: true }
+                }
+            ])
+            .lean()
+            .then(docs => docs.map(doc => ({
+                ...doc,
+                isOwner: doc.senderId?._id?.toString() === userId
+            })))
+
+        const nextCursor = await Attachment.findOne({
+            ...query,
+            $or: [
+                { createdAt: { $gt: new Date(mediaEnd.createdAt) } },
+                {
+                    createdAt: new Date(mediaEnd.createdAt),
+                    _id: { $gt: mediaEnd._id }
+                }
+            ]
+        })
+            .sort({ createdAt: 1, _id: 1 })
+            .populate([
+                {
+                    path: "senderId", select: 'displayName avtUrl',
+                    options: { lean: true }
+                }
+            ])
+            .lean()
+
+        const prevCursor = await Attachment.findOne({
+            ...query,
+            $or: [
+                { createdAt: { $lt: new Date(mediaStart.createdAt) } },
+                {
+                    createdAt: new Date(mediaStart.createdAt),
+                    _id: { $lt: mediaStart._id }
+                }
+            ]
+        })
+            .sort({ createdAt: -1, _id: -1 })
+            .populate([
+                {
+                    path: "senderId", select: 'displayName avtUrl',
+                    options: { lean: true }
+                }
+            ])
+            .lean()
+
+        return res.status(200).json({
+            message: 'Get medias success!',
+            medias,
+            nextCursor: nextCursor ? { id: nextCursor._id, createdAt: nextCursor.createdAt } : undefined,
+            prevCursor: prevCursor ? { id: prevCursor._id, createdAt: prevCursor.createdAt } : undefined
+        });
+    } catch (error) {
+        console.error('Error when calling getConversationMedias:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
