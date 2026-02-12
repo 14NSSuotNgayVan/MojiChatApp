@@ -7,7 +7,7 @@ export const updateConversationAfterCreateMessage = (conversation, message, send
             senderId: senderId,
             createdAt: message.createdAt,
             type: message.type,
-            lastMediaType: message.medias[message.medias.length - 1].type
+            lastMediaType: message.medias.length ? message.medias[message.medias.length - 1]?.type : undefined
         }
     })
 

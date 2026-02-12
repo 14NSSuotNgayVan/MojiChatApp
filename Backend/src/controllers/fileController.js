@@ -156,7 +156,7 @@ export const getConversationMediasByDirection = async (req, res) => {
                     { createdAt: { $gt: new Date(media.createdAt) } },
                     {
                         createdAt: new Date(media.createdAt),
-                        _id: { $gt: mediaId }
+                        _id: { $gte: mediaId }
                     }
                 ]
             }
@@ -165,21 +165,15 @@ export const getConversationMediasByDirection = async (req, res) => {
                     { createdAt: { $lt: new Date(media.createdAt) } },
                     {
                         createdAt: new Date(media.createdAt),
-                        _id: { $lt: mediaId }
+                        _id: { $lte: mediaId }
                     }
                 ]
             }
         }
 
         const medias = await Attachment.find(query)
-            .sort({ createdAt: direction === 'next' ? 1 : -1, _id: 1 })
+            .sort({ createdAt: direction === 'next' ? 1 : -1, _id: direction === 'next' ? 1 : -1 })
             .limit(Number(limit) + 1)
-            .populate([
-                {
-                    path: "senderId", select: 'displayName avtUrl',
-                    options: { lean: true }
-                }
-            ])
             .lean().then(docs => docs.map(doc => ({
                 ...doc,
                 isOwner: doc.senderId?._id?.toString() === userId
@@ -189,8 +183,8 @@ export const getConversationMediasByDirection = async (req, res) => {
         let nextCursor;
         let prevCursor;
         if (medias?.length > Number(limit)) {
-            if (direction === 'next') nextCursor = medias[medias.length - 1];
-            if (direction === 'prev') prevCursor = medias[medias.length - 1];
+            if (direction === 'next') nextCursor = { _id: medias[medias.length - 1]._id, createdAt: medias[medias.length - 1].createdAt.toISOString() };
+            if (direction === 'prev') prevCursor = { _id: medias[medias.length - 1]._id, createdAt: medias[medias.length - 1].createdAt.toISOString() };
             medias.pop();
         }
 
@@ -201,7 +195,7 @@ export const getConversationMediasByDirection = async (req, res) => {
             prevCursor
         });
     } catch (error) {
-        console.error('Error when calling getConversationMedias:', error);
+        console.error('Error when calling getConversationMediasByDirection:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
@@ -237,12 +231,6 @@ export const getMediasGalleryById = async (req, res) => {
         })
             .sort({ createdAt: 1, _id: 1 })
             .limit(Number(limit) + 1)
-            .populate([
-                {
-                    path: "senderId", select: 'displayName avtUrl',
-                    options: { lean: true }
-                }
-            ])
             .lean()
             .then(docs => docs.map(doc => ({
                 ...doc,
@@ -261,12 +249,6 @@ export const getMediasGalleryById = async (req, res) => {
         })
             .sort({ createdAt: -1, _id: -1 })
             .limit(Number(limit) + 1)
-            .populate([
-                {
-                    path: "senderId", select: 'displayName avtUrl',
-                    options: { lean: true }
-                }
-            ])
             .lean()
             .then(docs => docs.map(doc => ({
                 ...doc,
@@ -300,7 +282,7 @@ export const getMediasGalleryById = async (req, res) => {
             prevCursor
         });
     } catch (error) {
-        console.error('Error when calling getConversationMedias:', error);
+        console.error('Error when calling getMediasGalleryById:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
@@ -425,8 +407,48 @@ export const getMediasGalleryByStartEnd = async (req, res) => {
             prevCursor: prevCursor ? { id: prevCursor._id, createdAt: prevCursor.createdAt } : undefined
         });
     } catch (error) {
-        console.error('Error when calling getConversationMedias:', error);
+        console.error('Error when calling getMediasGalleryByStartEnd:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
 
+export const getConversationMedias = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+
+        const {
+            limit = 20,
+        } = req.query;
+        const userId = req.user._id.toString();
+
+        if (!conversationId)
+            return res.status(400).json({ message: 'conversationId must not be empty!' });
+
+        const query = {
+            conversationId,
+        };
+
+        const medias = await Attachment.find(query)
+            .sort({ createdAt: -1, _id: -1 })
+            .limit(Number(limit) + 1)
+            .lean().then(docs => docs.map(doc => ({
+                ...doc,
+                isOwner: doc.senderId?._id?.toString() === userId
+            })))
+
+        let prevCursor;
+        if (medias?.length > Number(limit)) {
+            if (direction === 'prev') prevCursor = medias[medias.length - 1];
+            medias.pop();
+        }
+
+        return res.status(200).json({
+            message: 'Get medias success!',
+            medias,
+            prevCursor
+        });
+    } catch (error) {
+        console.error('Error when calling getConversationMedias:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
