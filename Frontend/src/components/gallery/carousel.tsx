@@ -64,10 +64,27 @@ type PropType = {
   onClickFirst?: (mediaId: string) => void;
   nextLoading?: boolean;
   prevLoading?: boolean;
+  prevCursor?: {
+    _id: string;
+    createdAt: string;
+  };
+  nextCursor?: {
+    _id: string;
+    createdAt: string;
+  };
 };
 
 const MediaCarousel = (props: PropType) => {
-  const { slides, defaultSelect, onClickLast, onClickFirst, prevLoading, nextLoading } = props;
+  const {
+    slides,
+    defaultSelect,
+    onClickLast,
+    onClickFirst,
+    prevLoading,
+    nextLoading,
+    prevCursor,
+    nextCursor,
+  } = props;
   const [selected, setSelected] = useState<Media>(defaultSelect);
   const selectedIndex = slides.findIndex((i) => i._id === selected._id);
   const renderMedia = (media: Media) => {
@@ -102,12 +119,12 @@ const MediaCarousel = (props: PropType) => {
   const onThumbClick = (media: Media, index: number) => {
     setSelected(media);
     handleScrollThumb(index);
-    if (index === 0) {
-      if (onClickFirst) onClickFirst(media._id);
+    if (index === 0 && prevCursor) {
+      if (onClickFirst) onClickFirst(prevCursor._id);
     }
 
-    if (index === slides.length - 1) {
-      if (onClickLast) onClickLast(media._id);
+    if (index === slides.length - 1 && nextCursor) {
+      if (onClickLast) onClickLast(nextCursor._id);
     }
   };
 
@@ -115,18 +132,18 @@ const MediaCarousel = (props: PropType) => {
     if (selectedIndex + 1 < slides.length) {
       setSelected(slides[selectedIndex + 1]);
       handleScrollThumb(selectedIndex + 1);
-      if (selectedIndex + 1 === slides.length - 1 && onClickLast)
-        onClickLast(slides[selectedIndex + 1]._id);
+      if (selectedIndex + 1 === slides.length - 1 && onClickLast && nextCursor)
+        onClickLast(nextCursor?._id);
     }
-  }, [selectedIndex, slides, onClickLast]);
+  }, [selectedIndex, slides, onClickLast, nextCursor]);
 
   const handleClickPrevious = useCallback(() => {
     if (selectedIndex > 0) {
       setSelected(slides[selectedIndex - 1]);
       handleScrollThumb(selectedIndex - 1);
-      if (selectedIndex - 1 === 0 && onClickFirst) onClickFirst(slides[selectedIndex - 1]._id);
+      if (selectedIndex - 1 === 0 && onClickFirst && prevCursor) onClickFirst(prevCursor._id);
     }
-  }, [selectedIndex, slides, onClickFirst]);
+  }, [selectedIndex, slides, onClickFirst, prevCursor]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

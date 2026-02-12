@@ -52,6 +52,7 @@ export interface Media {
   url: string;
   isDeleted: boolean;
   createdAt: string;
+  senderId: string;
   meta: {
     width?: number,
     height?: number,

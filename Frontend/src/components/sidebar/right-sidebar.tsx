@@ -146,7 +146,7 @@ export const RightSidebarUI = () => {
     <div className="h-full w-full overflow-hidden">
       <div
         className={cn(
-          'w-[200%] flex transition-all',
+          'w-[200%] flex transition-all h-full',
           sidebarTab !== 'sidebar' ? '-translate-x-1/2' : 'translate-x-0'
         )}
       >
@@ -162,7 +162,7 @@ export const RightSidebarUI = () => {
           </SidebarContent>
         </div>
         <div className="w-1/2 h-full">
-          <SidebarGallery onReturn={handleReturnToSidebar} />
+          {sidebarTab === 'media' && <SidebarGallery onReturn={handleReturnToSidebar} />}
         </div>
       </div>
     </div>

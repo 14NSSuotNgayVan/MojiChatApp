@@ -275,14 +275,16 @@ export const OwnerMessage = ({
     }
 
     if (message.medias?.length && message.medias?.length > 1) {
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-        {message.medias?.map((mda) => (
-          <MediaView
-            media={mda}
-            className={'w-full max-w-2xs rounded-md aspect-square object-cover'}
-          />
-        ))}
-      </div>;
+      return (
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+          {message.medias?.map((mda) => (
+            <MediaView
+              media={mda}
+              className={'w-full max-w-2xs rounded-md aspect-square object-cover'}
+            />
+          ))}
+        </div>
+      );
     }
   };
 

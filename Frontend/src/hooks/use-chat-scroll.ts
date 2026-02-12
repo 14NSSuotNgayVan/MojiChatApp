@@ -10,6 +10,7 @@ export function useChatScroll(
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isLoadingMoreRef = useRef<boolean>(false)
+  const isAtBottomRef = useRef<boolean>(false)
   const prevScrollHeightRef = useRef(0);
 
   const scrollToBottom = () => {
@@ -18,6 +19,7 @@ export function useChatScroll(
 
     scrollDiv.scrollTop = scrollDiv.scrollHeight;
     setIsAtBottom(true);
+    isAtBottomRef.current = true;
   };
 
   //Gọi API getmessages
@@ -49,6 +51,7 @@ export function useChatScroll(
       if (nearTop && !isLoadingMoreRef.current) onLoadMore();
 
       setIsAtBottom(nearBottom);
+      isAtBottomRef.current = nearBottom;
     };
 
     scrollDiv.addEventListener("scroll", handleScroll, { passive: true });
@@ -68,18 +71,20 @@ export function useChatScroll(
 
     const lastMessage = items[items.length - 1];
 
-    const shouldScroll = isAtBottom || lastMessage.isOwner;
+    const shouldScroll = isAtBottomRef.current || lastMessage.isOwner;
 
     if (!shouldScroll) return;
 
     scrollDiv.scrollTop = scrollDiv.scrollHeight;
 
-    if (lastMessage.isOwner && !isAtBottom) {
+    if (lastMessage.isOwner && !isAtBottomRef.current) {
       setIsAtBottom(true);
+      isAtBottomRef.current = true;
     }
-  }, [items, isAtBottom])
+  }, [items])
 
   useEffect(() => {
+
     const scrollContentDiv = scrollContentRef.current
     if (!scrollContentDiv) return
 
@@ -87,7 +92,7 @@ export function useChatScroll(
     observer.observe(scrollContentDiv)
 
     return () => observer.disconnect()
-  }, [activeConversationId])
+  }, [activeConversationId, scrollToBottomIfNeeded])
 
   useLayoutEffect(() => {
     if (!isLoadingMoreRef.current) return;

@@ -155,6 +155,8 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
                 onClickLast={handleGetNext}
                 prevLoading={prevLoading}
                 nextLoading={nextLoading}
+                prevCursor={currentConvMedia?.prevCursor}
+                nextCursor={currentConvMedia?.nextCursor}
               />
             ) : (
               <MediaCarousel

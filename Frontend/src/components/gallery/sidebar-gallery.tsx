@@ -1,18 +1,102 @@
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
+import { Skeleton } from '@/components/ui/skeleton.tsx';
+import { mergeById } from '@/lib/utils.ts';
+import { fileService } from '@/services/fileService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import type { Media } from '@/types/chat.ts';
 import { ChevronLeft, Play } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Props = {
   onReturn: () => void;
 };
 
 export const SidebarGallery = ({ onReturn }: Props) => {
-  const { medias, activeConversationId } = useChatStore();
+  const { medias, activeConversationId, setMedia } = useChatStore();
   const currentConvMedia = activeConversationId ? medias[activeConversationId] : null;
   const [openGallery, setOpenGallery] = useState<boolean>(false);
   const [selectedMedia, setSelectedMedia] = useState<Media | null>();
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleGetPrev = async (mediaId: string, limit?: number) => {
+    if (!currentConvMedia?.prevCursor || !activeConversationId) return;
+    try {
+      setLoading(true);
+      const res = await fileService.getMedias(activeConversationId, {
+        direction: 'prev',
+        mediaId,
+        limit,
+      });
+      setMedia(activeConversationId, (prev) => ({
+        ...prev,
+        items: mergeById(prev?.items || [], res?.medias?.reverse()),
+        prevCursor: res.prevCursor,
+      }));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGetNext = async (mediaId: string) => {
+    if (!currentConvMedia?.nextCursor || !activeConversationId) return;
+    try {
+      setLoading(true);
+      const res = await fileService.getMedias(activeConversationId, {
+        direction: 'next',
+        mediaId,
+        limit: 100000,
+      });
+      setMedia(activeConversationId, (prev) => ({
+        ...prev,
+        items: mergeById(res?.medias?.reverse(), prev?.items || []),
+        nextCursor: res.nextCursor,
+      }));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeConversationId) return;
+    const LIMIT = 20;
+    const handleGetConvMedias = async (activeConversationId: string) => {
+      try {
+        setLoading(true);
+        const res = await fileService.getConvMedias(activeConversationId, { limit: LIMIT });
+        setMedia(activeConversationId, () => ({
+          items: res.medias,
+          prevCursor: res.prevCursor,
+        }));
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!currentConvMedia?.items.length) {
+      handleGetConvMedias(activeConversationId);
+      return;
+    }
+
+    if (currentConvMedia?.items.length && currentConvMedia.nextCursor?._id) {
+      handleGetNext(currentConvMedia.nextCursor?._id);
+      return;
+    }
+
+    if (
+      currentConvMedia?.items.length &&
+      !currentConvMedia.nextCursor?._id &&
+      currentConvMedia.prevCursor?._id &&
+      currentConvMedia?.items.length < LIMIT
+    ) {
+      handleGetPrev(currentConvMedia.prevCursor?._id, LIMIT - currentConvMedia?.items.length);
+    }
+  }, []);
 
   const renderMedia = (media: Media) => {
     switch (media.type) {
@@ -51,7 +135,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
           <p className="text-center text-lg font-semibold grow">Ảnh và phương tiện</p>
         </div>
         <div className="px-2 pb-2 grow overflow-y-auto">
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-3 lg:grid-cols-4 gap-1">
             {currentConvMedia?.items?.map((i) => (
               <div
                 className="col-span-1 aspect-square rounded-sm overflow-hidden hover:cursor-pointer shrink-0"
@@ -63,6 +147,10 @@ export const SidebarGallery = ({ onReturn }: Props) => {
                 {renderMedia(i)}
               </div>
             ))}
+            {loading &&
+              Array.from(new Array(12)).map(() => (
+                <Skeleton className="col-span-1 aspect-square rounded-sm"></Skeleton>
+              ))}
           </div>
         </div>
       </div>
