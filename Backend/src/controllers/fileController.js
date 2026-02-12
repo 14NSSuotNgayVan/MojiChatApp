@@ -438,13 +438,13 @@ export const getConversationMedias = async (req, res) => {
 
         let prevCursor;
         if (medias?.length > Number(limit)) {
-            if (direction === 'prev') prevCursor = medias[medias.length - 1];
+            prevCursor = medias[medias.length - 1];
             medias.pop();
         }
 
         return res.status(200).json({
             message: 'Get medias success!',
-            medias,
+            medias: medias.reverse(),
             prevCursor
         });
     } catch (error) {
