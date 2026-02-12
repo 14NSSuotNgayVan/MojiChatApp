@@ -12,6 +12,7 @@ export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
       isSearching: false,
+      isFetchOldMessage: false,
       conversations: [],
       messages: {},
       medias: {},
@@ -75,6 +76,8 @@ export const useChatStore = create<ChatState>()(
           const { messages, messageLoading } = get();
           const currentMessage = messages?.[conversationId];
 
+          if (isFetchOldMessage) set({ isFetchOldMessage })
+
           if (
             (currentMessage && !isFetchOldMessage) ||
             (isFetchOldMessage && !currentMessage.nextCursor) ||
@@ -107,7 +110,7 @@ export const useChatStore = create<ChatState>()(
           console.error("Lỗi khi gọi getMessages:", error);
           return false;
         } finally {
-          set({ messageLoading: false });
+          set({ messageLoading: false, isFetchOldMessage: false });
         }
       },
       getDefaultGroupName: (participants) => {
@@ -176,6 +179,7 @@ export const useChatStore = create<ChatState>()(
           activeConversation,
           conversations,
           messages,
+          medias
         } = get();
         //update conversation
         const idx = conversations.findIndex((c) => c._id === conversation._id);
@@ -187,6 +191,8 @@ export const useChatStore = create<ChatState>()(
 
         //update messages
         const convMessages = messages?.[conversation._id];
+
+        const convMedias = medias?.[conversation._id];
 
         set({
           messages: convMessages
@@ -213,6 +219,15 @@ export const useChatStore = create<ChatState>()(
                 ...conversations.filter((_, i) => i !== idx),
               ]
               : conversations,
+          medias: message.medias?.length ? {
+            ...medias,
+            [conversation._id]: {
+              items: [...convMedias.items, ...message.medias],
+              nextCursor: undefined,
+              prevCursor: convMedias?.prevCursor,
+              newestMediaId: message.medias[message.medias.length - 1]._id
+            }
+          } : medias
         });
       },
       updateConversation: (conversation) => { },

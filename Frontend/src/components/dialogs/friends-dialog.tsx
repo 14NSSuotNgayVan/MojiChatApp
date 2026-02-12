@@ -367,7 +367,7 @@ export const FriendsDialog = ({ open, onOpenChange }: DialogProps) => {
           </div>
           <div className="flex flex-col gap-3">
             <Tabs defaultValue={FRIEND_MANAGE_TABS.FRIENDS} className="w-full">
-              <TabsList variant="ghost">
+              <TabsList variant="ghost" className="gap-1">
                 <TabsTrigger value={FRIEND_MANAGE_TABS.FRIENDS}>Bạn bè</TabsTrigger>
                 <TabsTrigger value={FRIEND_MANAGE_TABS.RECEIVED_REQ}>Lời mời đã nhận</TabsTrigger>
                 <TabsTrigger value={FRIEND_MANAGE_TABS.SENT_REQ}>Lời mời đã gửi</TabsTrigger>

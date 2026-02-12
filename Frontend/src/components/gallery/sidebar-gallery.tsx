@@ -5,7 +5,7 @@ import { fileService } from '@/services/fileService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import type { Media } from '@/types/chat.ts';
 import { ChevronLeft, Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Props = {
   onReturn: () => void;
@@ -17,11 +17,39 @@ export const SidebarGallery = ({ onReturn }: Props) => {
   const [openGallery, setOpenGallery] = useState<boolean>(false);
   const [selectedMedia, setSelectedMedia] = useState<Media | null>();
   const [loading, setLoading] = useState<boolean>(false);
+  const isLoadingMoreRef = useRef<boolean>(false);
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Lắng nghe sự kiện scroll
+  useEffect(() => {
+    const scrollDiv = scrollRef.current;
+    if (!scrollDiv) return;
+
+    const handleScroll = () => {
+      const nearBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
+      if (
+        nearBottom &&
+        currentConvMedia?.items.length &&
+        currentConvMedia.prevCursor?._id &&
+        !isLoadingMoreRef.current
+      ) {
+        handleGetPrev(currentConvMedia.prevCursor?._id);
+      }
+    };
+
+    scrollDiv.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      scrollDiv.removeEventListener('scroll', handleScroll);
+    };
+  }, [currentConvMedia]);
 
   const handleGetPrev = async (mediaId: string, limit?: number) => {
     if (!currentConvMedia?.prevCursor || !activeConversationId) return;
     try {
       setLoading(true);
+      isLoadingMoreRef.current = true;
       const res = await fileService.getMedias(activeConversationId, {
         direction: 'prev',
         mediaId,
@@ -29,13 +57,14 @@ export const SidebarGallery = ({ onReturn }: Props) => {
       });
       setMedia(activeConversationId, (prev) => ({
         ...prev,
-        items: mergeById(prev?.items || [], res?.medias?.reverse()),
-        prevCursor: res.prevCursor,
+        items: mergeById(res?.medias, prev?.items || []),
+        prevCursor: res?.prevCursor,
       }));
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      isLoadingMoreRef.current = false;
     }
   };
 
@@ -50,8 +79,9 @@ export const SidebarGallery = ({ onReturn }: Props) => {
       });
       setMedia(activeConversationId, (prev) => ({
         ...prev,
-        items: mergeById(res?.medias?.reverse(), prev?.items || []),
+        items: mergeById(prev?.items || [], res?.medias),
         nextCursor: res.nextCursor,
+        newestMediaId: res?.medias[res?.medias.length - 1]._id,
       }));
     } catch (error) {
       console.error(error);
@@ -62,7 +92,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
 
   useEffect(() => {
     if (!activeConversationId) return;
-    const LIMIT = 20;
+    const LIMIT = 12;
     const handleGetConvMedias = async (activeConversationId: string) => {
       try {
         setLoading(true);
@@ -70,6 +100,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
         setMedia(activeConversationId, () => ({
           items: res.medias,
           prevCursor: res.prevCursor,
+          newestMediaId: res.medias[res.medias.length - 1]._id,
         }));
       } catch (error) {
         console.log(error);
@@ -134,7 +165,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
           </button>
           <p className="text-center text-lg font-semibold grow">Ảnh và phương tiện</p>
         </div>
-        <div className="px-2 pb-2 grow overflow-y-auto">
+        <div className="px-2 pb-2 grow overflow-y-auto" ref={scrollRef}>
           <div className="grid grid-cols-3 lg:grid-cols-4 gap-1">
             {currentConvMedia?.items?.map((i) => (
               <div
@@ -147,6 +178,11 @@ export const SidebarGallery = ({ onReturn }: Props) => {
                 {renderMedia(i)}
               </div>
             ))}
+            {!currentConvMedia?.items.length && !loading && (
+              <div className="text-muted-foreground col-span-full flex justify-center text-sm mt-4">
+                Không có ảnh và phương tiện nào.
+              </div>
+            )}
             {loading &&
               Array.from(new Array(12)).map(() => (
                 <Skeleton className="col-span-1 aspect-square rounded-sm"></Skeleton>

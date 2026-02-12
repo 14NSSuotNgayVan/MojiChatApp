@@ -1,6 +1,6 @@
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { ChatCardSkeleton } from '@/components/chat/chat-card-skeleton.tsx';
-import { ChatCard, ChatCardSearch } from '@/components/chat/chat-card.tsx';
+import { ChatCard, ChatCardSearch } from '@/components/sidebar/chat-card';
 
 export const ChatList = () => {
   const { conversations, loading, activeConversationId, searchedConversations, isSearching } =

@@ -57,6 +57,7 @@ export interface MediaRecord {
     _id: string,
     createdAt: string
   };
+  newestMediaId?: string;
 }
 
 export interface ChatState {
@@ -78,6 +79,7 @@ export interface ChatState {
   >;
   setMedia: (id: string, setFunc: (media: MediaRecord | undefined) => MediaRecord) => void;
   activeConversationId: string | null;
+  isFetchOldMessage: boolean;
   loading: boolean;
   messageLoading: boolean;
   searchedConversations: Conversation[];

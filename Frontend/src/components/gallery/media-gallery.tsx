@@ -67,6 +67,7 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
               : mergeById(prev?.items || [], res.medias),
           nextCursor: direction === 'next' ? res?.nextCursor : prev?.nextCursor,
           prevCursor: direction === 'prev' ? res?.prevCursor : prev?.prevCursor,
+          newestMediaId: direction === 'next' ? res?.medias[0]?._id : prev?.newestMediaId,
         }));
       } catch (error) {
         console.error(error);
@@ -127,6 +128,7 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
         ...prev,
         items: [...(prev?.items || []), ...res.medias],
         nextCursor: res.nextCursor,
+        newestMediaId: res.medias?.[0]?._id,
       }));
     } catch (error) {
       console.error(error);

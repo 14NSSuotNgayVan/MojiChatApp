@@ -66,7 +66,7 @@ export const Header = () => {
           <SidebarMenuItem className="flex p-2 items-center gap-2 justify-between">
             <div className="flex items-center gap-2">
               <div className="text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <img src="public/logo.svg" className="w-6" />
+                <img src="logo.svg" className="w-6" />
               </div>
               <div className="grid flex-1 text-left text-lg leading-tight">
                 <span className="truncate font-bold">MOJI</span>

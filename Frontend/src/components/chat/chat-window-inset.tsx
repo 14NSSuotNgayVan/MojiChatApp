@@ -14,11 +14,13 @@ export const ChatWindowInset = () => {
     messages,
     activeConversationId,
     messageLoading,
+    isFetchOldMessage,
     activeConversation,
     getGroupMessages,
     getMessages,
     seenMessage,
     users,
+    getDefaultGroupName,
   } = useChatStore();
   const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
   const { user } = useAuthStore();
@@ -39,14 +41,19 @@ export const ChatWindowInset = () => {
   if (items?.length === 0)
     return (
       <ChatEmptyMessageWelcome
-        friendName={users[activeConversation!.participants[0]._id].displayName!}
+        friendName={
+          activeConversation?.type === 'direct'
+            ? users[activeConversation.participants[0]._id]?.displayName
+            : activeConversation?.group?.name ||
+              getDefaultGroupName(activeConversation?.participants || [])
+        }
       />
     );
 
   return (
     <div className="h-full overflow-y-auto text-base select-none" ref={scrollRef}>
       <div className="flex flex-col gap-4 p-4" ref={scrollContentRef}>
-        {messageLoading && (
+        {messageLoading && isFetchOldMessage && (
           <>
             <div className="flex w-2/3 gap-2">
               <div className="bg-muted/50 aspect-video rounded-full w-12 h-12" />

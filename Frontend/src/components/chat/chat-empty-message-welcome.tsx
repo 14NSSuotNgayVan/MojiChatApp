@@ -10,7 +10,7 @@ export const ChatEmptyMessageWelcome = ({ friendName }: { friendName: string }) 
   };
 
   return (
-    <div className="flex-1 justify-center overflow-y-auto">
+    <div className="flex-1 justify-center overflow-y-auto h-full">
       <div className="text-center max-w-md mx-auto p-8">
         {/* Large Icon */}
         <div className="mb-6 flex justify-center">
