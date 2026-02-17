@@ -14,6 +14,7 @@ type Props = {
 export const SidebarGallery = ({ onReturn }: Props) => {
   const { medias, activeConversationId, setMedia } = useChatStore();
   const currentConvMedia = activeConversationId ? medias[activeConversationId] : null;
+  const dataMedias = currentConvMedia?.items?.flat();
   const [openGallery, setOpenGallery] = useState<boolean>(false);
   const [selectedMedia, setSelectedMedia] = useState<Media | null>();
   const [loading, setLoading] = useState<boolean>(false);
@@ -167,7 +168,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
         </div>
         <div className="px-2 pb-2 grow overflow-y-auto" ref={scrollRef}>
           <div className="grid grid-cols-3 lg:grid-cols-4 gap-1">
-            {currentConvMedia?.items?.map((i) => (
+            {(dataMedias?.reverse())?.map((i) => (
               <div
                 className="col-span-1 aspect-square rounded-sm overflow-hidden hover:cursor-pointer shrink-0"
                 onClick={() => {

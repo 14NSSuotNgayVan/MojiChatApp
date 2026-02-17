@@ -10,16 +10,6 @@ export const ProtectedRoute = () => {
   const [starting, setStarting] = useState<boolean>(true);
   const { connectSocket, disconnectSocket } = useSocketStore();
 
-  const authInit = async () => {
-    if (!accessToken) {
-      await refreshToken();
-    }
-    if (accessToken && !user) {
-      await getProfile();
-    }
-    setStarting(false);
-  };
-
   const socketInit = () => {
     if (accessToken) {
       connectSocket();
@@ -34,6 +24,22 @@ export const ProtectedRoute = () => {
   }, [accessToken]);
 
   useEffect(() => {
+    const authInit = async () => {
+      try {
+        if (!accessToken) {
+          await refreshToken();
+        }
+        debugger
+        if (accessToken && !user) {
+          await getProfile();
+        }
+      } catch (error) {
+        console.log("Lỗi khi xác thực", error)
+      } finally {
+        setStarting(false);
+      }
+    };
+
     authInit();
   }, []);
 
