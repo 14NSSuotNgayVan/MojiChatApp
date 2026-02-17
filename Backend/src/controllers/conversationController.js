@@ -257,7 +257,7 @@ export const getMessages = async (req, res) => {
             query.createdAt = { $lt: new Date(cursor) };
         }
 
-        let messages = await Message.find(query).sort({ createdAt: -1 }).limit(Number(limit) + 1)
+        let messages = await Message.find(query).sort({ createdAt: -1, _id: -1 }).limit(Number(limit) + 1)
             .populate([
                 {
                     path: 'replyTo', select: 'senderId type content createdAt',
