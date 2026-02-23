@@ -13,6 +13,8 @@ export function useChatScroll(
   const isAtBottomRef = useRef<boolean>(false)
   const prevScrollHeightRef = useRef(0);
 
+  const lastMessage = items[items.length - 1];
+
   const scrollToBottom = () => {
     const scrollDiv = scrollRef.current;
     if (!scrollDiv) return;
@@ -69,15 +71,13 @@ export function useChatScroll(
     const scrollDiv = scrollRef.current;
     if (!scrollDiv) return;
 
-    const lastMessage = items[items.length - 1];
-
-    const shouldScroll = isAtBottomRef.current || lastMessage.isOwner;
+    const shouldScroll = isAtBottomRef.current;
 
     if (!shouldScroll) return;
 
     scrollDiv.scrollTop = scrollDiv.scrollHeight;
 
-    if (lastMessage.isOwner && !isAtBottomRef.current) {
+    if (!isAtBottomRef.current) {
       setIsAtBottom(true);
       isAtBottomRef.current = true;
     }
@@ -106,6 +106,17 @@ export function useChatScroll(
     el.scrollTop = diff;
     isLoadingMoreRef.current = false;
   }, [activeConversationId, items?.length]);
+
+  useEffect(() => {
+    if (!items?.length) return;
+
+    const scrollDiv = scrollRef.current;
+    if (!scrollDiv) return;
+
+    if (lastMessage.isOwner) {
+      scrollToBottom()
+    }
+  }, [lastMessage?._id])
 
   return {
     scrollRef,

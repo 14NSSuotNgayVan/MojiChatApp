@@ -403,8 +403,8 @@ export const getMediasGalleryByStartEnd = async (req, res) => {
         return res.status(200).json({
             message: 'Get medias success!',
             medias,
-            nextCursor: nextCursor ? { id: nextCursor._id, createdAt: nextCursor.createdAt } : undefined,
-            prevCursor: prevCursor ? { id: prevCursor._id, createdAt: prevCursor.createdAt } : undefined
+            nextCursor: nextCursor ? { _id: nextCursor._id, createdAt: nextCursor.createdAt } : undefined,
+            prevCursor: prevCursor ? { _id: prevCursor._id, createdAt: prevCursor.createdAt } : undefined
         });
     } catch (error) {
         console.error('Error when calling getMediasGalleryByStartEnd:', error);

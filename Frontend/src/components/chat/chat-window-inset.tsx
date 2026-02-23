@@ -76,6 +76,16 @@ export const ChatWindowInset = () => {
             </div>
           </>
         )}
+        {!(messageLoading && isFetchOldMessage) && currentMessages.nextCursor && (
+          <div
+            className="text-primary/70 col-span-full text-center cursor-pointer hover:text-primary"
+            onClick={() => {
+              if (activeConversationId) getMessages(activeConversationId!, true);
+            }}
+          >
+            Xem thêm
+          </div>
+        )}
         {messageGroups?.map((group: MessageGroup) =>
           group.isOwner ? (
             <OwnerMessageGroup group={group} key={group.senderId + group.startTime} />

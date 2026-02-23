@@ -76,7 +76,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
       const res = await fileService.getMedias(activeConversationId, {
         direction: 'next',
         mediaId,
-        limit: 100000,
+        limit: 12,
       });
       setMedia(activeConversationId, (prev) => ({
         ...prev,
@@ -168,7 +168,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
         </div>
         <div className="px-2 pb-2 grow overflow-y-auto" ref={scrollRef}>
           <div className="grid grid-cols-3 lg:grid-cols-4 gap-1">
-            {(dataMedias?.reverse())?.map((i) => (
+            {dataMedias?.reverse()?.map((i) => (
               <div
                 className="col-span-1 aspect-square rounded-sm overflow-hidden hover:cursor-pointer shrink-0"
                 onClick={() => {
@@ -188,6 +188,17 @@ export const SidebarGallery = ({ onReturn }: Props) => {
               Array.from(new Array(12)).map(() => (
                 <Skeleton className="col-span-1 aspect-square rounded-sm"></Skeleton>
               ))}
+            {!loading && currentConvMedia?.prevCursor?._id && (
+              <div
+                className="text-primary/70 col-span-full text-center cursor-pointer hover:text-primary"
+                onClick={() => {
+                  if (currentConvMedia?.prevCursor?._id)
+                    handleGetPrev(currentConvMedia.prevCursor?._id);
+                }}
+              >
+                Xem thêm
+              </div>
+            )}
           </div>
         </div>
       </div>

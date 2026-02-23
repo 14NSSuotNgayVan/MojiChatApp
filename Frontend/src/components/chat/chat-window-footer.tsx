@@ -17,7 +17,7 @@ type UploadImage = {
   preview: string; // base64 từ FileReader
   publicUrl?: string; // url Cloudinary
   publicId?: string; // id Cloudinary
-  status: 'pending' | 'uploading' | 'done' | 'error';
+  status: 'uploading' | 'done' | 'error';
   type: 'image' | 'video';
   duration?: number;
   poster?: string;
@@ -27,6 +27,10 @@ export const ChatWindowFooter = () => {
   const [value, setValue] = useState<string>('');
   const [files, setFiles] = useState<UploadImage[]>([]);
   const [fileInputKey, setFileInputKey] = useState<string>(crypto.randomUUID());
+  const isSendable =
+    (value.trim() && !files?.length) ||
+    (files?.length && files?.every((f) => f?.status === 'done'));
+
   const { activeConversationId, activeConversation, sendDirectMessage, sendGroupMessage } =
     useChatStore();
   const { user } = useAuthStore();
@@ -66,13 +70,13 @@ export const ChatWindowFooter = () => {
               prev.map((file) =>
                 file.id === id
                   ? {
-                      ...file,
-                      publicUrl: res.secure_url,
-                      publicId: res.public_id,
-                      poster: `${res.url.split('/video/upload')[0]}/video/upload/so_1/${res.public_id}.jpg`,
-                      duration: res?.duration,
-                      status: 'done',
-                    }
+                    ...file,
+                    publicUrl: res.secure_url,
+                    publicId: res.public_id,
+                    poster: `${res.url.split('/video/upload')[0]}/video/upload/so_1/${res.public_id}.jpg`,
+                    duration: res?.duration,
+                    status: 'done',
+                  }
                   : file
               )
             );
@@ -99,9 +103,9 @@ export const ChatWindowFooter = () => {
     setValue('');
     setFiles([]);
     setFileInputKey(crypto.randomUUID());
+
     if (activeConversation?.type === 'direct') {
       const friend = activeConversation.participants.find((u) => u._id !== user!._id);
-
       await sendDirectMessage(activeConversationId!, friend!._id, content, media);
     } else {
       await sendGroupMessage(activeConversationId!, content, media);
@@ -131,11 +135,8 @@ export const ChatWindowFooter = () => {
     }
   };
 
-  const getProgress = (status: 'pending' | 'uploading' | 'done' | 'error') => {
+  const getProgress = (status: 'uploading' | 'done' | 'error') => {
     switch (status) {
-      case 'pending': {
-        return 0;
-      }
       case 'uploading': {
         return 20;
       }
@@ -151,10 +152,6 @@ export const ChatWindowFooter = () => {
     }
   };
 
-  const isSendable =
-    (value.trim() && !files?.length) ||
-    (files?.length && files?.every((f) => f?.status === 'done'));
-
   return (
     <footer className="p-2 flex border-t gap-2 items-center">
       <label
@@ -168,7 +165,7 @@ export const ChatWindowFooter = () => {
         className={cn(
           'flex-1 relative rounded-md',
           isDragAccept &&
-            'bg-accent after:border-accent-foreground after:absolute after:inset-0 after:border-dashed after:border after:rounded-md'
+          'bg-accent after:border-accent-foreground after:absolute after:inset-0 after:border-dashed after:border after:rounded-md'
         )}
         {...getRootProps()}
       >

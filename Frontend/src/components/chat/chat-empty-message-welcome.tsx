@@ -11,7 +11,7 @@ export const ChatEmptyMessageWelcome = ({ friendName }: { friendName: string }) 
 
   return (
     <div className="flex-1 justify-center overflow-y-auto h-full">
-      <div className="text-center max-w-md mx-auto p-8">
+      <div className="text-center max-w-md lg:max-w-lg mx-auto p-8">
         {/* Large Icon */}
         <div className="mb-6 flex justify-center">
           <MessageCircleHeart size="6rem" className="text-primary" />
@@ -22,11 +22,8 @@ export const ChatEmptyMessageWelcome = ({ friendName }: { friendName: string }) 
 
         {/* Description */}
         <p className="text-muted-foreground mb-8 text-lg leading-relaxed">
-          Bạn và{' '}
-          <span className="font-semibold" style={{ color: 'rgb(138, 121, 171)' }}>
-            {friendName}
-          </span>{' '}
-          chưa có tin nhắn nào. Hãy gửi lời chào đầu tiên!
+          Bạn và <span className="font-semibold text-primary">{friendName}</span> chưa có tin nhắn
+          nào. Hãy gửi lời chào đầu tiên!
         </p>
 
         {/* Quick Actions */}
