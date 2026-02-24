@@ -29,7 +29,6 @@ export const ProtectedRoute = () => {
         if (!accessToken) {
           await refreshToken();
         }
-        debugger
         if (accessToken && !user) {
           await getProfile();
         }

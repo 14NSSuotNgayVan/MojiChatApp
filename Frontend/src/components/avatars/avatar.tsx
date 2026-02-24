@@ -90,7 +90,7 @@ export const SeenAvatars = ({ seenUsers }: { seenUsers: SeenUser[] }) => {
         </Tooltip>
       )}
       {showUser.map((user) => (
-        <Tooltip>
+        <Tooltip key={`seen-user-${user.userId}`}>
           <TooltipTrigger>
             <Avatar
               name={users[user.userId].displayName}

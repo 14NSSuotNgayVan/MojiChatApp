@@ -21,6 +21,8 @@ class AuthRefreshController {
           useAuthStore.getState().setAccessToken(newToken);
 
           resolve(newToken);
+        }).catch(err => {
+          reject(err);
         });
       } catch (err) {
         reject(err);
