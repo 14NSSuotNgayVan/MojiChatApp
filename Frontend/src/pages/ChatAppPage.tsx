@@ -1,4 +1,4 @@
-import { AppSidebar, RightSidebar } from '@/components/sidebar/app-sidebar.tsx';
+import { AppSidebar, RightSidebar } from '@/components/left-sidebar/app-sidebar.tsx';
 import {
   SidebarInset,
   SidebarManager,

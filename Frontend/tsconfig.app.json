@@ -29,5 +29,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "src/components/sidebar"]
+  "include": ["src", "src/components/left-sidebar"]
 }

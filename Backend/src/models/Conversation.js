@@ -6,10 +6,16 @@ const participantSchema = new mongoose.Schema({
         ref: "User",
         require: true
     },
+    role: {
+        type: String,
+        enum: ['ADMIN', 'MEMBER'],
+        default: 'MEMBER'
+    },
     joinedAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    addedBy: String
 }, {
     _id: false
 })

@@ -55,7 +55,7 @@ export const ProfileCard = ({
         {onBgClick && (
           <div
             className={cn(
-              'hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer'
+              'hidden justify-center items-center absolute inset-0 bg-black/30 group-hover:flex cursor-pointer'
             )}
             onClick={onBgClick}
           >
@@ -76,7 +76,7 @@ export const ProfileCard = ({
               layer={
                 onAvtClick && (
                   <div
-                    className="hidden justify-center items-center absolute inset-0 bg-gray-500/70 group-hover:flex cursor-pointer transition-smooth"
+                    className="hidden justify-center items-center absolute inset-0 bg-black/30 group-hover:flex cursor-pointer transition-smooth"
                     onClick={onAvtClick}
                   >
                     <ImageUp />

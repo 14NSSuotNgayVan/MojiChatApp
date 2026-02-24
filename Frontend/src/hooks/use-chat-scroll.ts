@@ -31,6 +31,7 @@ export function useChatScroll(
 
     isLoadingMoreRef.current = true;
     prevScrollHeightRef.current = el.scrollHeight;
+    el.scrollTop = 0;
     await loadMore();
   };
 
@@ -114,7 +115,9 @@ export function useChatScroll(
     if (!scrollDiv) return;
 
     if (lastMessage.isOwner) {
-      scrollToBottom()
+      scrollDiv.scrollTop = scrollDiv.scrollHeight;
+      setIsAtBottom(true);
+      isAtBottomRef.current = true;
     }
   }, [lastMessage?._id])
 

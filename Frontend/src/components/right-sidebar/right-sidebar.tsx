@@ -2,6 +2,7 @@ import { Avatar } from '@/components/avatars/avatar.tsx';
 import { GroupAvatar } from '@/components/avatars/group-avatar.tsx';
 import { OthersProfileDialog } from '@/components/dialogs/others-profile-dialog.tsx';
 import { SidebarGallery } from '@/components/gallery/sidebar-gallery.tsx';
+import ParticipantManagement from '@/components/right-sidebar/participant-management.tsx';
 import { Separator } from '@/components/ui/separator.tsx';
 import {
   SidebarContent,
@@ -61,9 +62,9 @@ const RightSidebarHeader = () => {
   }
   return <></>;
 };
-
+type RightSidebarType = 'sidebar' | 'media' | 'participants';
 type SideBarContentProps = {
-  setSidebarTab: Dispatch<SetStateAction<'sidebar' | 'media'>>;
+  setSidebarTab: Dispatch<SetStateAction<RightSidebarType>>;
 };
 
 const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
@@ -98,7 +99,12 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
 
     return (
       <div className="mx-1">
-        <div className="flex gap-2 justify-between text-xs p-4 hover:bg-accent/50 rounded-sm cursor-pointer">
+        <div
+          className="flex gap-2 justify-between text-xs p-4 hover:bg-accent/50 rounded-sm cursor-pointer"
+          onClick={() => {
+            setSidebarTab('participants');
+          }}
+        >
           <div className="flex gap-2">
             <Users className="w-4 h-4" />
             Thành viên nhóm
@@ -136,7 +142,7 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
 export const RightSidebarUI = () => {
   const manager = useSidebarManager();
   const sidebar = manager.use('right');
-  const [sidebarTab, setSidebarTab] = useState<'sidebar' | 'media'>('sidebar');
+  const [sidebarTab, setSidebarTab] = useState<RightSidebarType>('sidebar');
 
   const handleReturnToSidebar = () => {
     setSidebarTab('sidebar');
@@ -163,6 +169,9 @@ export const RightSidebarUI = () => {
         </div>
         <div className="w-1/2 h-full">
           {sidebarTab === 'media' && <SidebarGallery onReturn={handleReturnToSidebar} />}
+          {sidebarTab === 'participants' && (
+            <ParticipantManagement onReturn={handleReturnToSidebar} />
+          )}
         </div>
       </div>
     </div>
