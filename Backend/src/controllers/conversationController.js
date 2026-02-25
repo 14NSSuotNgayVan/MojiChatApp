@@ -147,7 +147,9 @@ export const getConversations = async (req, res) => {
                 }
                 return ({
                     _id: p.userId?._id || p.userId,
-                    joinedAt: p.joinedAt
+                    joinedAt: p.joinedAt,
+                    role: p.role,
+                    addedBy: p.addedBy
                 })
             }).sort((a, b) => {
                 if (a._id.toString() === userId.toString()) return 1
