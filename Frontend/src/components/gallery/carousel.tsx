@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Media } from '@/types/chat.ts';
 import { ChatVideo } from '@/components/ui/video.tsx';
-import { cn } from '@/lib/utils.ts';
+import { cn, getMessageTime } from '@/lib/utils.ts';
 import { ArrowLeft, ArrowRight, Play } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
+import { Avatar } from '@/components/avatars/avatar.tsx';
+import { useChatStore } from '@/stores/useChatStore.ts';
 
 const ThumbSkeleton = (number: number) => {
   return Array.from(new Array(number)).map(() => (
@@ -87,6 +89,7 @@ const MediaCarousel = (props: PropType) => {
   } = props;
   const [selected, setSelected] = useState<Media>(defaultSelect);
   const selectedIndex = slides.findIndex((i) => i._id === selected._id);
+  const { users } = useChatStore();
   const renderMedia = (media: Media) => {
     switch (media.type) {
       case 'image': {
@@ -164,6 +167,21 @@ const MediaCarousel = (props: PropType) => {
     handleScrollThumb(slides.findIndex((i) => i._id === defaultSelect._id));
   }, [slides, defaultSelect]);
 
+  const renderMediaInfo = () => {
+    const sender = users[slides?.[selectedIndex].senderId];
+    return (
+      <div className="flex items-center shrink-0 mt-7 gap-2">
+        <Avatar name={sender?.displayName || ''} avatarUrl={sender?.avtUrl} />
+        <div className="space-y-1 flex-1">
+          <div className="font-medium truncate max-w-56 text-sm">{sender?.displayName}</div>
+          <div className="text-muted-foreground text-xs">
+            {getMessageTime(slides?.[selectedIndex].createdAt)}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="m-auto h-full flex flex-col">
       <div className="overflow-hidden grow">
@@ -190,7 +208,7 @@ const MediaCarousel = (props: PropType) => {
         </div>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-3 shrink-0">
         <div className="overflow-x-auto overflow-y-hidden transition-transform -mb-[7px]">
           <div id="thumb-slide" className="srhink-0 h-14 flex gap-3 pb-1 m-auto w-max my-0.5">
             {prevLoading && ThumbSkeleton(5)}
@@ -206,6 +224,7 @@ const MediaCarousel = (props: PropType) => {
           </div>
         </div>
       </div>
+      {renderMediaInfo()}
     </div>
   );
 };

@@ -8,7 +8,11 @@ type Props = {
 };
 const ParticipantManagement = ({ onReturn }: Props) => {
   const { activeConversation, users } = useChatStore();
-  const participants = activeConversation?.participants.map((p) => users[p._id]);
+  const participants = activeConversation?.participants.map((p) => ({
+    ...p,
+    ...users[p._id],
+    addedBy: p?.addedBy ? users?.[p.addedBy] : undefined,
+  }));
 
   return (
     <>
@@ -31,9 +35,27 @@ const ParticipantManagement = ({ onReturn }: Props) => {
             >
               <Avatar name={p?.displayName || ''} avatarUrl={p?.avtUrl} />
               <div className="space-y-1 flex-1 border-b border-b-accent shrink-0">
-                <div className="font-medium truncate text-sm">{p?.displayName}</div>
-                <div className={cn('text-muted-foreground text-xs truncate max-w-56 mb-0.5')}>
-                  {p?.email}
+                <div className="font-medium truncate text-sm">
+                  {p?.displayName}
+                  {p.role === 'ADMIN' ? (
+                    <span className="text-muted-foreground text-xs">
+                      {' • '}
+                      <span className="font-semibold">Quản trị viên</span>
+                    </span>
+                  ) : (
+                    ''
+                  )}
+                </div>
+                <div className={cn('text-muted-foreground text-xs truncate mb-0.5 flex gap-0.5')}>
+                  <div className={'truncate max-w-1/2'}>{p?.email}</div>
+                  {p.addedBy?._id && p.role !== 'ADMIN' ? (
+                    <span className="text-muted-foreground text-xs">
+                      {' • '}
+                      <span className="font-semibold">{p.addedBy.displayName}</span> đã thêm.
+                    </span>
+                  ) : (
+                    ''
+                  )}
                 </div>
               </div>
             </div>
