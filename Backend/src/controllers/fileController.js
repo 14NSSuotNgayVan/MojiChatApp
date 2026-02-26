@@ -207,11 +207,7 @@ export const getMediasGalleryById = async (req, res) => {
         const userId = req.user._id.toString();
         if (!mediaId) return res.status(400).json({ message: 'mediaId must not be empty!' });
 
-        const media = await Attachment.findById(mediaId).populate(
-            {
-                path: "senderId", select: 'displayName avtUrl',
-            },
-        );
+        const media = await Attachment.findById(mediaId);
 
         const query = {
             conversationId: media.conversationId
