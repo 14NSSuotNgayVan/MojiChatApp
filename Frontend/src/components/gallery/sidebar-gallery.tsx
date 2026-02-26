@@ -93,7 +93,7 @@ export const SidebarGallery = ({ onReturn }: Props) => {
 
   useEffect(() => {
     if (!activeConversationId) return;
-    const LIMIT = 12;
+    const LIMIT = 60;
     const handleGetConvMedias = async (activeConversationId: string) => {
       try {
         setLoading(true);
