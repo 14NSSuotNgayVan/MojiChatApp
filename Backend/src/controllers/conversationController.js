@@ -389,3 +389,46 @@ export const updateSeenBy = async (data, socket) => {
         console.error("Error when calling updateSeenBy: " + error);
     }
 }
+
+export const deleteParticipant = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { participantId } = req.query;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+
+        if (!participantId) {
+            return res.status(400).json({ message: "participantId must not be null!" })
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+
+        const user = await User.findById(participantId);
+
+        if (!user) {
+            return res.status(400).json({ message: "User not found!" })
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+
+        if (!conversation) {
+            return res.status(400).json({ message: "Conversation not found!" })
+        }
+
+        await Conversation.updateOne(
+            {
+                _id: conversationId
+            },
+            {
+                $pull: {
+                    participants: { userId: participantId },
+                    participantNameNorms: user.searchName
+                }
+            }
+        )
+        return res.status(200).json({ messages: "Delete paricipant success!" })
+    } catch (error) {
+        console.error("Error when calling deleteParticipant: " + error);
+        return res.status(500).send();
+    }
+}
