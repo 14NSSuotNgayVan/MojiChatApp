@@ -394,6 +394,7 @@ export const deleteParticipant = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { participantId } = req.query;
+        const user = req.user;
 
         if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
 
@@ -403,9 +404,9 @@ export const deleteParticipant = async (req, res) => {
 
         if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid ConversationId!" });
 
-        const user = await User.findById(participantId);
+        const paritcipant = (await User.findById(participantId)).toObject();
 
-        if (!user) {
+        if (!paritcipant) {
             return res.status(400).json({ message: "User not found!" })
         }
 
@@ -415,14 +416,21 @@ export const deleteParticipant = async (req, res) => {
             return res.status(400).json({ message: "Conversation not found!" })
         }
 
+        const isAdmin = conversation.participants.findIndex(p => p._id.toString() === user._id.toString() && p.role === 'ADMIN')
+
+        if (!isAdmin) return res.status(400).json({ message: "You are not allowed to do this!" })
+
         await Conversation.updateOne(
             {
                 _id: conversationId
             },
             {
+                $unset: {
+                    [`unreadCounts.${paritcipant._id.toString()}`]: 0
+                },
                 $pull: {
                     participants: { userId: participantId },
-                    participantNameNorms: user.searchName
+                    participantNameNorms: paritcipant.searchName,
                 }
             }
         )
