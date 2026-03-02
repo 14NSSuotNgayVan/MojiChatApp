@@ -3,11 +3,13 @@ import type { User } from "./user.ts";
 export type MESSAGE_TYPE = 'text' | 'media' | 'mixed' | 'system';
 export type MEDIA_TYPE = 'image' | 'video';
 export type PARICIPANT_ROLES = 'ADMIN' | 'MEMBER';
+export type PARICIPANT_STATUS = 'ACTIVE' | 'LEFT';
 export interface Participant {
   _id: string;
   joinedAt: string;
   role: PARICIPANT_ROLES,
   addedBy: string;
+  status: PARICIPANT_STATUS
 }
 
 export interface SeenBy {

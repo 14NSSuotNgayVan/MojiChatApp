@@ -8,11 +8,13 @@ type Props = {
 };
 const ParticipantManagement = ({ onReturn }: Props) => {
   const { activeConversation, users } = useChatStore();
-  const participants = activeConversation?.participants.map((p) => ({
-    ...p,
-    ...users[p._id],
-    addedBy: p?.addedBy ? users?.[p.addedBy] : undefined,
-  }));
+  const participants = activeConversation?.participants
+    .filter((p) => p.status !== 'LEFT')
+    .map((p) => ({
+      ...p,
+      ...users[p._id],
+      addedBy: p?.addedBy ? users?.[p.addedBy] : undefined,
+    }));
 
   return (
     <>
