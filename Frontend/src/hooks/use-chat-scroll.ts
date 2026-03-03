@@ -10,7 +10,7 @@ export function useChatScroll(
   const scrollContentRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isLoadingMoreRef = useRef<boolean>(false)
-  const isAtBottomRef = useRef<boolean>(false)
+  const isAtBottomRef = useRef<boolean>(true)
   const prevScrollHeightRef = useRef(0);
 
   const lastMessage = items[items.length - 1];
@@ -35,13 +35,13 @@ export function useChatScroll(
     await loadMore();
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     scrollToBottom();
     prevScrollHeightRef.current = 0;
   }, [activeConversationId]);
 
   // Lắng nghe sự kiện scroll
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scrollDiv = scrollRef.current;
     if (!scrollDiv) return;
 
@@ -108,7 +108,7 @@ export function useChatScroll(
     isLoadingMoreRef.current = false;
   }, [activeConversationId, items?.length]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!items?.length) return;
 
     const scrollDiv = scrollRef.current;

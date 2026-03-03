@@ -230,7 +230,27 @@ export const useChatStore = create<ChatState>()(
           } : medias
         });
       },
-      updateConversation: (conversation) => { },
+      updateConversation: (conversation) => {
+        const { activeConversationId, activeConversation, conversations } = get();
+        const idx = conversations.findIndex((c) => c._id === conversation._id);
+        if (idx === -1) return;
+
+        const updatedConverSation = {
+          ...conversations[idx],
+          ...conversation,
+        };
+
+        set({
+          conversations: [
+            updatedConverSation,
+            ...conversations.filter((_, i) => i !== idx),
+          ],
+          activeConversation:
+            activeConversationId === conversation._id
+              ? updatedConverSation
+              : activeConversation,
+        });
+      },
       onSeenMessage: (data) => {
         try {
           const { conversationId, lastSeenAt, user, unreadCounts, messageId } =

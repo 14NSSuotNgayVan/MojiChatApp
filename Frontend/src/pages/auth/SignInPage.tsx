@@ -1,13 +1,13 @@
-import { SigninForm } from "@/components/auth/signin-form";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router";
-import { ToggleTheme } from "../../components/toggle-theme.tsx";
+import { SigninForm } from '@/components/auth/signin-form';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { ToggleTheme } from '../../components/toggle-theme.tsx';
 const SignInPage = () => {
   const { accessToken } = useAuthStore();
   const navigate = useNavigate();
   const handleNavigateHome = () => {
-    navigate("/");
+    navigate('/');
   };
   return (
     <div className="animated-bg dark:bg-login flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
@@ -30,7 +30,7 @@ const SignInPage = () => {
             <p
               className={`transition-colors duration-700 dark:text-gray-300 text-gray-600 flex justify-between`}
             >
-              Quay trở lại trang chủ để sử dụng ứng dụng! <ArrowRight />
+              Quay trở lại ứng dụng! <ArrowRight />
             </p>
           </div>
         )}
