@@ -146,10 +146,9 @@ export const getConversations = async (req, res) => {
                     users[p.userId._id] = p.userId
                 }
                 return ({
+                    ...p,
                     _id: p.userId?._id || p.userId,
-                    joinedAt: p.joinedAt,
-                    role: p.role,
-                    addedBy: p.addedBy
+                    userId: undefined
                 })
             }).sort((a, b) => {
                 if (a._id.toString() === userId.toString()) return 1
@@ -398,25 +397,25 @@ export const deleteParticipant = async (req, res) => {
 
         if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
 
-        if (!participantId) {
+        if (!conversationId) {
             return res.status(400).json({ message: "participantId must not be null!" })
         }
 
         if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid ConversationId!" });
 
-        const paritcipant = (await User.findById(participantId)).toObject();
+        const paritcipant = await User.findById(participantId).lean();
 
         if (!paritcipant) {
             return res.status(400).json({ message: "User not found!" })
         }
 
-        const conversation = await Conversation.findById(conversationId);
+        const conversation = await Conversation.findById(conversationId).lean();
 
         if (!conversation) {
             return res.status(400).json({ message: "Conversation not found!" })
         }
 
-        const isAdmin = conversation.participants.findIndex(p => p._id.toString() === user._id.toString() && p.role === 'ADMIN')
+        const isAdmin = conversation.participants.findIndex(p => p.userId.toString() === user._id.toString() && p.role === 'ADMIN')
 
         if (!isAdmin) return res.status(400).json({ message: "You are not allowed to do this!" })
 
@@ -425,11 +424,14 @@ export const deleteParticipant = async (req, res) => {
                 _id: conversationId
             },
             {
+                $set: {
+                    "participants.$.status": "LEFT"
+                },
                 $unset: {
                     [`unreadCounts.${paritcipant._id.toString()}`]: 0
                 },
                 $pull: {
-                    participants: { userId: participantId },
+                    seenBy: { userId: participantId },
                     participantNameNorms: paritcipant.searchName,
                 }
             }
@@ -437,6 +439,91 @@ export const deleteParticipant = async (req, res) => {
         return res.status(200).json({ messages: "Delete paricipant success!" })
     } catch (error) {
         console.error("Error when calling deleteParticipant: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const addParticipant = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { participantId } = req.query;
+        const user = req.user;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+
+        if (!conversationId) {
+            return res.status(400).json({ message: "participantId must not be null!" })
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+
+        const paritcipant = await User.findById(participantId).lean();
+
+        if (!paritcipant) {
+            return res.status(400).json({ message: "User not found!" })
+        }
+
+        const conversation = await Conversation.findById(conversationId).lean();
+
+        if (!conversation) {
+            return res.status(400).json({ message: "Conversation not found!" })
+        }
+
+        if (conversation.type !== "group") {
+            return res.status(400).json({ message: "Conversation is not a group!" })
+        }
+
+        const existingParticipant = conversation.participants.find(p => p.userId.toString() === participantId);
+
+        if (existingParticipant && existingParticipant.status === "ACTIVE") {
+            return res.status(400).json({ message: "User is already in the conversation!" })
+        }
+
+        if (existingParticipant && existingParticipant.status === "LEFT") {
+            await Conversation.updateOne(
+                {
+                    _id: conversationId,
+                    "participants.userId": { $ne: participantId }
+                },
+                {
+                    $set: {
+                        "participants.$.status": "ACTIVE",
+                        "participants.$.joinedAt": new Date(),
+                        "participants.$.addedBy": user._id.toString(),
+                    },
+                    $push: {
+                        participantNameNorms: paritcipant.searchName,
+                        seenBy: { userId: participantId, lastSeenAt: new Date(), messageId: conversation.lastMessage?._id.toString() }
+                    }
+                }
+            )
+        }
+        else {
+            await Conversation.updateOne(
+                {
+                    _id: conversationId
+                },
+                {
+                    $push: {
+                        participants: {
+                            userId: participantId,
+                            role: 'MEMBER',
+                            status: 'ACTIVE',
+                            addedBy: user._id.toString(),
+                            addedAt: new Date()
+                        },
+                        participantNameNorms: paritcipant.searchName,
+                        seenBy: { userId: participantId, lastSeenAt: new Date(), messageId: conversation.lastMessage?._id.toString() },
+                    },
+                    $set: {
+                        [`unreadCounts.${paritcipant._id.toString()}`]: 0
+                    }
+                }
+            )
+        }
+        return res.status(200).json({ messages: "Add paricipant success!" })
+    } catch (error) {
+        console.error("Error when calling addParticipant: " + error);
         return res.status(500).send();
     }
 }

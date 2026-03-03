@@ -11,6 +11,11 @@ const participantSchema = new mongoose.Schema({
         enum: ['ADMIN', 'MEMBER'],
         default: 'MEMBER'
     },
+    status: {
+        type: String,
+        enum: ['ACTIVE', 'LEFT'],
+        default: 'ACTIVE'
+    },
     joinedAt: {
         type: Date,
         default: Date.now
