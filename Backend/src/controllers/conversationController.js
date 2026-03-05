@@ -64,11 +64,7 @@ export const createConversation = async (req, res) => {
                 conversation = await Conversation.findOne({
                     type: "direct",
                     "participants.userId": { $all: [userId, participantId] }
-                }).populate([
-                    {
-                        path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone'
-                    }
-                ]).lean();
+                }).lean();
 
                 if (!conversation) {
                     conversation = await Conversation.create({
@@ -90,11 +86,6 @@ export const createConversation = async (req, res) => {
         }
 
         await conversation.save();
-        await conversation.populate([
-            {
-                path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone'
-            }
-        ]);
 
         return res.status(201).json({
             conversation: convertConversation(conversation.toObject(), userId)
@@ -124,12 +115,7 @@ export const getConversations = async (req, res) => {
             query
         ).sort({
             lastMessageAt: -1, updateAt: -1
-        }).populate([
-            {
-                path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
-                options: { lean: true }
-            },
-        ]).limit(limit + 1).lean()
+        }).limit(limit + 1).lean()
 
         const users = {};
 
@@ -186,12 +172,7 @@ export const getConversationsByKeyword = async (req, res) => {
                 query
             ).sort({
                 lastMessageAt: -1, updateAt: -1
-            }).populate([
-                {
-                    path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
-                    options: { lean: true }
-                },
-            ]).lean()
+            }).lean()
 
         } else {
 
@@ -211,12 +192,7 @@ export const getConversationsByKeyword = async (req, res) => {
 
             conversations = await Conversation.find(
                 query
-            ).populate([
-                {
-                    path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
-                    options: { lean: true }
-                },
-            ]).lean()
+            ).lean()
         }
 
 
@@ -229,8 +205,9 @@ export const getConversationsByKeyword = async (req, res) => {
                     users[p.userId._id] = p.userId
                 }
                 return ({
+                    ...p,
                     _id: p.userId?._id || p.userId,
-                    joinedAt: p.joinedAt
+                    userId: undefined
                 })
             }).sort((a, b) => {
                 if (a._id.toString() === userId.toString()) return 1
@@ -417,11 +394,12 @@ export const deleteParticipant = async (req, res) => {
 
         const isAdmin = conversation.participants.findIndex(p => p.userId.toString() === user._id.toString() && p.role === 'ADMIN')
 
-        if (!isAdmin) return res.status(400).json({ message: "You are not allowed to do this!" })
+        if (isAdmin === -1) return res.status(400).json({ message: "You are not allowed to do this!" })
 
-        await Conversation.updateOne(
+        const updatedConv = await Conversation.findOneAndUpdate(
             {
-                _id: conversationId
+                _id: conversationId,
+                "participants.userId": participantId
             },
             {
                 $set: {
@@ -436,7 +414,7 @@ export const deleteParticipant = async (req, res) => {
                 }
             }
         )
-        return res.status(200).json({ messages: "Delete paricipant success!" })
+        return res.status(200).json({ messages: "Delete paricipant success!", conversation: updatedConv })
     } catch (error) {
         console.error("Error when calling deleteParticipant: " + error);
         return res.status(500).send();
@@ -455,7 +433,7 @@ export const addParticipant = async (req, res) => {
             return res.status(400).json({ message: "participantId must not be null!" })
         }
 
-        if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+        if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid participantId!" });
 
         const paritcipant = await User.findById(participantId).lean();
 
@@ -524,6 +502,117 @@ export const addParticipant = async (req, res) => {
         return res.status(200).json({ messages: "Add paricipant success!" })
     } catch (error) {
         console.error("Error when calling addParticipant: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const addParticipants = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const participantIds = req.query.participantIds.split(",");
+        const user = req.user;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+
+        if (!conversationId) {
+            return res.status(400).json({ message: "participantId must not be null!" })
+        }
+
+        const conversation = await Conversation.findById(conversationId).lean();
+
+        if (!conversation) {
+            return res.status(400).json({ message: "Conversation not found!" })
+        }
+
+        const isAdmin = conversation.participants.findIndex(p => p.userId.toString() === user._id.toString() && p.role === 'ADMIN')
+
+        if (isAdmin === -1) return res.status(400).json({ message: "You are not allowed to do this!" })
+
+        const participants = await User.find({
+            _id: {
+                $in: participantIds
+            }
+        }).select("searchName").lean();
+
+        const existingMap = new Map();
+
+        conversation.participants.forEach(p => {
+            existingMap.set(p.userId.toString(), p.status);
+        });
+
+        const toReactivate = [];
+        const toInsert = [];
+
+        participants.forEach(participant => {
+            const status = existingMap.get(participant._id.toString());
+
+            if (!status) {
+                toInsert.push(participant);
+            } else if (status === "LEFT") {
+                toReactivate.push(participant);
+            }
+        });
+
+        const bulkOps = [];
+        const now = new Date();
+
+        toReactivate.forEach(participant => {
+            bulkOps.push({
+                updateOne: {
+                    filter: {
+                        _id: conversationId,
+                        "participants.userId": participant?._id?.toString()
+                    },
+                    update: {
+                        $set: {
+                            "participants.$.status": "ACTIVE",
+                            "participants.$.joinedAt": now,
+                            "participants.$.leftAt": null
+                        },
+                        $setOnInsert: {
+                            [`unreadCounts.${participant?._id?.toString()}`]: 0
+                        },
+                        $push: {
+                            participantNameNorms: participant.searchName,
+                            seenBy: { userId: participant?._id?.toString(), lastSeenAt: new Date(), messageId: conversation.lastMessage?._id?.toString() }
+                        }
+                    }
+                }
+            });
+        });
+
+        if (toInsert.length) {
+            bulkOps.push({
+                updateOne: {
+                    filter: { _id: conversationId },
+                    update: {
+                        $push: {
+                            participants: {
+                                $each: toInsert.map(participant => ({
+                                    userId: participant._id,
+                                    role: "MEMBER",
+                                    status: "ACTIVE",
+                                    joinedAt: now,
+                                    addedBy: user._id.toString()
+                                }))
+                            },
+                            participantNameNorms: toInsert.map(participant => participant.searchName),
+                            seenBy: toInsert.map(participant => ({ userId: participant._id.toString(), lastSeenAt: new Date(), messageId: conversation.lastMessage?._id.toString() }))
+                        },
+                        $set: toInsert.reduce((acc, participant) => {
+                            acc[`unreadCounts.${participant._id.toString()}`] = 0;
+                            return acc;
+                        }, {})
+                    }
+                }
+            });
+        }
+        if (bulkOps.length) {
+            await Conversation.bulkWrite(bulkOps);
+        }
+        return res.status(200).json({ messages: "Add participants success!", conversation: await Conversation.findById(conversationId).lean() });
+    } catch (error) {
+        console.error("Error when calling addParticipants: " + error);
         return res.status(500).send();
     }
 }
