@@ -3,8 +3,9 @@ export const convertConversation = (conv, userId) => {
         ...conv,
         participants: conv.participants?.map(p => {
             return ({
+                ...p,
                 _id: p.userId?._id || p.userId,
-                joinedAt: p.joinedAt
+                userId: undefined
             })
         }).sort((a, b) => {
             if (a._id.toString() === userId.toString()) return 1
