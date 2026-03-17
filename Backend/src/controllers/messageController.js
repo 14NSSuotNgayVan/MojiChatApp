@@ -20,6 +20,9 @@ export const sendDirectMessage = async (req, res) => {
         }
 
         if (conversationId) {
+            if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+                return res.status(400).json({ message: "Invalid conversationId!" });
+            }
             conversation = await Conversation.findById(conversationId).session(session);;
             if (!conversation) {
                 return res.status(400).json({ message: "Conversation not found!" })
@@ -33,13 +36,17 @@ export const sendDirectMessage = async (req, res) => {
                 return res.status(400).json({ message: "recipientId must not be empty!" })
             }
 
+            if (!mongoose.Types.ObjectId.isValid(recipientId)) {
+                return res.status(400).json({ message: "Invalid recipientId!" });
+            }
+
             conversation = await Conversation.findOne({
                 type: "direct",
                 "participants.userId": { $all: [senderId, recipientId] }
             })
 
             if (!conversation) {
-                return res.status(400).json({ message: "conversation not existed!" })
+                return res.status(400).json({ message: "Conversation not existed!" })
             }
         }
 

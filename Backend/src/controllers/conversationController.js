@@ -115,7 +115,12 @@ export const getConversations = async (req, res) => {
             query
         ).sort({
             lastMessageAt: -1, updateAt: -1
-        }).limit(limit + 1).lean()
+        }).populate([
+            {
+                path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
+                options: { lean: true }
+            },
+        ]).limit(limit + 1).lean()
 
         const users = {};
 
@@ -172,7 +177,12 @@ export const getConversationsByKeyword = async (req, res) => {
                 query
             ).sort({
                 lastMessageAt: -1, updateAt: -1
-            }).lean()
+            }).populate([
+                {
+                    path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
+                    options: { lean: true }
+                },
+            ]).lean()
 
         } else {
 
@@ -192,7 +202,12 @@ export const getConversationsByKeyword = async (req, res) => {
 
             conversations = await Conversation.find(
                 query
-            ).lean()
+            ).populate([
+                {
+                    path: 'participants.userId', select: 'displayName avtUrl email bgUrl bio phone',
+                    options: { lean: true }
+                },
+            ]).lean()
         }
 
 
@@ -270,11 +285,17 @@ export const getMessages = async (req, res) => {
             messageRes.push({
                 ...currentMsg,
                 isOwner: currentMsg.senderId.toString() === userId,
-                medias
-            })
+                medias,
+            });
         }
 
-        return res.status(200).json({ messages: "Get messages success!", messages: messageRes, nextCursor })
+        return res
+            .status(200)
+            .json({
+                message: "Get messages success!",
+                messages: messageRes,
+                nextCursor,
+            });
     } catch (error) {
         console.error("Error when calling getMessages: " + error);
         return res.status(500).send();
@@ -290,7 +311,7 @@ export const getConversationIds = async (userId) => {
         return conversationIds.map(i => i._id.toString());
     } catch (error) {
         console.error("Error when calling getConversationIds: " + error);
-        return res.status(500).send();
+        return [];
     }
 }
 
@@ -372,13 +393,17 @@ export const deleteParticipant = async (req, res) => {
         const { participantId } = req.query;
         const user = req.user;
 
-        if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
-
-        if (!conversationId) {
-            return res.status(400).json({ message: "participantId must not be null!" })
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
         }
 
-        if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid ConversationId!" });
+        if (!participantId) {
+            return res.status(400).json({ message: "participantId must not be null!" });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(participantId)) {
+            return res.status(400).json({ message: "Invalid participantId!" });
+        }
 
         const paritcipant = await User.findById(participantId).lean();
 
@@ -427,13 +452,17 @@ export const addParticipant = async (req, res) => {
         const { participantId } = req.query;
         const user = req.user;
 
-        if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
-
-        if (!conversationId) {
-            return res.status(400).json({ message: "participantId must not be null!" })
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
         }
 
-        if (!mongoose.Types.ObjectId.isValid(participantId)) return res.status(400).json({ message: "Invalid participantId!" });
+        if (!participantId) {
+            return res.status(400).json({ message: "participantId must not be null!" });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(participantId)) {
+            return res.status(400).json({ message: "Invalid participantId!" });
+        }
 
         const paritcipant = await User.findById(participantId).lean();
 
@@ -461,7 +490,7 @@ export const addParticipant = async (req, res) => {
             await Conversation.updateOne(
                 {
                     _id: conversationId,
-                    "participants.userId": { $ne: participantId }
+                    "participants.userId": participantId
                 },
                 {
                     $set: {
@@ -471,7 +500,11 @@ export const addParticipant = async (req, res) => {
                     },
                     $push: {
                         participantNameNorms: paritcipant.searchName,
-                        seenBy: { userId: participantId, lastSeenAt: new Date(), messageId: conversation.lastMessage?._id.toString() }
+                        seenBy: {
+                            userId: participantId,
+                            lastSeenAt: new Date(),
+                            messageId: conversation.lastMessage?._id?.toString()
+                        }
                     }
                 }
             )
@@ -512,10 +545,8 @@ export const addParticipants = async (req, res) => {
         const participantIds = req.query.participantIds.split(",");
         const user = req.user;
 
-        if (!mongoose.Types.ObjectId.isValid(conversationId)) return res.status(400).json({ message: "Invalid ConversationId!" });
-
-        if (!conversationId) {
-            return res.status(400).json({ message: "participantId must not be null!" })
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
         }
 
         const conversation = await Conversation.findById(conversationId).lean();
