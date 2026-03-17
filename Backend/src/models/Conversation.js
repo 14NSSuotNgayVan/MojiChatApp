@@ -20,6 +20,9 @@ const participantSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    leftAt: {
+        type: Date
+    },
     addedBy: String
 }, {
     _id: false
@@ -61,6 +64,9 @@ const lastMessageSchema = new mongoose.Schema({
         type: String,
         enum: ['text', 'media', 'mixed', 'system'],
         default: 'text'
+    },
+    systemType: {
+        type: String
     },
     lastMediaType: {
         type: String,

@@ -48,10 +48,12 @@ export const checkGroupMembership = async (req, res, next) => {
             return res.status(400).json({ message: "Conversation not found!" })
         }
 
-        const isMembership = conversation.participants.some(p => p.userId.toString() === senderId.toString());
+        const isMembership = conversation.participants.some(
+            p => p.userId.toString() === senderId.toString() && p.status === 'ACTIVE'
+        );
 
         if (!isMembership) {
-            return res.status(403).json({ message: "You are not a member of this conversation!" })
+            return res.status(403).json({ message: "You are not an active member of this conversation!" })
         }
 
         req.conversation = conversation;
