@@ -48,4 +48,30 @@ export const chatService = {
     return res.data.message;
   },
 
+  async addParticipant(conversationId: string, participantId: string) {
+    const res = await api.post(`/conversations/${conversationId}/participant/add`, null, {
+      params: { participantId }
+    });
+    return res.data;
+  },
+
+  async removeParticipant(conversationId: string, participantId: string) {
+    const res = await api.delete(`/conversations/${conversationId}/participant/delete`, {
+      params: { participantId }
+    });
+    return res.data;
+  },
+
+  async updateParticipantRole(
+    conversationId: string,
+    participantId: string,
+    role: 'ADMIN' | 'MEMBER'
+  ) {
+    const res = await api.put(`/conversations/${conversationId}/participant/role`, {
+      participantId,
+      role
+    });
+    return res.data;
+  },
+
 };

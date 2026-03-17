@@ -1,4 +1,5 @@
 import type { Conversation, LastMessage } from '../../types/chat.ts';
+import { renderLastMessagePreview } from '../../utils/systemMessageText.ts';
 import { OnlineAvatar } from '../avatars/avatar.tsx';
 import { GroupAvatar } from '../avatars/group-avatar.tsx';
 import { cn, fromNow } from '../../lib/utils.ts';
@@ -42,15 +43,8 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
     setActiveConversation(success ? conversation : null);
   };
 
-  const getLastMessagePreview = (lastMessage: LastMessage) => {
-    const senderName =
-      lastMessage?.senderId === user?._id ? 'Bạn' : users[lastMessage.senderId]?.displayName;
-    if (lastMessage.type === 'text') {
-      return `${senderName}: ${lastMessage.content}`;
-    }
-
-    return `${senderName} đã gửi 1 ${lastMessage.lastMediaType === 'image' ? 'ảnh' : 'video'}`;
-  };
+  const getLastMessagePreview = (lastMessage: LastMessage) =>
+    renderLastMessagePreview(lastMessage, user?._id, users);
 
   return (
     <div

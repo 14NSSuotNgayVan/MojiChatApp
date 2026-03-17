@@ -2,6 +2,23 @@ import type { User } from "./user.ts";
 
 export type MESSAGE_TYPE = 'text' | 'media' | 'mixed' | 'system';
 export type MEDIA_TYPE = 'image' | 'video';
+export type SYSTEM_TYPE =
+  | 'USER_ADDED'
+  | 'USER_LEFT'
+  | 'USER_REMOVED'
+  | 'GROUP_CREATED'
+  | 'GROUP_NAME_CHANGED'
+  | 'GROUP_AVATAR_CHANGED'
+  | 'ADMIN_PROMOTED'
+  | 'ADMIN_REMOVED'
+  | 'UNKNOWN';
+
+export interface SystemMeta {
+  actorId?: string;
+  targetUserId?: string;
+  oldValue?: string;
+  newValue?: string;
+}
 export type PARICIPANT_ROLES = 'ADMIN' | 'MEMBER';
 export type PARICIPANT_STATUS = 'ACTIVE' | 'LEFT';
 export interface Participant {
@@ -30,7 +47,8 @@ export interface LastMessage {
   createdAt: string;
   senderId: string;
   type: MESSAGE_TYPE;
-  lastMediaType: MEDIA_TYPE;
+  systemType?: SYSTEM_TYPE;
+  lastMediaType?: MEDIA_TYPE;
 }
 
 export interface Conversation {
@@ -73,6 +91,8 @@ export interface Message {
   conversationId: string;
   senderId: string;
   content: string | null;
+  systemType?: SYSTEM_TYPE;
+  meta?: SystemMeta;
   medias?: Media[];
   updatedAt?: string | null;
   createdAt: string;

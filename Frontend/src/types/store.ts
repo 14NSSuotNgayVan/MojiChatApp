@@ -108,6 +108,13 @@ export interface ChatState {
   seenMessage: () => void;
   setUser: (user: User) => void;
   searchConversations: (keyword: string) => Promise<void>;
+
+  addParticipant: (conversationId: string, participantId: string) => Promise<void>;
+  removeParticipant: (conversationId: string, participantId: string) => Promise<void>;
+  updateParticipantRole: (conversationId: string, participantId: string, role: 'ADMIN' | 'MEMBER') => Promise<void>;
+  onParticipantAdded: (data: ParticipantAddedEvent) => void;
+  onParticipantRemoved: (data: ParticipantRemovedEvent) => void;
+  onParticipantRoleUpdated: (data: ParticipantRoleUpdatedEvent) => void;
 }
 interface NewMessageResponse {
   conversation: Pick<
@@ -131,4 +138,30 @@ export interface SocketState {
   disconnectSocket: () => void;
   onlineUsers: string[];
   onUpdateUser: (user: User) => void;
+}
+
+interface ParticipantAddedEvent {
+  conversationId: string;
+  participant: {
+    _id: string;
+    role: 'ADMIN' | 'MEMBER';
+    status: 'ACTIVE' | 'LEFT';
+    addedBy?: string;
+    joinedAt?: string | Date;
+  };
+  userInfo?: User;
+  systemMessage?: Message;
+}
+
+interface ParticipantRemovedEvent {
+  conversationId: string;
+  participantId: string;
+  systemMessage?: Message;
+}
+
+interface ParticipantRoleUpdatedEvent {
+  conversationId: string;
+  participantId: string;
+  newRole: 'ADMIN' | 'MEMBER';
+  systemMessage?: Message;
 }

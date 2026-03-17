@@ -3,7 +3,7 @@ import { useChatStore } from '../../stores/useChatStore.ts';
 import type { MessageGroup } from '../../types/chat.ts';
 import { ChatEmptyMessageWelcome } from './chat-empty-message-welcome.tsx';
 
-import { OtherMessageGroup, OwnerMessageGroup } from './message.tsx';
+import { OtherMessageGroup, OwnerMessageGroup, SystemMessage } from './message.tsx';
 import { useChatScroll } from '../../hooks/use-chat-scroll.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { ArrowDown } from 'lucide-react';
@@ -87,7 +87,9 @@ export const ChatWindowInset = () => {
           </div>
         )}
         {messageGroups?.map((group: MessageGroup) =>
-          group.isOwner ? (
+          group.messages[0]?.type === 'system' ? (
+            <SystemMessage message={group.messages[0]} key={group.messages[0]._id} />
+          ) : group.isOwner ? (
             <OwnerMessageGroup group={group} key={group.senderId + group.startTime} />
           ) : (
             <OtherMessageGroup group={group} key={group.senderId + group.startTime} />

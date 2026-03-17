@@ -127,9 +127,21 @@ export const useChatStore = create<ChatState>()(
       getGroupMessages: (messages, timeThresholdMinutes = 5) => {
         const groupMessages: MessageGroup[] = [];
         messages.forEach((m) => {
+          if (m.type === 'system') {
+            groupMessages.push({
+              messages: [m],
+              senderId: m.senderId,
+              startTime: new Date(m.createdAt),
+              endTime: new Date(m.createdAt),
+              isOwner: false,
+            });
+            return;
+          }
+
           const lastGroup = groupMessages[groupMessages.length - 1];
           const canAppend =
             lastGroup &&
+            lastGroup.messages[0]?.type !== 'system' &&
             lastGroup.senderId === m.senderId &&
             diffMinutes(lastGroup.endTime, new Date(m.createdAt)) <=
             timeThresholdMinutes;
@@ -342,6 +354,221 @@ export const useChatStore = create<ChatState>()(
         socket.emit("seen-message-request", {
           conversationId: currentConv._id,
           lastSeenAt: currentConv.lastMessageAt,
+        });
+      },
+
+      addParticipant: async (conversationId, participantId) => {
+        try {
+          await chatService.addParticipant(conversationId, participantId);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi thêm thành viên!");
+        }
+      },
+
+      removeParticipant: async (conversationId, participantId) => {
+        try {
+          await chatService.removeParticipant(conversationId, participantId);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi xóa thành viên!");
+        }
+      },
+
+      updateParticipantRole: async (conversationId, participantId, role) => {
+        try {
+          await chatService.updateParticipantRole(conversationId, participantId, role);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi cập nhật quyền!");
+        }
+      },
+
+      onParticipantAdded: (data) => {
+        const { conversationId, participant, userInfo, systemMessage } = data || {};
+        if (!conversationId || !participant?._id) return;
+
+        set((prev) => {
+          const idx = prev.conversations.findIndex((c) => c._id === conversationId);
+          if (idx === -1) return prev;
+
+          const conv = prev.conversations[idx];
+          const exists = conv.participants.some((p) => p._id === participant._id);
+
+          const updatedParticipants = exists
+            ? conv.participants.map((p) =>
+              p._id === participant._id
+                ? {
+                  ...p,
+                  role: participant.role ?? p.role,
+                  status: participant.status ?? p.status,
+                  addedBy: participant.addedBy ?? p.addedBy,
+                  joinedAt:
+                    typeof participant.joinedAt === 'string'
+                      ? participant.joinedAt
+                      : participant.joinedAt
+                        ? participant.joinedAt.toISOString()
+                        : p.joinedAt,
+                }
+                : p
+            )
+            : [
+              ...conv.participants,
+              {
+                _id: participant._id,
+                role: participant.role,
+                status: participant.status,
+                addedBy: participant.addedBy ?? '',
+                joinedAt: typeof participant.joinedAt === 'string'
+                  ? participant.joinedAt
+                  : (participant.joinedAt ? participant.joinedAt.toISOString() : new Date().toISOString()),
+              },
+            ];
+
+          const updatedConv = {
+            ...conv,
+            participants: updatedParticipants,
+            ...(systemMessage ? {
+              lastMessage: {
+                _id: systemMessage._id,
+                content: systemMessage.content ?? '',
+                senderId: systemMessage.senderId,
+                type: systemMessage.type,
+                createdAt: systemMessage.createdAt,
+              },
+              lastMessageAt: systemMessage.createdAt,
+            } : {}),
+          };
+
+          const convMessages = prev.messages?.[conversationId];
+          const updatedMessages = systemMessage && convMessages
+            ? {
+              ...prev.messages,
+              [conversationId]: {
+                ...convMessages,
+                items: [...convMessages.items, systemMessage],
+              },
+            }
+            : prev.messages;
+
+          return {
+            ...prev,
+            messages: updatedMessages,
+            conversations: [
+              updatedConv,
+              ...prev.conversations.filter((_, i) => i !== idx),
+            ],
+            activeConversation:
+              prev.activeConversationId === conversationId ? updatedConv : prev.activeConversation,
+            users: userInfo?._id
+              ? {
+                ...prev.users,
+                [userInfo._id]: userInfo,
+              }
+              : prev.users,
+          };
+        });
+      },
+
+      onParticipantRemoved: (data) => {
+        const { conversationId, participantId, systemMessage } = data || {};
+        if (!conversationId || !participantId) return;
+
+        set((prev) => {
+          const idx = prev.conversations.findIndex((c) => c._id === conversationId);
+          if (idx === -1) return prev;
+
+          const conv = prev.conversations[idx];
+          const updatedParticipants = conv.participants.map((p) =>
+            p._id === participantId ? { ...p, status: 'LEFT' as const } : p
+          );
+          const updatedConv = {
+            ...conv,
+            participants: updatedParticipants,
+            ...(systemMessage ? {
+              lastMessage: {
+                _id: systemMessage._id,
+                content: systemMessage.content ?? '',
+                senderId: systemMessage.senderId,
+                type: systemMessage.type,
+                createdAt: systemMessage.createdAt,
+              },
+              lastMessageAt: systemMessage.createdAt,
+            } : {}),
+          };
+
+          const convMessages = prev.messages?.[conversationId];
+          const updatedMessages = systemMessage && convMessages
+            ? {
+              ...prev.messages,
+              [conversationId]: {
+                ...convMessages,
+                items: [...convMessages.items, systemMessage],
+              },
+            }
+            : prev.messages;
+
+          return {
+            ...prev,
+            messages: updatedMessages,
+            conversations: [
+              updatedConv,
+              ...prev.conversations.filter((_, i) => i !== idx),
+            ],
+            activeConversation:
+              prev.activeConversationId === conversationId ? updatedConv : prev.activeConversation,
+          };
+        });
+      },
+
+      onParticipantRoleUpdated: (data) => {
+        const { conversationId, participantId, newRole, systemMessage } = data || {};
+        if (!conversationId || !participantId || !newRole) return;
+
+        set((prev) => {
+          const idx = prev.conversations.findIndex((c) => c._id === conversationId);
+          if (idx === -1) return prev;
+
+          const conv = prev.conversations[idx];
+          const updatedParticipants = conv.participants.map((p) =>
+            p._id === participantId ? { ...p, role: newRole } : p
+          );
+          const updatedConv = {
+            ...conv,
+            participants: updatedParticipants,
+            ...(systemMessage ? {
+              lastMessage: {
+                _id: systemMessage._id,
+                content: systemMessage.content ?? '',
+                senderId: systemMessage.senderId,
+                type: systemMessage.type,
+                createdAt: systemMessage.createdAt,
+              },
+              lastMessageAt: systemMessage.createdAt,
+            } : {}),
+          };
+
+          const convMessages = prev.messages?.[conversationId];
+          const updatedMessages = systemMessage && convMessages
+            ? {
+              ...prev.messages,
+              [conversationId]: {
+                ...convMessages,
+                items: [...convMessages.items, systemMessage],
+              },
+            }
+            : prev.messages;
+
+          return {
+            ...prev,
+            messages: updatedMessages,
+            conversations: [
+              updatedConv,
+              ...prev.conversations.filter((_, i) => i !== idx),
+            ],
+            activeConversation:
+              prev.activeConversationId === conversationId ? updatedConv : prev.activeConversation,
+          };
         });
       },
       reset: () => {

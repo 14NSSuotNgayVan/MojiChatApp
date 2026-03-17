@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
+import { renderSystemMessage } from '@/utils/systemMessageText.ts';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -60,6 +61,19 @@ const MediaView = ({ className, media }: { className: string; media: Media }) =>
       )}
       {renderMedia()}
     </>
+  );
+};
+
+export const SystemMessage = ({ message }: { message: Message }) => {
+  const { users } = useChatStore();
+  const text = renderSystemMessage(message, users);
+
+  return (
+    <div className="flex justify-center py-1">
+      <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+        {text}
+      </span>
+    </div>
   );
 };
 

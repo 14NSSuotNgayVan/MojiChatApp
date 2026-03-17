@@ -35,6 +35,11 @@ export const ChatWindowFooter = () => {
     useChatStore();
   const { user } = useAuthStore();
 
+  const currentParticipant = activeConversation?.participants.find((p) => p._id === user?._id);
+  const isActiveInGroup =
+    activeConversation?.type === 'direct' ||
+    (currentParticipant?.status === 'ACTIVE');
+
   const { getRootProps, getInputProps, isDragAccept } = useDropzone({
     accept: {
       'image/*': [],
@@ -158,6 +163,14 @@ export const ChatWindowFooter = () => {
       }
     }
   };
+
+  if (!isActiveInGroup) {
+    return (
+      <footer className="p-2 flex border-t items-center justify-center">
+        <p className="text-sm text-muted-foreground">Bạn không còn trong nhóm này.</p>
+      </footer>
+    );
+  }
 
   return (
     <footer className="p-2 flex border-t gap-2 items-center">
