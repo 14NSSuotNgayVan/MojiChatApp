@@ -176,7 +176,7 @@ export const getConversationMediasByDirection = async (req, res) => {
             .limit(Number(limit) + 1)
             .lean().then(docs => docs.map(doc => ({
                 ...doc,
-                isOwner: doc.senderId?._id?.toString() === userId
+                isOwner: doc.senderId?.toString() === userId
             })))
 
 
@@ -209,6 +209,10 @@ export const getMediasGalleryById = async (req, res) => {
 
         const media = await Attachment.findById(mediaId);
 
+        if (!media) {
+            return res.status(404).json({ message: 'Media not found!' });
+        }
+
         const query = {
             conversationId: media.conversationId
         };
@@ -230,7 +234,7 @@ export const getMediasGalleryById = async (req, res) => {
             .lean()
             .then(docs => docs.map(doc => ({
                 ...doc,
-                isOwner: doc.senderId?._id?.toString() === userId
+                isOwner: doc.senderId?.toString() === userId
             })))
 
         const prevMedias = await Attachment.find({
@@ -248,7 +252,7 @@ export const getMediasGalleryById = async (req, res) => {
             .lean()
             .then(docs => docs.map(doc => ({
                 ...doc,
-                isOwner: doc.senderId?._id?.toString() === userId
+                isOwner: doc.senderId?.toString() === userId
             })))
 
         let nextCursor;
@@ -265,7 +269,7 @@ export const getMediasGalleryById = async (req, res) => {
         }
         const middleMedia = media.toObject();
 
-        middleMedia.isOwner = middleMedia.senderId?._id?.toString() === userId
+        middleMedia.isOwner = middleMedia.senderId?.toString() === userId
 
         return res.status(200).json({
             message: 'Get medias success!',
@@ -429,12 +433,13 @@ export const getConversationMedias = async (req, res) => {
             .limit(Number(limit) + 1)
             .lean().then(docs => docs.map(doc => ({
                 ...doc,
-                isOwner: doc.senderId?._id?.toString() === userId
+                isOwner: doc.senderId?.toString() === userId
             })))
 
         let prevCursor;
         if (medias?.length > Number(limit)) {
-            prevCursor = medias[medias.length - 1];
+            const cursorDoc = medias[medias.length - 1];
+            prevCursor = { _id: cursorDoc._id, createdAt: cursorDoc.createdAt.toISOString() };
             medias.pop();
         }
 
