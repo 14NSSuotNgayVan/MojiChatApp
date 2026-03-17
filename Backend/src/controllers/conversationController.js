@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
-import { io } from "../socket/index.js";
+import { io, onlineUsers } from "../socket/index.js";
 import { convertConversation } from "../utils/conversationHelper.js";
 import { getNormalizeString } from "../utils/Utils.js";
 import User from "../models/User.js";
@@ -45,7 +45,7 @@ export const createConversation = async (req, res) => {
 
                 conversation = await Conversation.create({
                     type,
-                    participants: [{ userId }, ...filteredMemberIds.values()],
+                    participants: [{ userId, role: 'ADMIN' }, ...filteredMemberIds.values()],
                     participantNameNorms,
                     lastMessageAt: new Date(),
                     group: {
@@ -54,6 +54,31 @@ export const createConversation = async (req, res) => {
                         createdBy: userId
                     }
                 })
+
+                const groupCreatedMsg = await Message.create({
+                    conversationId: conversation._id,
+                    senderId: userId,
+                    type: 'system',
+                    systemType: 'GROUP_CREATED',
+                    meta: { actorId: userId }
+                });
+
+                await Conversation.updateOne(
+                    { _id: conversation._id },
+                    {
+                        $set: {
+                            lastMessage: {
+                                _id: groupCreatedMsg._id.toString(),
+                                content: null,
+                                senderId: userId,
+                                type: 'system',
+                                systemType: 'GROUP_CREATED',
+                                createdAt: groupCreatedMsg.createdAt
+                            },
+                            lastMessageAt: groupCreatedMsg.createdAt
+                        }
+                    }
+                );
 
                 break;
             }
@@ -388,39 +413,65 @@ export const updateSeenBy = async (data, socket) => {
 }
 
 export const deleteParticipant = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
         const { conversationId } = req.params;
         const { participantId } = req.query;
         const user = req.user;
 
+        // --- Input validation ---
         if (!mongoose.Types.ObjectId.isValid(conversationId)) {
             return res.status(400).json({ message: "Invalid conversationId!" });
         }
 
-        if (!participantId) {
-            return res.status(400).json({ message: "participantId must not be null!" });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(participantId)) {
+        if (!participantId || !mongoose.Types.ObjectId.isValid(participantId)) {
             return res.status(400).json({ message: "Invalid participantId!" });
         }
 
-        const paritcipant = await User.findById(participantId).lean();
+        const targetUser = await User.findById(participantId).lean();
 
-        if (!paritcipant) {
-            return res.status(400).json({ message: "User not found!" })
+        if (!targetUser) {
+            return res.status(404).json({ message: "User not found!" });
         }
 
-        const conversation = await Conversation.findById(conversationId).lean();
+        const conversation = await Conversation.findById(conversationId).session(session).lean();
 
         if (!conversation) {
-            return res.status(400).json({ message: "Conversation not found!" })
+            return res.status(404).json({ message: "Conversation not found!" });
         }
 
-        const isAdmin = conversation.participants.findIndex(p => p.userId.toString() === user._id.toString() && p.role === 'ADMIN')
+        // --- Must be a group conversation ---
+        if (conversation.type !== 'group') {
+            return res.status(400).json({ message: "Cannot remove participants from a direct conversation!" });
+        }
 
-        if (isAdmin === -1) return res.status(400).json({ message: "You are not allowed to do this!" })
+        // --- Caller must be an ACTIVE ADMIN ---
+        const caller = conversation.participants.find(
+            p => p.userId.toString() === user._id.toString()
+        );
 
+        if (!caller || caller.role !== 'ADMIN' || caller.status !== 'ACTIVE') {
+            return res.status(403).json({ message: "You are not allowed to do this!" });
+        }
+
+        // --- Prevent self-removal via this endpoint ---
+        if (participantId.toString() === user._id.toString()) {
+            return res.status(400).json({ message: "Cannot remove yourself. Use the leave endpoint instead." });
+        }
+
+        // --- Target must exist and be ACTIVE ---
+        const target = conversation.participants.find(
+            p => p.userId.toString() === participantId.toString()
+        );
+
+        if (!target || target.status !== 'ACTIVE') {
+            return res.status(400).json({ message: "Participant is not active in this group!" });
+        }
+
+        const now = new Date();
+
+        // --- Atomic soft-delete + cleanup (with leftAt) ---
         const updatedConv = await Conversation.findOneAndUpdate(
             {
                 _id: conversationId,
@@ -428,21 +479,75 @@ export const deleteParticipant = async (req, res) => {
             },
             {
                 $set: {
-                    "participants.$.status": "LEFT"
+                    "participants.$.status": "LEFT",
+                    "participants.$.leftAt": now
                 },
                 $unset: {
-                    [`unreadCounts.${paritcipant._id.toString()}`]: 0
+                    [`unreadCounts.${targetUser._id.toString()}`]: ""
                 },
                 $pull: {
-                    seenBy: { userId: participantId },
-                    participantNameNorms: paritcipant.searchName,
+                    seenBy: { userId: targetUser._id },
+                    participantNameNorms: targetUser.searchName,
+                }
+            },
+            { new: true, session }
+        );
+
+        // --- System message (in same transaction) ---
+        const [systemMessage] = await Message.create([{
+            conversationId,
+            senderId: user._id,
+            type: 'system',
+            systemType: 'USER_REMOVED',
+            meta: { actorId: user._id, targetUserId: targetUser._id }
+        }], { session });
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            {
+                $set: {
+                    lastMessage: {
+                        _id: systemMessage._id.toString(),
+                        content: null,
+                        senderId: user._id,
+                        type: 'system',
+                        systemType: 'USER_REMOVED',
+                        createdAt: systemMessage.createdAt
+                    },
+                    lastMessageAt: systemMessage.createdAt
+                }
+            },
+            { session }
+        );
+
+        await session.commitTransaction();
+
+        // --- Socket: evict removed user from room ---
+        const targetSocketIds = onlineUsers.get(participantId.toString());
+        if (targetSocketIds?.size) {
+            const sockets = await io.fetchSockets();
+            for (const s of sockets) {
+                if (targetSocketIds.has(s.id)) {
+                    s.leave(conversationId);
                 }
             }
-        )
-        return res.status(200).json({ messages: "Delete paricipant success!", conversation: updatedConv })
+        }
+
+        // --- Socket: notify remaining members ---
+        io.to(conversationId).emit("participant-removed", {
+            conversationId,
+            participantId,
+            removedBy: { _id: user._id, displayName: user.displayName },
+            systemMessage
+        });
+
+        return res.status(200).json({ message: "Participant removed successfully.", conversation: updatedConv });
     } catch (error) {
+        await session.abortTransaction();
         console.error("Error when calling deleteParticipant: " + error);
-        return res.status(500).send();
+        return res.status(500).json({ message: "Internal server error" });
+    } finally {
+        session.endSession();
     }
 }
 
@@ -478,6 +583,14 @@ export const addParticipant = async (req, res) => {
 
         if (conversation.type !== "group") {
             return res.status(400).json({ message: "Conversation is not a group!" })
+        }
+
+        const callerParticipant = conversation.participants.find(
+            p => p.userId.toString() === user._id.toString() && p.status === 'ACTIVE'
+        );
+
+        if (!callerParticipant || callerParticipant.role !== 'ADMIN') {
+            return res.status(403).json({ message: "You are not allowed to do this!" });
         }
 
         const existingParticipant = conversation.participants.find(p => p.userId.toString() === participantId);
@@ -532,7 +645,65 @@ export const addParticipant = async (req, res) => {
                 }
             )
         }
-        return res.status(200).json({ messages: "Add paricipant success!" })
+
+        const systemMessage = await Message.create({
+            conversationId,
+            senderId: user._id,
+            type: 'system',
+            systemType: 'USER_ADDED',
+            meta: { actorId: user._id, targetUserId: paritcipant._id }
+        });
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            {
+                $set: {
+                    lastMessage: {
+                        _id: systemMessage._id.toString(),
+                        content: null,
+                        senderId: user._id,
+                        type: 'system',
+                        systemType: 'USER_ADDED',
+                        createdAt: systemMessage.createdAt
+                    },
+                    lastMessageAt: systemMessage.createdAt
+                }
+            }
+        );
+
+        const updatedConv = await Conversation.findById(conversationId).lean();
+
+        const participantSocketIds = onlineUsers.get(participantId?.toString());
+        if (participantSocketIds?.size) {
+            // Join only sockets belonging to the added user
+            const sockets = await io.fetchSockets();
+            for (const s of sockets) {
+                if (participantSocketIds.has(s.id)) {
+                    s.join(conversationId);
+                }
+            }
+        }
+
+        io.to(conversationId).emit("participant-added", {
+            conversationId,
+            participant: {
+                _id: participantId,
+                role: 'MEMBER',
+                status: 'ACTIVE',
+                addedBy: user._id.toString(),
+                joinedAt: new Date()
+            },
+            addedBy: { _id: user._id, displayName: user.displayName },
+            userInfo: {
+                _id: paritcipant._id,
+                displayName: paritcipant.displayName,
+                avtUrl: paritcipant.avtUrl,
+                email: paritcipant.email
+            },
+            systemMessage
+        });
+
+        return res.status(200).json({ messages: "Add participant success!", conversation: updatedConv })
     } catch (error) {
         console.error("Error when calling addParticipant: " + error);
         return res.status(500).send();
@@ -644,6 +815,93 @@ export const addParticipants = async (req, res) => {
         return res.status(200).json({ messages: "Add participants success!", conversation: await Conversation.findById(conversationId).lean() });
     } catch (error) {
         console.error("Error when calling addParticipants: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const updateParticipantRole = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { participantId, role } = req.body;
+        const user = req.user;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        if (!participantId || !mongoose.Types.ObjectId.isValid(participantId)) {
+            return res.status(400).json({ message: "Invalid participantId!" });
+        }
+
+        if (role !== 'ADMIN' && role !== 'MEMBER') {
+            return res.status(400).json({ message: "Invalid role!" });
+        }
+
+        const conversation = await Conversation.findById(conversationId).lean();
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        if (conversation.type !== "group") {
+            return res.status(400).json({ message: "Conversation is not a group!" });
+        }
+
+        const isAdmin = conversation.participants.findIndex(
+            p => p.userId.toString() === user._id.toString() && p.role === 'ADMIN' && p.status === 'ACTIVE'
+        );
+        if (isAdmin === -1) {
+            return res.status(403).json({ message: "You are not allowed to do this!" });
+        }
+
+        const target = conversation.participants.find(p => p.userId.toString() === participantId.toString());
+        if (!target || target.status !== 'ACTIVE') {
+            return res.status(400).json({ message: "Target participant not found or not active!" });
+        }
+
+        await Conversation.updateOne(
+            { _id: conversationId, "participants.userId": participantId },
+            { $set: { "participants.$.role": role } }
+        );
+
+        const targetUser = await User.findById(participantId).lean();
+
+        const roleSystemType = role === 'ADMIN' ? 'ADMIN_PROMOTED' : 'ADMIN_REMOVED';
+        const systemMessage = await Message.create({
+            conversationId,
+            senderId: user._id,
+            type: 'system',
+            systemType: roleSystemType,
+            meta: { actorId: user._id, targetUserId: targetUser?._id }
+        });
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            {
+                $set: {
+                    lastMessage: {
+                        _id: systemMessage._id.toString(),
+                        content: null,
+                        senderId: user._id,
+                        type: 'system',
+                        systemType: roleSystemType,
+                        createdAt: systemMessage.createdAt
+                    },
+                    lastMessageAt: systemMessage.createdAt
+                }
+            }
+        );
+
+        io.to(conversationId).emit("participant-role-updated", {
+            conversationId,
+            participantId,
+            newRole: role,
+            updatedBy: { _id: user._id, displayName: user.displayName },
+            systemMessage
+        });
+
+        return res.status(200).json({ messages: "Update participant role success!" });
+    } catch (error) {
+        console.error("Error when calling updateParticipantRole: " + error);
         return res.status(500).send();
     }
 }

@@ -1,5 +1,5 @@
 import express from 'express';
-import { addParticipant, addParticipants, createConversation, deleteParticipant, getConversations, getConversationsByKeyword, getMessages } from '../controllers/conversationController.js';
+import { addParticipant, addParticipants, createConversation, deleteParticipant, getConversations, getConversationsByKeyword, getMessages, updateParticipantRole } from '../controllers/conversationController.js';
 
 const conversationRoute = express.Router();
 
@@ -10,4 +10,5 @@ conversationRoute.get('/:conversationId', getMessages)
 conversationRoute.delete('/:conversationId/participant/delete', deleteParticipant)
 conversationRoute.post('/:conversationId/participant/add', addParticipant)
 conversationRoute.post('/:conversationId/participant/add-multiples', addParticipants)
+conversationRoute.put('/:conversationId/participant/role', updateParticipantRole)
 export default conversationRoute;
