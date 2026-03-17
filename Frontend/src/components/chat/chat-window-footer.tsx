@@ -93,6 +93,12 @@ export const ChatWindowFooter = () => {
   });
 
   const handleSendMessage = async () => {
+    if (!isSendable) return;
+
+    if (!activeConversationId || !activeConversation || !user) {
+      return;
+    }
+
     const content = value;
     const media = files?.map((file) => ({
       url: file.publicUrl!,
@@ -105,10 +111,11 @@ export const ChatWindowFooter = () => {
     setFileInputKey(crypto.randomUUID());
 
     if (activeConversation?.type === 'direct') {
-      const friend = activeConversation.participants.find((u) => u._id !== user!._id);
-      await sendDirectMessage(activeConversationId!, friend!._id, content, media);
+      const friend = activeConversation.participants.find((u) => u._id !== user._id);
+      if (!friend?._id) return;
+      await sendDirectMessage(activeConversationId, friend._id, content, media);
     } else {
-      await sendGroupMessage(activeConversationId!, content, media);
+      await sendGroupMessage(activeConversationId, content, media);
     }
   };
 
@@ -124,7 +131,7 @@ export const ChatWindowFooter = () => {
 
   const handleDeleteImage = (file: UploadImage) => {
     setFiles((prev) => prev.filter((f) => f.id !== file.id));
-    URL.revokeObjectURL(file.preview);
+    // preview đang dùng base64 string nên không cần revokeObjectURL
     setFileInputKey(crypto.randomUUID());
 
     if (!file.publicId) return;
@@ -218,7 +225,9 @@ export const ChatWindowFooter = () => {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.repeat) {
               e.preventDefault();
-              handleSendMessage();
+              if (isSendable) {
+                handleSendMessage();
+              }
             }
           }}
           className={cn('pr-8 h-10', !!files?.length && 'h-28 pt-18 transition-all')}

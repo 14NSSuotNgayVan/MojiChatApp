@@ -16,6 +16,10 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       const existingSocket = get().socket;
       if (existingSocket) return;
 
+      if (!accessToken) {
+        return;
+      }
+
       const socket: Socket = io(baseUrl, {
         auth: { token: accessToken },
         transports: ["websocket"],
@@ -49,7 +53,11 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         console.log("Lỗi khi kết nối socket: ", err.message);
 
         if (err.message === "AUTH_ERROR" || err.message === "NO_TOKEN") {
-          await useAuthStore.getState().refreshToken()
+          try {
+            await useAuthStore.getState().refreshToken();
+          } catch(e) {
+            console.error("Làm mới token khi lỗi socket thất bại:", e);
+          }
         }
       });
     } catch (error) {

@@ -197,17 +197,24 @@ export const useChatStore = create<ChatState>()(
         set({
           messages: convMessages
             ? {
-              ...messages,
-              [conversation._id]: {
-                hasMore: convMessages?.hasMore,
-                nextCursor: convMessages?.nextCursor,
-                items: [
-                  ...convMessages.items,
-                  { ...message, isOwner: message.senderId === user?._id },
-                ],
+                ...messages,
+                [conversation._id]: {
+                  hasMore: convMessages?.hasMore,
+                  nextCursor: convMessages?.nextCursor,
+                  items: [
+                    ...convMessages.items,
+                    { ...message, isOwner: message.senderId === user?._id },
+                  ],
+                },
+              }
+            : {
+                ...messages,
+                [conversation._id]: {
+                  hasMore: false,
+                  nextCursor: undefined,
+                  items: [{ ...message, isOwner: message.senderId === user?._id }],
+                },
               },
-            }
-            : messages,
           activeConversation:
             activeConversationId === conversation._id
               ? updatedConverSation
@@ -219,15 +226,20 @@ export const useChatStore = create<ChatState>()(
                 ...conversations.filter((_, i) => i !== idx),
               ]
               : conversations,
-          medias: message.medias?.length ? {
-            ...medias,
-            [conversation._id]: {
-              items: [...convMedias.items, ...message.medias],
-              nextCursor: undefined,
-              prevCursor: convMedias?.prevCursor,
-              newestMediaId: message.medias[message.medias.length - 1]._id
-            }
-          } : medias
+          medias: message.medias?.length
+            ? {
+                ...medias,
+                [conversation._id]: {
+                  items: [
+                    ...(convMedias?.items || []),
+                    ...message.medias,
+                  ],
+                  nextCursor: undefined,
+                  prevCursor: convMedias?.prevCursor,
+                  newestMediaId: message.medias[message.medias.length - 1]._id,
+                },
+              }
+            : medias,
         });
       },
       updateConversation: (conversation) => {
@@ -311,17 +323,26 @@ export const useChatStore = create<ChatState>()(
         const socket = useSocketStore.getState().socket;
 
         if (
-          socket &&
-          currentConv &&
-          currentConv.lastMessage?.senderId !==
-          userId
-          && currentConv.unreadCounts[userId!] > 0
+          !socket ||
+          !currentConv ||
+          !userId ||
+          !currentConv.lastMessage ||
+          !currentConv.unreadCounts
         ) {
-          socket.emit("seen-message-request", {
-            conversationId: currentConv._id,
-            lastSeenAt: currentConv.lastMessageAt,
-          });
+          return;
         }
+
+        if (
+          currentConv.lastMessage.senderId === userId ||
+          (currentConv.unreadCounts[userId] ?? 0) <= 0
+        ) {
+          return;
+        }
+
+        socket.emit("seen-message-request", {
+          conversationId: currentConv._id,
+          lastSeenAt: currentConv.lastMessageAt,
+        });
       },
       reset: () => {
         set({

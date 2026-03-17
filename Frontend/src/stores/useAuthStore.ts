@@ -46,7 +46,9 @@ export const useAuthStore = create<AuthState>()(
           set({ accessToken: res?.accessToken, user: res?.user });
           return true;
         } catch (error: any) {
-          if (error.response && error.response.status !== 401) {
+          if (error?.response?.status === 401) {
+            toast.error("Tên đăng nhập hoặc mật khẩu không đúng.");
+          } else {
             console.error(error);
             toast.error("Đăng nhập thất bại. Vui lòng thử lại!");
           }
@@ -81,10 +83,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           await userService.updateProfile(data);
 
-          toast.success("Đăng xuất thành công!");
+          toast.success("Cập nhật hồ sơ thành công!");
         } catch (error) {
           console.error(error);
-          toast.error("Đăng xuất thất bại. Vui lòng thử lại!");
+          toast.error("Cập nhật hồ sơ thất bại. Vui lòng thử lại!");
         }
       },
       refreshToken: async () => {
