@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Conversation from "../models/Conversation.js";
 import Friend from "../models/Friend.js";
 import mongoose from "mongoose";
 import FriendRequest from "../models/FriendRequest.js";
@@ -127,11 +128,13 @@ export const updateProfile = async (req, res) => {
       bgId,
     });
 
+    const newSearchName = displayName ? getNormalizeString(displayName) : undefined;
+
     await User.updateOne(
       { _id: me._id },
       {
         displayName,
-        searchName: displayName ? getNormalizeString(displayName) : undefined,
+        searchName: newSearchName,
         email,
         phone,
         bio,
@@ -141,6 +144,20 @@ export const updateProfile = async (req, res) => {
         bgId,
       }
     );
+
+    // Sync participantNameNormsById in all conversations where the user is ACTIVE
+    if (newSearchName && newSearchName !== me.searchName) {
+      await Conversation.updateMany(
+        {
+          participants: {
+            $elemMatch: { userId: me._id, status: 'ACTIVE' }
+          }
+        },
+        {
+          $set: { [`participantNameNormsById.${me._id}`]: newSearchName }
+        }
+      );
+    }
 
     const user = {
       ...me,

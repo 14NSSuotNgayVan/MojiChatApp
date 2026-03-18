@@ -114,7 +114,7 @@ export const signInhandler = async (req, res) => {
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,//khong truy cap tu js
             secure: process.env.NODE_ENV === "production",//chi truyen qua https o production
-            sameSite: "none",
+            // sameSite: "none",
             maxAge: REFRESH_TOKEN_TTL
         });
         const { __v, hashPassword, ...userData } = user.toObject();
