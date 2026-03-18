@@ -3,6 +3,15 @@ import { GroupAvatar } from '@/components/avatars/group-avatar.tsx';
 import { OthersProfileDialog } from '@/components/dialogs/others-profile-dialog.tsx';
 import { SidebarGallery } from '@/components/gallery/sidebar-gallery.tsx';
 import ParticipantManagement from '@/components/right-sidebar/participant-management.tsx';
+import { Button } from '@/components/ui/button.tsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx';
 import { Separator } from '@/components/ui/separator.tsx';
 import {
   SidebarContent,
@@ -11,6 +20,7 @@ import {
 } from '@/components/ui/sidebar.tsx';
 import { cn } from '@/lib/utils.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
+import { useAuthStore } from '@/stores/useAuthStore.ts';
 import { ChevronLeft, ChevronRight, ImagePlay, LogOut, Trash2, Users } from 'lucide-react';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 
@@ -68,7 +78,42 @@ type SideBarContentProps = {
 };
 
 const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
-  const { activeConversation } = useChatStore();
+  const {
+    activeConversation,
+    clearDirectConversation,
+    leaveConversation,
+    deleteGroupConversation,
+  } = useChatStore();
+  const { user } = useAuthStore();
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: 'clearDirect'; conversationId: string }
+    | { type: 'leaveGroup'; conversationId: string }
+    | { type: 'deleteGroup'; conversationId: string }
+    | null
+  >(null);
+
+  const openConfirm = (action: NonNullable<typeof pendingAction>) => {
+    setPendingAction(action);
+    setConfirmOpen(true);
+  };
+
+  const closeConfirm = () => {
+    setConfirmOpen(false);
+    setPendingAction(null);
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingAction) return;
+    const { conversationId } = pendingAction;
+
+    if (pendingAction.type === 'clearDirect') await clearDirectConversation(conversationId);
+    if (pendingAction.type === 'leaveGroup') await leaveConversation(conversationId);
+    if (pendingAction.type === 'deleteGroup') await deleteGroupConversation(conversationId);
+
+    closeConfirm();
+  };
 
   if (activeConversation?.type === 'direct') {
     return (
@@ -86,16 +131,50 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
           <ChevronRight className="w-4 h-4" />
         </div>
         <Separator className="my-1" />
-        <div className="flex gap-2 text-xs text-red-700 p-4 hover:bg-accent/50 rounded-sm cursor-pointer">
+        <div
+          className="flex gap-2 text-xs text-red-700 p-4 hover:bg-accent/50 rounded-sm cursor-pointer"
+          onClick={() =>
+            openConfirm({ type: 'clearDirect', conversationId: activeConversation._id })
+          }
+        >
           <Trash2 className="w-4 h-4" />
           Xóa cuộc trò chuyện
         </div>
+
+        <Dialog
+          open={confirmOpen}
+          onOpenChange={(open) => {
+            if (!open) closeConfirm();
+          }}
+        >
+          <DialogContent showCloseButton={false} aria-describedby="confirm-direct-action-desc">
+            <DialogHeader>
+              <DialogTitle>Xóa cuộc trò chuyện?</DialogTitle>
+              <DialogDescription id="confirm-direct-action-desc">
+                Bạn có chắc muốn xóa cuộc trò chuyện này không? Cuộc trò chuyện sẽ được ẩn cho tới
+                khi có tin nhắn mới, và bạn chỉ xem được tin nhắn từ thời điểm xóa trở đi.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={closeConfirm}>
+                Hủy
+              </Button>
+              <Button variant="destructive" onClick={handleConfirm}>
+                Xóa
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
 
   if (activeConversation?.type === 'group') {
     const { participants } = activeConversation;
+    const currentUserRole = activeConversation?.participants.find((p) => p._id === user?._id)?.role;
+    const currentUserStatus = activeConversation?.participants.find((p) => p._id === user?._id)
+      ?.status;
+    const isCurrentUserActive = currentUserStatus === 'ACTIVE';
 
     return (
       <div className="mx-1">
@@ -107,10 +186,9 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
         >
           <div className="flex gap-2">
             <Users className="w-4 h-4" />
-            Thành viên nhóm
+            Thành viên nhóm ({participants?.filter((p) => p.status === 'ACTIVE')?.length || 0})
           </div>
           <div className="flex gap-2">
-            {participants?.length || 0} Thành viên
             <ChevronRight className="w-4 h-4" />
           </div>
         </div>
@@ -128,10 +206,57 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
           <ChevronRight className="w-4 h-4" />
         </div>
         <Separator className="my-1" />
-        <div className="flex gap-2 text-xs text-red-700 p-4 hover:bg-accent/50 rounded-sm cursor-pointer">
-          <LogOut className="w-4 h-4" />
-          Rời nhóm
-        </div>
+        {isCurrentUserActive && (
+          <div
+            className="flex gap-2 text-xs text-red-700 p-4 hover:bg-accent/50 rounded-sm cursor-pointer"
+            onClick={() =>
+              openConfirm({ type: 'leaveGroup', conversationId: activeConversation._id })
+            }
+          >
+            <LogOut className="w-4 h-4" />
+            Rời nhóm
+          </div>
+        )}
+
+        {isCurrentUserActive && currentUserRole === 'ADMIN' && (
+          <div
+            className="flex gap-2 text-xs text-red-700 p-4 hover:bg-accent/50 rounded-sm cursor-pointer"
+            onClick={() =>
+              openConfirm({ type: 'deleteGroup', conversationId: activeConversation._id })
+            }
+          >
+            <Trash2 className="w-4 h-4" />
+            Xóa nhóm
+          </div>
+        )}
+
+        <Dialog
+          open={confirmOpen}
+          onOpenChange={(open) => {
+            if (!open) closeConfirm();
+          }}
+        >
+          <DialogContent showCloseButton={false} aria-describedby="confirm-group-action-desc">
+            <DialogHeader>
+              <DialogTitle>
+                {pendingAction?.type === 'deleteGroup' ? 'Xóa nhóm?' : 'Rời nhóm?'}
+              </DialogTitle>
+              <DialogDescription id="confirm-group-action-desc">
+                {pendingAction?.type === 'deleteGroup'
+                  ? 'Bạn có chắc muốn xóa nhóm này không? Hành động này sẽ xóa toàn bộ cuộc trò chuyện và không thể hoàn tác.'
+                  : 'Bạn có chắc muốn rời nhóm này không?'}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={closeConfirm}>
+                Hủy
+              </Button>
+              <Button variant="destructive" onClick={handleConfirm}>
+                {pendingAction?.type === 'deleteGroup' ? 'Xóa nhóm' : 'Rời nhóm'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

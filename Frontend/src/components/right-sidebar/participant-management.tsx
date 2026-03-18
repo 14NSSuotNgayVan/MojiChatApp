@@ -10,7 +10,14 @@ import { cn } from '@/lib/utils.ts';
 import { useAuthStore } from '@/stores/useAuthStore.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { Button } from '@/components/ui/button.tsx';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import Loading from '@/components/ui/loading.tsx';
 import { debounce, getNormalizeString } from '@/lib/utils.ts';
@@ -18,6 +25,12 @@ import { ChevronLeft, MoreHorizontal, SearchIcon, UserPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react';
 import { friendService } from '@/services/friendService.ts';
 import type { User } from '@/types/user.ts';
+
+type PendingRemove = {
+  conversationId: string;
+  participantId: string;
+  displayName?: string;
+};
 
 type Props = {
   onReturn: () => void;
@@ -49,6 +62,26 @@ const ParticipantManagement = ({ onReturn }: Props) => {
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [searchUsers, setSearchUsers] = useState<User[]>([]);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<PendingRemove | null>(null);
+
+  const handleRequestRemove = (conversationId: string, participantId: string, displayName?: string) => {
+    setPendingRemove({ conversationId, participantId, displayName });
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmRemove = () => {
+    if (!pendingRemove) return;
+    removeParticipant(pendingRemove.conversationId, pendingRemove.participantId);
+    setConfirmOpen(false);
+    setPendingRemove(null);
+  };
+
+  const handleCancelRemove = () => {
+    setConfirmOpen(false);
+    setPendingRemove(null);
+  };
 
   const handleSearch = debounce((e) => {
     setKeyword(getNormalizeString(e?.target?.value));
@@ -158,15 +191,14 @@ const ParticipantManagement = ({ onReturn }: Props) => {
                           <span>Xóa quyền quản trị viên</span>
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem>
-                        <span
-                          onClick={() => {
-                            if (!activeConversation?._id) return;
-                            removeParticipant(activeConversation._id, p._id);
-                          }}
-                        >
-                          Xóa khỏi nhóm
-                        </span>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => {
+                          if (!activeConversation?._id) return;
+                          handleRequestRemove(activeConversation._id, p._id, p.displayName);
+                        }}
+                      >
+                        Xóa khỏi nhóm
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -176,6 +208,34 @@ const ParticipantManagement = ({ onReturn }: Props) => {
           ))}
         </div>
       </div>
+
+      {/* Confirm remove dialog */}
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) handleCancelRemove(); }}>
+        <DialogContent showCloseButton={false} aria-describedby="confirm-remove-desc">
+          <DialogHeader>
+            <DialogTitle>Xóa khỏi nhóm?</DialogTitle>
+            <DialogDescription id="confirm-remove-desc">
+              {pendingRemove?.displayName ? (
+                <>
+                  Bạn có chắc muốn xóa{' '}
+                  <span className="font-medium text-foreground">{pendingRemove.displayName}</span>{' '}
+                  khỏi nhóm không? Hành động này không thể hoàn tác dễ dàng.
+                </>
+              ) : (
+                'Bạn có chắc muốn xóa thành viên này khỏi nhóm không?'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelRemove}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmRemove}>
+              Xóa khỏi nhóm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={openAddDialog}

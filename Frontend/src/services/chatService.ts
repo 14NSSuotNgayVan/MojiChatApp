@@ -4,7 +4,7 @@ import type { Conversation, ConversationResponse } from "../types/chat.ts";
 
 export const chatService = {
   //conversation
-  async createConversation(payload: { type: "group" | "direct", name?: string, memberIds: string[] }): Promise<{ conversation: Conversation }> {
+  async createConversation(payload: { type: "group" | "direct", name?: string, memberIds: string[], avtUrl?: string }): Promise<{ conversation: Conversation }> {
     const res = await api.post("/conversations", payload);
     return res.data;
   },
@@ -14,6 +14,30 @@ export const chatService = {
   },
   async searchConversation(params: { keyword: string }): Promise<ConversationResponse> {
     const res = await api.get("/conversations/search", { params });
+    return res.data;
+  },
+  async fetchHiddenConversations(): Promise<ConversationResponse> {
+    const res = await api.get("/conversations/hidden");
+    return res.data;
+  },
+  async hideConversation(conversationId: string) {
+    const res = await api.post(`/conversations/${conversationId}/hide`);
+    return res.data;
+  },
+  async unhideConversation(conversationId: string) {
+    const res = await api.post(`/conversations/${conversationId}/unhide`);
+    return res.data;
+  },
+  async clearDirectConversation(conversationId: string) {
+    const res = await api.post(`/conversations/${conversationId}/clear`);
+    return res.data;
+  },
+  async deleteGroupConversation(conversationId: string) {
+    const res = await api.delete(`/conversations/${conversationId}`);
+    return res.data;
+  },
+  async leaveConversation(conversationId: string) {
+    const res = await api.post(`/conversations/${conversationId}/leave`);
     return res.data;
   },
   //message

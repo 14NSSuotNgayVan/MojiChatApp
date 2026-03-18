@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
-import { renderSystemMessage } from '@/utils/systemMessageText.ts';
+import { renderSystemMessage } from '@/utils/systemMessageText.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -70,7 +70,7 @@ export const SystemMessage = ({ message }: { message: Message }) => {
 
   return (
     <div className="flex justify-center py-1">
-      <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+      <span className="text-xs text-muted-foreground bg-muted/20 dark:bg-muted/50 px-3 py-1 rounded-full">
         {text}
       </span>
     </div>

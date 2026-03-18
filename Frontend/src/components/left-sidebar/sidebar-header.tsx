@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { SidebarHeader, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
-import { debounce, getNormalizeString } from '@/lib/utils.ts';
+import { cn, debounce, getNormalizeString } from '@/lib/utils.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { MessageCirclePlus, SearchIcon, UserPlus } from 'lucide-react';
 import { useCallback, useState, type ChangeEvent } from 'react';
@@ -12,7 +12,7 @@ import { useCallback, useState, type ChangeEvent } from 'react';
 export const Header = () => {
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState<boolean>(false);
   const [openAddChatDialog, setOpenAddChatDialog] = useState<boolean>(false);
-  const { searchConversations, isSearching } = useChatStore();
+  const { searchConversations, isSearching, sidebarTab, setSidebarTab } = useChatStore();
 
   const [keyword, setKeyword] = useState<string>('');
 
@@ -104,7 +104,7 @@ export const Header = () => {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Tin nhắn mới</p>
+                    <p>Cuộc trò chuyện mới</p>
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -121,6 +121,36 @@ export const Header = () => {
             )}
           </div>
         </div>
+        {!isSearching && (
+          <div className="px-2 pb-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="primary"
+                className={cn(
+                  sidebarTab === 'inbox' &&
+                    'bg-secondary/50 text-primary dark:bg-accent/50 dark:text-primary',
+                  'hover:bg-secondary/50'
+                )}
+                size="sm"
+                onClick={() => setSidebarTab('inbox')}
+              >
+                Tất cả
+              </Button>
+              <Button
+                variant="primary"
+                className={cn(
+                  sidebarTab === 'hidden' &&
+                    'bg-secondary/50 text-primary dark:bg-accent/50 dark:text-primary',
+                  'hover:bg-secondary/50'
+                )}
+                size="sm"
+                onClick={() => setSidebarTab('hidden')}
+              >
+                Đã ẩn
+              </Button>
+            </div>
+          </div>
+        )}
       </SidebarHeader>
     </>
   );

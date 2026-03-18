@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button.tsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import Loading from '@/components/ui/loading.tsx';
-import { debounce, getNormalizeString } from '@/lib/utils.ts';
+import { cn, debounce, getNormalizeString } from '@/lib/utils.ts';
 import { chatService } from '@/services/chatService.ts';
+import { fileService } from '@/services/fileService.ts';
 import { friendService } from '@/services/friendService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
-import { SearchIcon, Send } from 'lucide-react';
+import { Check, ImagePlus, SearchIcon, Send, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type NotUser = {
@@ -28,6 +29,11 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [openProfileDialog, setOpenProfileDialog] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [mode, setMode] = useState<'direct' | 'group'>('direct');
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+  const [groupName, setGroupName] = useState<string>('');
+  const [groupAvatarUrl, setGroupAvatarUrl] = useState<string>('');
+  const [groupAvatarUploading, setGroupAvatarUploading] = useState<boolean>(false);
   const [filter, setFilter] = useState({
     keyword: '',
     isMore: false,
@@ -55,6 +61,11 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
     onOpenChange(open);
     if (!open) {
       setUsers([]);
+      setMode('direct');
+      setSelectedMemberIds(new Set());
+      setGroupName('');
+      setGroupAvatarUrl('');
+      setGroupAvatarUploading(false);
       setFilter({
         keyword: '',
         isMore: false,
@@ -87,6 +98,63 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
     }
   };
 
+  const toggleSelectMember = (userId: string) => {
+    setSelectedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const handleCreateGroup = async () => {
+    try {
+      const memberIds = Array.from(selectedMemberIds);
+      if (memberIds.length < 2) return;
+      if (groupAvatarUploading) return;
+
+      const { setActiveConversation, getMessages, conversations } = useChatStore.getState();
+
+      const res = await chatService.createConversation({
+        type: 'group',
+        name: groupName.trim() || undefined,
+        memberIds,
+        avtUrl: groupAvatarUrl.trim() || undefined,
+      });
+
+      const convIdx = conversations.findIndex((item) => item?._id === res.conversation._id);
+      if (convIdx === -1) {
+        useChatStore.setState((state) => ({
+          ...state,
+          conversations: [res.conversation, ...state.conversations],
+        }));
+      }
+
+      const success = await getMessages(res.conversation._id);
+      setActiveConversation(success ? res.conversation : null);
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handlePickGroupAvatar: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setGroupAvatarUploading(true);
+      const res = await fileService.uploadAvatar(file);
+      if (res?.secure_url) {
+        setGroupAvatarUrl(res.secure_url);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setGroupAvatarUploading(false);
+    }
+  };
+
   useEffect(() => {
     if (open) handleGetFriends();
   }, [filter.keyword, open]);
@@ -106,8 +174,87 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Tin nhắn mới</DialogTitle>
+            <DialogTitle>Cuộc trò chuyện mới</DialogTitle>
           </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="primary"
+              className={cn(
+                mode === 'direct' &&
+                  'bg-secondary/50 text-primary dark:bg-accent/50 dark:text-primary',
+                'hover:bg-secondary/50'
+              )}
+              size="sm"
+              onClick={() => setMode('direct')}
+            >
+              Trực tiếp
+            </Button>
+            <Button
+              variant="primary"
+              className={cn(
+                mode === 'group' &&
+                  'bg-secondary/50 text-primary dark:bg-accent/50 dark:text-primary',
+                'hover:bg-secondary/50'
+              )}
+              size="sm"
+              onClick={() => setMode('group')}
+            >
+              Nhóm
+            </Button>
+          </div>
+
+          {mode === 'group' && (
+            <div className="flex flex-col gap-2">
+              <Input
+                className="h-8 text-sm"
+                placeholder="Tên nhóm (không bắt buộc)"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="group-avatar-input"
+                  onChange={handlePickGroupAvatar}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={groupAvatarUploading}
+                  onClick={() => document.getElementById('group-avatar-input')?.click()}
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  {groupAvatarUploading ? 'Đang upload...' : 'Chọn avatar'}
+                </Button>
+                <Input
+                  className="h-8 text-sm flex-1"
+                  placeholder="Avatar URL (không bắt buộc)"
+                  value={groupAvatarUrl}
+                  onChange={(e) => setGroupAvatarUrl(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  Đã chọn: {selectedMemberIds.size}{' '}
+                </p>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={selectedMemberIds.size < 2 || groupAvatarUploading}
+                  onClick={handleCreateGroup}
+                >
+                  Tạo nhóm
+                </Button>
+              </div>
+            </div>
+          )}
+          <span className="text-xs text-muted-foreground text-center">
+            Cần ít nhất 2 thành viên để tạo nhóm
+          </span>
           <div className="relative grow">
             <Input
               id={`input-search`}
@@ -141,6 +288,10 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                         <div
                           className="group flex p-2 items-center justify-between rounded-sm gap-2 hover:bg-muted"
                           onClick={() => {
+                            if (mode === 'group') {
+                              toggleSelectMember(user._id);
+                              return;
+                            }
                             setCurrentUserId(user._id);
                             setOpenProfileDialog(true);
                           }}
@@ -149,15 +300,20 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                             <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
                             <p className="">{user.displayName}</p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleChat(user._id);
-                            }}
-                          >
-                            <Send />
-                          </Button>
+                          {mode === 'group' && selectedMemberIds.has(user._id) && (
+                            <Check className="size-4" />
+                          )}
+                          {mode === 'direct' && (
+                            <Button
+                              variant="primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleChat(user._id);
+                              }}
+                            >
+                              <Send />
+                            </Button>
+                          )}
                         </div>
                       ))
                     )}
@@ -172,6 +328,10 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                       <div
                         className="group flex p-2 items-center justify-between rounded-sm gap-2 dark:hover:bg-muted hover:bg-secondary/50"
                         onClick={() => {
+                          if (mode === 'group') {
+                            toggleSelectMember(user._id);
+                            return;
+                          }
                           setCurrentUserId(user._id);
                           setOpenProfileDialog(true);
                         }}
@@ -180,15 +340,20 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                           <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
                           <p className="">{user.displayName}</p>
                         </div>
-                        <Button
-                          variant="primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleChat(user._id);
-                          }}
-                        >
-                          <Send />
-                        </Button>
+                        {mode === 'group' && selectedMemberIds.has(user._id) && (
+                          <Check className="size-4" />
+                        )}
+                        {mode === 'direct' && (
+                          <Button
+                            variant="primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleChat(user._id);
+                            }}
+                          >
+                            <Send />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </>

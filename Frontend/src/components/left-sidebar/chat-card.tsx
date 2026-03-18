@@ -1,5 +1,5 @@
 import type { Conversation, LastMessage } from '../../types/chat.ts';
-import { renderLastMessagePreview } from '../../utils/systemMessageText.ts';
+import { renderLastMessagePreview } from '../../utils/systemMessageText.tsx';
 import { OnlineAvatar } from '../avatars/avatar.tsx';
 import { GroupAvatar } from '../avatars/group-avatar.tsx';
 import { cn, fromNow } from '../../lib/utils.ts';
@@ -19,11 +19,12 @@ import { useSidebar } from '../ui/sidebar.tsx';
 interface ChatCardProps {
   conversation: Conversation;
   isActive: boolean;
+  mode?: 'normal' | 'hidden';
 }
-export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
+export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardProps) => {
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
-  const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading } =
+  const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading, hideConversation, unhideConversation } =
     useChatStore();
   const { user } = useAuthStore();
   const {
@@ -39,6 +40,9 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
   const handleClickConversation = async () => {
     if (messageLoading) return;
     setOpenMobile(false);
+    if (mode === 'hidden') {
+      await unhideConversation(conversationId);
+    }
     const success = await getMessages(conversationId);
     setActiveConversation(success ? conversation : null);
   };
@@ -114,9 +118,25 @@ export const ChatCard = ({ conversation, isActive }: ChatCardProps) => {
                   <span>Đánh dấu là đã đọc</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <span>Ẩn cuộc trò chuyện</span>
-                </DropdownMenuItem>
+                {mode === 'hidden' ? (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      unhideConversation(conversationId);
+                    }}
+                  >
+                    <span>Hiện lại</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      hideConversation(conversationId);
+                    }}
+                  >
+                    <span>Ẩn cuộc trò chuyện</span>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

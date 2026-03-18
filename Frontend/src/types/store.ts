@@ -62,6 +62,10 @@ export interface MediaRecord {
 
 export interface ChatState {
   isSearching: boolean;
+  hiddenConversations: Conversation[];
+  hiddenLoading: boolean;
+  sidebarTab: 'inbox' | 'hidden';
+  setSidebarTab: (tab: 'inbox' | 'hidden') => void;
   conversations: Conversation[];
   activeConversation: Conversation | null;
   users: Record<string, User>,
@@ -108,13 +112,21 @@ export interface ChatState {
   seenMessage: () => void;
   setUser: (user: User) => void;
   searchConversations: (keyword: string) => Promise<void>;
+  getHiddenConversations: () => Promise<void>;
+  unhideConversation: (conversationId: string) => Promise<void>;
 
   addParticipant: (conversationId: string, participantId: string) => Promise<void>;
   removeParticipant: (conversationId: string, participantId: string) => Promise<void>;
   updateParticipantRole: (conversationId: string, participantId: string, role: 'ADMIN' | 'MEMBER') => Promise<void>;
+  hideConversation: (conversationId: string) => Promise<void>;
+  clearDirectConversation: (conversationId: string) => Promise<void>;
+  deleteGroupConversation: (conversationId: string) => Promise<void>;
+  leaveConversation: (conversationId: string) => Promise<void>;
+  onConversationDeleted: (data: { conversationId: string }) => void;
   onParticipantAdded: (data: ParticipantAddedEvent) => void;
   onParticipantRemoved: (data: ParticipantRemovedEvent) => void;
   onParticipantRoleUpdated: (data: ParticipantRoleUpdatedEvent) => void;
+  onParticipantLeft: (data: ParticipantLeftEvent) => void;
 }
 interface NewMessageResponse {
   conversation: Pick<
@@ -163,5 +175,11 @@ interface ParticipantRoleUpdatedEvent {
   conversationId: string;
   participantId: string;
   newRole: 'ADMIN' | 'MEMBER';
+  systemMessage?: Message;
+}
+
+interface ParticipantLeftEvent {
+  conversationId: string;
+  participantId: string;
   systemMessage?: Message;
 }

@@ -41,6 +41,8 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.on("participant-added", useChatStore.getState().onParticipantAdded);
       socket.on("participant-removed", useChatStore.getState().onParticipantRemoved);
       socket.on("participant-role-updated", useChatStore.getState().onParticipantRoleUpdated);
+      socket.on("conversation-deleted", useChatStore.getState().onConversationDeleted);
+      socket.on("participant-left", useChatStore.getState().onParticipantLeft);
 
       socket.io.on("reconnect", () => {
         console.log("Đã kết nối lại với socket!");
@@ -85,6 +87,8 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.off("participant-added");
       socket.off("participant-removed");
       socket.off("participant-role-updated");
+      socket.off("conversation-deleted");
+      socket.off("participant-left");
       socket.disconnect();
     }
     console.log("Đã ngắt kết nối với socket!");

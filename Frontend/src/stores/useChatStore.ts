@@ -10,9 +10,24 @@ import { useSocketStore } from "./useSocketStore.ts";
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      const removeConvFromStore = (conversationId: string) => {
+        set((prev) => ({
+          conversations: prev.conversations.filter((c) => c._id !== conversationId),
+          activeConversation:
+            prev.activeConversationId === conversationId ? null : prev.activeConversation,
+          activeConversationId:
+            prev.activeConversationId === conversationId ? null : prev.activeConversationId,
+        }));
+      };
+
+      return ({
       isSearching: false,
       isFetchOldMessage: false,
+      hiddenConversations: [],
+      hiddenLoading: false,
+      sidebarTab: 'inbox',
+      setSidebarTab: (tab) => set({ sidebarTab: tab }),
       conversations: [],
       messages: {},
       medias: {},
@@ -69,6 +84,35 @@ export const useChatStore = create<ChatState>()(
           console.error("Lỗi khi gọi getMessages:", error);
         } finally {
           set({ loading: false });
+        }
+      },
+      getHiddenConversations: async () => {
+        try {
+          set({ hiddenLoading: true });
+          const res = await chatService.fetchHiddenConversations();
+          set({
+            hiddenConversations: res?.conversations || [],
+            users: {
+              ...get().users,
+              ...(res?.users ?? {})
+            }
+          });
+        } catch (error) {
+          console.error("Lỗi khi gọi getHiddenConversations:", error);
+        } finally {
+          set({ hiddenLoading: false });
+        }
+      },
+      unhideConversation: async (conversationId) => {
+        try {
+          await chatService.unhideConversation(conversationId);
+          set((prev) => ({
+            hiddenConversations: prev.hiddenConversations.filter((c) => c._id !== conversationId)
+          }));
+          await get().getConversations();
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi hiện lại cuộc trò chuyện!");
         }
       },
       getMessages: async (conversationId, isFetchOldMessage = false) => {
@@ -195,11 +239,13 @@ export const useChatStore = create<ChatState>()(
         } = get();
         //update conversation
         const idx = conversations.findIndex((c) => c._id === conversation._id);
-
-        const updatedConverSation = {
-          ...conversations[idx],
-          ...conversation,
-        };
+        const updatedConverSation =
+          idx !== -1
+            ? {
+                ...conversations[idx],
+                ...conversation,
+              }
+            : null;
 
         //update messages
         const convMessages = messages?.[conversation._id];
@@ -229,14 +275,11 @@ export const useChatStore = create<ChatState>()(
               },
           activeConversation:
             activeConversationId === conversation._id
-              ? updatedConverSation
+              ? (updatedConverSation || activeConversation)
               : activeConversation,
           conversations:
-            idx !== -1
-              ? [
-                updatedConverSation,
-                ...conversations.filter((_, i) => i !== idx),
-              ]
+            idx !== -1 && updatedConverSation
+              ? [updatedConverSation, ...conversations.filter((_, i) => i !== idx)]
               : conversations,
           medias: message.medias?.length
             ? {
@@ -253,6 +296,11 @@ export const useChatStore = create<ChatState>()(
               }
             : medias,
         });
+
+        // If conversation isn't in list (likely hidden), refetch list to show it again
+        if (idx === -1) {
+          void get().getConversations();
+        }
       },
       updateConversation: (conversation) => {
         const { activeConversationId, activeConversation, conversations } = get();
@@ -384,9 +432,66 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
+      hideConversation: async (conversationId) => {
+        try {
+          await chatService.hideConversation(conversationId);
+          removeConvFromStore(conversationId);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi ẩn cuộc trò chuyện!");
+        }
+      },
+
+      clearDirectConversation: async (conversationId) => {
+        try {
+          await chatService.clearDirectConversation(conversationId);
+          removeConvFromStore(conversationId);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi xóa cuộc trò chuyện!");
+        }
+      },
+
+      deleteGroupConversation: async (conversationId) => {
+        try {
+          await chatService.deleteGroupConversation(conversationId);
+          removeConvFromStore(conversationId);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi xóa nhóm!");
+        }
+      },
+
+      leaveConversation: async (conversationId) => {
+        try {
+          await chatService.leaveConversation(conversationId);
+          removeConvFromStore(conversationId);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi rời nhóm!");
+        }
+      },
+
+      onConversationDeleted: (data) => {
+        const conversationId = data?.conversationId;
+        if (!conversationId) return;
+        removeConvFromStore(conversationId);
+      },
+
       onParticipantAdded: (data) => {
         const { conversationId, participant, userInfo, systemMessage } = data || {};
         if (!conversationId || !participant?._id) return;
+
+        // Nếu conversation chưa có trong list (user vừa được add, hoặc trước đó bị filter),
+        // thì refetch conversations để tự add vào đầu list theo sort của BE.
+        const currentUserId = useAuthStore.getState().user?._id;
+        if (currentUserId && participant._id === currentUserId) {
+          const existsInList = get().conversations.some((c) => c._id === conversationId);
+          if (!existsInList) {
+            void get().getConversations();
+            return;
+          }
+        }
 
         set((prev) => {
           const idx = prev.conversations.findIndex((c) => c._id === conversationId);
@@ -473,6 +578,72 @@ export const useChatStore = create<ChatState>()(
       onParticipantRemoved: (data) => {
         const { conversationId, participantId, systemMessage } = data || {};
         if (!conversationId || !participantId) return;
+
+        const currentUserId = useAuthStore.getState().user?._id;
+        if (currentUserId && participantId === currentUserId) {
+          // User bị kick: KHÔNG remove khỏi list (chỉ đóng băng + chặn thao tác). Refresh sẽ tự loại do BE filter.
+          set((prev) => {
+            const idx = prev.conversations.findIndex((c) => c._id === conversationId);
+            if (idx === -1) return prev;
+
+            const conv = prev.conversations[idx];
+            const frozenLastMessage = systemMessage
+              ? {
+                  _id: systemMessage._id,
+                  content: systemMessage.content ?? '',
+                  senderId: systemMessage.senderId,
+                  type: 'system' as const,
+                  systemType: 'USER_REMOVED' as const,
+                  createdAt: systemMessage.createdAt,
+                }
+              : (conv.lastMessage ? { ...conv.lastMessage, type: 'system' as const, systemType: 'USER_REMOVED' as const } : conv.lastMessage);
+
+            const updatedParticipants = conv.participants.map((p) =>
+              p._id === participantId ? { ...p, status: 'LEFT' as const } : p
+            );
+
+            const updatedConv = {
+              ...conv,
+              participants: updatedParticipants,
+              lastMessage: frozenLastMessage,
+              lastMessageAt: systemMessage?.createdAt ?? conv.lastMessageAt,
+              unreadCounts: currentUserId && conv.unreadCounts
+                ? { ...conv.unreadCounts, [currentUserId]: 0 }
+                : conv.unreadCounts,
+            };
+
+            const convMessages = prev.messages?.[conversationId];
+            const updatedMessages = systemMessage
+              ? {
+                  ...prev.messages,
+                  [conversationId]: convMessages
+                    ? {
+                        ...convMessages,
+                        items: [...convMessages.items, systemMessage],
+                      }
+                    : {
+                        hasMore: false,
+                        nextCursor: null,
+                        items: [systemMessage],
+                      },
+                }
+              : prev.messages;
+
+            const updatedConversations = [
+              updatedConv,
+              ...prev.conversations.filter((_, i) => i !== idx),
+            ];
+
+            return {
+              ...prev,
+              messages: updatedMessages,
+              conversations: updatedConversations,
+              activeConversation:
+                prev.activeConversationId === conversationId ? updatedConv : prev.activeConversation,
+            };
+          });
+          return;
+        }
 
         set((prev) => {
           const idx = prev.conversations.findIndex((c) => c._id === conversationId);
@@ -571,6 +742,64 @@ export const useChatStore = create<ChatState>()(
           };
         });
       },
+
+      onParticipantLeft: (data) => {
+        const { conversationId, participantId, systemMessage } = data || {};
+        if (!conversationId || !participantId) return;
+
+        const currentUserId = useAuthStore.getState().user?._id;
+        if (currentUserId && participantId === currentUserId) {
+          removeConvFromStore(conversationId);
+          return;
+        }
+
+        // Member khác rời nhóm: cập nhật status + append system message (tương tự removed)
+        set((prev) => {
+          const idx = prev.conversations.findIndex((c) => c._id === conversationId);
+          if (idx === -1) return prev;
+
+          const conv = prev.conversations[idx];
+          const updatedParticipants = conv.participants.map((p) =>
+            p._id === participantId ? { ...p, status: 'LEFT' as const } : p
+          );
+          const updatedConv = {
+            ...conv,
+            participants: updatedParticipants,
+            ...(systemMessage ? {
+              lastMessage: {
+                _id: systemMessage._id,
+                content: systemMessage.content ?? '',
+                senderId: systemMessage.senderId,
+                type: systemMessage.type,
+                createdAt: systemMessage.createdAt,
+              },
+              lastMessageAt: systemMessage.createdAt,
+            } : {}),
+          };
+
+          const convMessages = prev.messages?.[conversationId];
+          const updatedMessages = systemMessage && convMessages
+            ? {
+              ...prev.messages,
+              [conversationId]: {
+                ...convMessages,
+                items: [...convMessages.items, systemMessage],
+              },
+            }
+            : prev.messages;
+
+          return {
+            ...prev,
+            messages: updatedMessages,
+            conversations: [
+              updatedConv,
+              ...prev.conversations.filter((_, i) => i !== idx),
+            ],
+            activeConversation:
+              prev.activeConversationId === conversationId ? updatedConv : prev.activeConversation,
+          };
+        });
+      },
       reset: () => {
         set({
           conversations: [],
@@ -580,7 +809,8 @@ export const useChatStore = create<ChatState>()(
           loading: false,
         });
       },
-    }),
+    });
+    },
     {
       name: "chat-storage",
       partialize: (state) => ({
