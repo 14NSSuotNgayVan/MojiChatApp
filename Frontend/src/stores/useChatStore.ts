@@ -472,6 +472,15 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
+      updateGroupProfile: async (conversationId, payload) => {
+        try {
+          await chatService.updateGroupProfile(conversationId, payload);
+        } catch (error) {
+          console.error(error);
+          toast.error("Lỗi khi cập nhật thông tin nhóm!");
+        }
+      },
+
       onConversationDeleted: (data) => {
         const conversationId = data?.conversationId;
         if (!conversationId) return;
@@ -787,6 +796,68 @@ export const useChatStore = create<ChatState>()(
               },
             }
             : prev.messages;
+
+          return {
+            ...prev,
+            messages: updatedMessages,
+            conversations: [
+              updatedConv,
+              ...prev.conversations.filter((_, i) => i !== idx),
+            ],
+            activeConversation:
+              prev.activeConversationId === conversationId ? updatedConv : prev.activeConversation,
+          };
+        });
+      },
+
+      onGroupProfileUpdated: (data) => {
+        const { conversationId, group, systemMessages } = data || {};
+        if (!conversationId) return;
+
+        set((prev) => {
+          const idx = prev.conversations.findIndex((c) => c._id === conversationId);
+          if (idx === -1) return prev;
+
+          const conv = prev.conversations[idx];
+          const updatedConv = {
+            ...conv,
+            group: {
+              ...conv.group,
+              ...(group ?? {}),
+            },
+          };
+
+          const msgs = systemMessages?.filter(Boolean) ?? [];
+          const last = msgs[msgs.length - 1];
+          if (last) {
+            updatedConv.lastMessage = {
+              _id: last._id,
+              content: last.content ?? '',
+              senderId: last.senderId,
+              type: last.type,
+              systemType: last.systemType,
+              createdAt: last.createdAt,
+            };
+            updatedConv.lastMessageAt = last.createdAt;
+          }
+
+          const prevConvMessages = prev.messages?.[conversationId];
+          const updatedMessages =
+            msgs.length
+              ? {
+                  ...prev.messages,
+                  [conversationId]: prevConvMessages
+                    ? {
+                        ...prevConvMessages,
+                        items: [...prevConvMessages.items, ...msgs],
+                      }
+                    : {
+                        hasMore: false,
+                        nextCursor: null,
+                        items: msgs,
+                      },
+                }
+              : prev.messages;
 
           return {
             ...prev,

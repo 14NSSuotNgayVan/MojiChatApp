@@ -43,6 +43,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.on("participant-role-updated", useChatStore.getState().onParticipantRoleUpdated);
       socket.on("conversation-deleted", useChatStore.getState().onConversationDeleted);
       socket.on("participant-left", useChatStore.getState().onParticipantLeft);
+      socket.on("group-profile-updated", useChatStore.getState().onGroupProfileUpdated);
 
       socket.io.on("reconnect", () => {
         console.log("Đã kết nối lại với socket!");
@@ -89,6 +90,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.off("participant-role-updated");
       socket.off("conversation-deleted");
       socket.off("participant-left");
+      socket.off("group-profile-updated");
       socket.disconnect();
     }
     console.log("Đã ngắt kết nối với socket!");

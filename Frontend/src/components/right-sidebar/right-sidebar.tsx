@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
 import { Separator } from '@/components/ui/separator.tsx';
+import { Input } from '@/components/ui/input.tsx';
 import {
   SidebarContent,
   SidebarManagerTrigger,
@@ -21,12 +22,19 @@ import {
 import { cn } from '@/lib/utils.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { useAuthStore } from '@/stores/useAuthStore.ts';
-import { ChevronLeft, ChevronRight, ImagePlay, LogOut, Trash2, Users } from 'lucide-react';
+import { fileService } from '@/services/fileService.ts';
+import { ChevronLeft, ChevronRight, Edit3, ImagePlay, LogOut, Trash2, Users } from 'lucide-react';
 import { useState, type Dispatch, type SetStateAction } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 
 const RightSidebarHeader = () => {
-  const { activeConversation, users, getDefaultGroupName } = useChatStore();
+  const { activeConversation, users, getDefaultGroupName, updateGroupProfile } = useChatStore();
+  const { user } = useAuthStore();
   const [openProfileDialog, setOpenProfileDialog] = useState<boolean>(false);
+  const [editOpen, setEditOpen] = useState<boolean>(false);
+  const [editName, setEditName] = useState<string>('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string>('');
+  const [avatarUploading, setAvatarUploading] = useState<boolean>(false);
 
   if (activeConversation?.type === 'direct') {
     return (
@@ -57,6 +65,8 @@ const RightSidebarHeader = () => {
 
   if (activeConversation?.type === 'group') {
     const { participants, group } = activeConversation;
+    const currentParticipant = participants.find((p) => p._id === user?._id);
+    const isActiveMember = currentParticipant?.status === 'ACTIVE';
 
     return (
       <>
@@ -67,6 +77,115 @@ const RightSidebarHeader = () => {
           <GroupAvatar avtUrl={group?.avtUrl} participants={participants} className="w-16 h-16" />
           <p className="font-semibold">{group?.name || getDefaultGroupName(participants)}</p>
         </div>
+
+        {isActiveMember && (
+          <>
+            <div className="flex justify-center">
+              <Tooltip>
+                <TooltipTrigger>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="mt-3"
+                    onClick={() => {
+                      setEditName(group?.name || '');
+                      setEditAvatarUrl(group?.avtUrl || '');
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent align="center">Chỉnh sửa thông tin nhóm</TooltipContent>
+              </Tooltip>
+            </div>
+
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+              <DialogContent aria-describedby={undefined}>
+                <DialogHeader>
+                  <DialogTitle>Cập nhật thông tin nhóm</DialogTitle>
+                </DialogHeader>
+
+                <div className="flex flex-col gap-3">
+                  <Input
+                    className="h-9"
+                    placeholder="Tên nhóm (không bắt buộc)"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="group-edit-avatar-input"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        try {
+                          setAvatarUploading(true);
+                          const res = await fileService.uploadAvatar(file);
+                          if (res?.secure_url) setEditAvatarUrl(res.secure_url);
+                        } catch (err) {
+                          console.error(err);
+                        } finally {
+                          setAvatarUploading(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col justify-center items-center gap-4">
+                    <GroupAvatar
+                      className="w-20 h-20 shrink-0"
+                      avtUrl={editAvatarUrl}
+                      participants={participants}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('group-edit-avatar-input')?.click()}
+                        disabled={avatarUploading}
+                      >
+                        {avatarUploading ? 'Đang upload...' : 'Chọn avatar'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditAvatarUrl('')}
+                        disabled={avatarUploading}
+                      >
+                        Xóa avatar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditOpen(false)}>
+                    Hủy
+                  </Button>
+                  <Button
+                    variant="primary"
+                    disabled={avatarUploading}
+                    onClick={async () => {
+                      if (!activeConversation?._id) return;
+                      await updateGroupProfile(activeConversation._id, {
+                        name: editName.trim() || undefined,
+                        // Allow clearing avatar by sending empty string
+                        avtUrl: editAvatarUrl.trim(),
+                      });
+                      setEditOpen(false);
+                    }}
+                  >
+                    Lưu
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
       </>
     );
   }
@@ -172,8 +291,9 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
   if (activeConversation?.type === 'group') {
     const { participants } = activeConversation;
     const currentUserRole = activeConversation?.participants.find((p) => p._id === user?._id)?.role;
-    const currentUserStatus = activeConversation?.participants.find((p) => p._id === user?._id)
-      ?.status;
+    const currentUserStatus = activeConversation?.participants.find(
+      (p) => p._id === user?._id
+    )?.status;
     const isCurrentUserActive = currentUserStatus === 'ACTIVE';
 
     return (

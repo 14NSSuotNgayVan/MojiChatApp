@@ -114,6 +114,7 @@ export interface ChatState {
   searchConversations: (keyword: string) => Promise<void>;
   getHiddenConversations: () => Promise<void>;
   unhideConversation: (conversationId: string) => Promise<void>;
+  updateGroupProfile: (conversationId: string, payload: { name?: string; avtUrl?: string }) => Promise<void>;
 
   addParticipant: (conversationId: string, participantId: string) => Promise<void>;
   removeParticipant: (conversationId: string, participantId: string) => Promise<void>;
@@ -127,6 +128,7 @@ export interface ChatState {
   onParticipantRemoved: (data: ParticipantRemovedEvent) => void;
   onParticipantRoleUpdated: (data: ParticipantRoleUpdatedEvent) => void;
   onParticipantLeft: (data: ParticipantLeftEvent) => void;
+  onGroupProfileUpdated: (data: GroupProfileUpdatedEvent) => void;
 }
 interface NewMessageResponse {
   conversation: Pick<
@@ -182,4 +184,13 @@ interface ParticipantLeftEvent {
   conversationId: string;
   participantId: string;
   systemMessage?: Message;
+}
+
+interface GroupProfileUpdatedEvent {
+  conversationId: string;
+  group?: {
+    name?: string;
+    avtUrl?: string;
+  };
+  systemMessages?: Message[];
 }

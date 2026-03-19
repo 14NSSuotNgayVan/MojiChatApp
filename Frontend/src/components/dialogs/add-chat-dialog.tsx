@@ -250,11 +250,11 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                   Tạo nhóm
                 </Button>
               </div>
+              <span className="text-xs text-muted-foreground text-center">
+                Cần ít nhất 2 thành viên để tạo nhóm
+              </span>
             </div>
           )}
-          <span className="text-xs text-muted-foreground text-center">
-            Cần ít nhất 2 thành viên để tạo nhóm
-          </span>
           <div className="relative grow">
             <Input
               id={`input-search`}

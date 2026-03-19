@@ -40,6 +40,13 @@ export const chatService = {
     const res = await api.post(`/conversations/${conversationId}/leave`);
     return res.data;
   },
+  async updateGroupProfile(
+    conversationId: string,
+    payload: { name?: string; avtUrl?: string }
+  ) {
+    const res = await api.put(`/conversations/${conversationId}/group-profile`, payload);
+    return res.data;
+  },
   //message
   async fetchMessage(
     conversationId: string,

@@ -13,7 +13,12 @@ export const GroupAvatar = ({
   className?: string;
 }) => {
   const { users } = useChatStore();
-  if (avtUrl) return <img src={avtUrl}></img>;
+  if (avtUrl)
+    return (
+      <div className={cn('rounded-full overflow-hidden w-10 h-10 shrink-0', className)}>
+        <img className="w-full h-full object-cover" src={avtUrl}></img>;
+      </div>
+    );
 
   const filteredParticipants = participants.filter((p) => users[p?._id]?.avtUrl).slice(0, 2);
 

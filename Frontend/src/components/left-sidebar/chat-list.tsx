@@ -88,7 +88,9 @@ export const ChatList = () => {
           />
         ))
       ) : (
-        <></>
+        <p className="text-center text-sm text-muted-foreground">
+          Không có cuộc trò chuyện nào.
+        </p>
       )}
     </div>
   );
