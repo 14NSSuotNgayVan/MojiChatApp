@@ -119,8 +119,24 @@ const conversationSchema = new mongoose.Schema({
         of: Number,
         default: {}
     },
-    //mảng tên đơn giản của thành viên (phục vụ tìm kiếm)
-    participantNameNorms: [String]
+    // Map { userId -> searchName } phục vụ tìm kiếm (chính xác, không bị lỗi trùng tên)
+    participantNameNormsById: {
+        type: Map,
+        of: String,
+        default: {}
+    },
+    // Ẩn tạm thời cho từng user: giá trị = lastMessageAt tại thời điểm ẩn
+    hiddenFor: {
+        type: Map,
+        of: Date,
+        default: {}
+    },
+    // Direct chat: chỉ hiển thị message từ thời điểm này trở đi cho từng user
+    clearedAt: {
+        type: Map,
+        of: Date,
+        default: {}
+    }
 }, {
     timestamps: true
 })

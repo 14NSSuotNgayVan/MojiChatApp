@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
+import Attachment from "../models/Attachment.js";
 import { io, onlineUsers } from "../socket/index.js";
 import { convertConversation } from "../utils/conversationHelper.js";
 import { getNormalizeString } from "../utils/Utils.js";
@@ -9,7 +10,7 @@ import ConversationStats from "../models/ConversationStats.js";
 
 export const createConversation = async (req, res) => {
     try {
-        const { type, name, memberIds } = req.body;
+        const { type, name, memberIds, avtUrl } = req.body;
         const { _id: userId, searchName } = req.user;
 
         if (!type) {
@@ -20,14 +21,18 @@ export const createConversation = async (req, res) => {
             return res.status(400).json({ message: "Conversation memberIds must not be empty!" })
         }
 
-        const participants = await User.find({
+        const participantUsers = await User.find({
             _id: {
                 $in: memberIds,
                 $ne: userId
             }
         }).select("searchName").lean();
 
-        const participantNameNorms = participants.map(p => p.searchName).concat(searchName);
+        // Build participantNameNormsById map: { [userId]: searchName }
+        const participantNameNormsById = participantUsers.reduce((acc, p) => {
+            acc[p._id.toString()] = p.searchName;
+            return acc;
+        }, { [userId.toString()]: searchName });
 
         let conversation;
 
@@ -46,12 +51,13 @@ export const createConversation = async (req, res) => {
                 conversation = await Conversation.create({
                     type,
                     participants: [{ userId, role: 'ADMIN' }, ...filteredMemberIds.values()],
-                    participantNameNorms,
+                    participantNameNormsById,
                     lastMessageAt: new Date(),
                     group: {
                         name,
                         nameNorm: name ? getNormalizeString(name) : undefined,
-                        createdBy: userId
+                        createdBy: userId,
+                        avtUrl: avtUrl || undefined
                     }
                 })
 
@@ -95,7 +101,7 @@ export const createConversation = async (req, res) => {
                     conversation = await Conversation.create({
                         type,
                         participants: [{ userId }, { userId: participantId }],
-                        participantNameNorms,
+                        participantNameNormsById,
                         lastMessageAt: new Date()
                     })
                 } else {
@@ -125,10 +131,24 @@ export const createConversation = async (req, res) => {
 export const getConversations = async (req, res) => {
     try {
         const userId = req.user._id;
+        const userIdStr = userId?.toString?.() || String(userId);
 
         const { limit = 20, cursor } = req.query;
 
-        const query = { "participants.userId": userId };
+        const query = {
+            participants: { $elemMatch: { userId, status: "ACTIVE" } },
+            $or: [
+                { [`hiddenFor.${userIdStr}`]: { $exists: false } },
+                {
+                    $expr: {
+                        $gt: [
+                            "$lastMessageAt",
+                            { $getField: { field: userIdStr, input: "$hiddenFor" } }
+                        ]
+                    }
+                }
+            ]
+        };
 
         if (cursor) {
             query.lastMessageAt = {
@@ -188,14 +208,29 @@ export const getConversationsByKeyword = async (req, res) => {
 
         const safeKeyword = keyword?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-        const query = { "participants.userId": userId };
+        const query = { participants: { $elemMatch: { userId, status: "ACTIVE" } } };
         let conversations;
 
         if (safeKeyword) {
 
             query.$or = [
                 { "group.nameNorm": { $regex: safeKeyword, $options: "i" } },
-                { participantNameNorms: { $regex: safeKeyword, $options: "i" } }
+                {
+                    $expr: {
+                        $gt: [
+                            {
+                                $size: {
+                                    $filter: {
+                                        input: { $objectToArray: "$participantNameNormsById" },
+                                        as: "kv",
+                                        cond: { $regexMatch: { input: "$$kv.v", regex: safeKeyword, options: "i" } }
+                                    }
+                                }
+                            },
+                            0
+                        ]
+                    }
+                }
             ]
 
             conversations = await Conversation.find(
@@ -263,16 +298,102 @@ export const getConversationsByKeyword = async (req, res) => {
     }
 }
 
+export const getHiddenConversations = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const userIdStr = userId?.toString?.() || String(userId);
+
+        const query = {
+            participants: { $elemMatch: { userId, status: "ACTIVE" } },
+            [`hiddenFor.${userIdStr}`]: { $exists: true },
+            $expr: {
+                $lte: [
+                    "$lastMessageAt",
+                    { $getField: { field: userIdStr, input: "$hiddenFor" } }
+                ]
+            }
+        };
+
+        const conversations = await Conversation.find(query)
+            .sort({ lastMessageAt: -1, updateAt: -1 })
+            .populate([
+                {
+                    path: 'participants.userId',
+                    select: 'displayName avtUrl email bgUrl bio phone',
+                    options: { lean: true }
+                },
+            ])
+            .lean();
+
+        const users = {};
+        const formattedConversation = conversations.map(conv => ({
+            ...conv,
+            participants: conv.participants?.map(p => {
+                if (!users?.[p.userId._id]) {
+                    users[p.userId._id] = p.userId
+                }
+                return ({
+                    ...p,
+                    _id: p.userId?._id || p.userId,
+                    userId: undefined
+                })
+            }).sort((a, b) => {
+                if (a._id.toString() === userId.toString()) return 1
+                if (b._id.toString() === userId.toString()) return -1
+                return 0
+            }),
+        }))
+
+        return res.status(200).json({
+            message: "Get hidden conversations success!",
+            conversations: formattedConversation,
+            users
+        });
+    } catch (error) {
+        console.error("Error when calling getHiddenConversations: " + error);
+        return res.status(500).send();
+    }
+}
+
 export const getMessages = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { limit = 50, cursor } = req.query;
-        const userId = req.user._id.toString();
+        const userIdObj = req.user._id;
+        const userId = userIdObj?.toString?.() || String(userIdObj);
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conv = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userIdObj
+        }).select("type clearedAt participants").lean();
+
+        if (!conv) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const clearedAt =
+            conv?.clearedAt?.get?.(userId) ??
+            conv?.clearedAt?.[userId];
+
+        const selfParticipant = conv?.participants?.find(
+            (p) => p?.userId?.toString?.() === userIdObj?.toString?.()
+        );
 
         const query = { conversationId };
 
-        if (cursor) {
-            query.createdAt = { $lt: new Date(cursor) };
+        const createdAt = {};
+        if (cursor) createdAt.$lt = new Date(cursor);
+        if (conv?.type === "direct" && clearedAt) createdAt.$gte = new Date(clearedAt);
+        if (conv?.type === "group" && selfParticipant?.status === "LEFT" && selfParticipant?.leftAt) {
+            createdAt.$lte = new Date(selfParticipant.leftAt);
+        }
+
+        if (Object.keys(createdAt).length) {
+            query.createdAt = createdAt;
         }
 
         let messages = await Message.find(query).sort({ createdAt: -1, _id: -1 }).limit(Number(limit) + 1)
@@ -324,6 +445,177 @@ export const getMessages = async (req, res) => {
     } catch (error) {
         console.error("Error when calling getMessages: " + error);
         return res.status(500).send();
+    }
+}
+
+export const unhideConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId
+        }).select("_id participants").lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!participant || participant.status !== "ACTIVE") {
+            return res.status(403).json({ message: "You are not an active member of this conversation." });
+        }
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            { $unset: { [`hiddenFor.${userId.toString()}`]: "" } }
+        );
+
+        return res.status(200).json({ message: "Unhide conversation success!" });
+    } catch (error) {
+        console.error("Error when calling unhideConversation: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const hideConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId
+        }).select("_id lastMessageAt participants").lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!participant || participant.status !== "ACTIVE") {
+            return res.status(403).json({ message: "You are not an active member of this conversation." });
+        }
+
+        const lastMessageAt = conversation.lastMessageAt || new Date();
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            { $set: { [`hiddenFor.${userId.toString()}`]: lastMessageAt } }
+        );
+
+        return res.status(200).json({ message: "Hide conversation success!" });
+    } catch (error) {
+        console.error("Error when calling hideConversation: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const clearDirectConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId
+        }).select("_id type lastMessageAt participants").lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        if (conversation.type !== "direct") {
+            return res.status(400).json({ message: "Only direct conversations can be cleared." });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!participant || participant.status !== "ACTIVE") {
+            return res.status(403).json({ message: "You are not an active member of this conversation." });
+        }
+
+        const now = new Date();
+        const lastMessageAt = conversation.lastMessageAt || now;
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            {
+                $set: {
+                    [`clearedAt.${userId.toString()}`]: now,
+                    [`hiddenFor.${userId.toString()}`]: lastMessageAt
+                }
+            }
+        );
+
+        return res.status(200).json({ message: "Clear direct conversation success!" });
+    } catch (error) {
+        console.error("Error when calling clearDirectConversation: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const deleteGroupConversation = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findById(conversationId).session(session).lean();
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        if (conversation.type !== "group") {
+            return res.status(400).json({ message: "Only group conversations can be deleted." });
+        }
+
+        const caller = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!caller || caller.status !== "ACTIVE" || caller.role !== "ADMIN") {
+            return res.status(403).json({ message: "You are not allowed to do this!" });
+        }
+
+        await Message.deleteMany({ conversationId }, { session });
+        await Attachment.deleteMany({ conversationId }, { session });
+        await ConversationStats.deleteMany({ conversationId }, { session });
+        await Conversation.deleteOne({ _id: conversationId }, { session });
+
+        await session.commitTransaction();
+
+        io.to(conversationId).emit("conversation-deleted", { conversationId });
+
+        return res.status(200).json({ message: "Delete group conversation success!" });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error when calling deleteGroupConversation: " + error);
+        return res.status(500).json({ message: "Internal server error" });
+    } finally {
+        session.endSession();
     }
 }
 
@@ -483,11 +775,11 @@ export const deleteParticipant = async (req, res) => {
                     "participants.$.leftAt": now
                 },
                 $unset: {
-                    [`unreadCounts.${targetUser._id.toString()}`]: ""
+                    [`unreadCounts.${targetUser._id.toString()}`]: "",
+                    [`participantNameNormsById.${targetUser._id.toString()}`]: ""
                 },
                 $pull: {
                     seenBy: { userId: targetUser._id },
-                    participantNameNorms: targetUser.searchName,
                 }
             },
             { new: true, session }
@@ -499,7 +791,8 @@ export const deleteParticipant = async (req, res) => {
             senderId: user._id,
             type: 'system',
             systemType: 'USER_REMOVED',
-            meta: { actorId: user._id, targetUserId: targetUser._id }
+            meta: { actorId: user._id, targetUserId: targetUser._id },
+            createdAt: now
         }], { session });
 
         await Conversation.updateOne(
@@ -530,6 +823,18 @@ export const deleteParticipant = async (req, res) => {
                 if (targetSocketIds.has(s.id)) {
                     s.leave(conversationId);
                 }
+            }
+        }
+
+        // --- Socket: notify removed user (they no longer are in the room) ---
+        if (targetSocketIds?.size) {
+            for (const socketId of targetSocketIds) {
+                io.to(socketId).emit("participant-removed", {
+                    conversationId,
+                    participantId,
+                    removedBy: { _id: user._id, displayName: user.displayName },
+                    systemMessage
+                });
             }
         }
 
@@ -610,9 +915,9 @@ export const addParticipant = async (req, res) => {
                         "participants.$.status": "ACTIVE",
                         "participants.$.joinedAt": new Date(),
                         "participants.$.addedBy": user._id.toString(),
+                        [`participantNameNormsById.${paritcipant._id.toString()}`]: paritcipant.searchName
                     },
                     $push: {
-                        participantNameNorms: paritcipant.searchName,
                         seenBy: {
                             userId: participantId,
                             lastSeenAt: new Date(),
@@ -636,10 +941,10 @@ export const addParticipant = async (req, res) => {
                             addedBy: user._id.toString(),
                             addedAt: new Date()
                         },
-                        participantNameNorms: paritcipant.searchName,
                         seenBy: { userId: participantId, lastSeenAt: new Date(), messageId: conversation.lastMessage?._id.toString() },
                     },
                     $set: {
+                        [`participantNameNormsById.${paritcipant._id.toString()}`]: paritcipant.searchName,
                         [`unreadCounts.${paritcipant._id.toString()}`]: 0
                     }
                 }
@@ -769,13 +1074,11 @@ export const addParticipants = async (req, res) => {
                         $set: {
                             "participants.$.status": "ACTIVE",
                             "participants.$.joinedAt": now,
-                            "participants.$.leftAt": null
-                        },
-                        $setOnInsert: {
+                            "participants.$.leftAt": null,
+                            [`participantNameNormsById.${participant?._id?.toString()}`]: participant.searchName,
                             [`unreadCounts.${participant?._id?.toString()}`]: 0
                         },
                         $push: {
-                            participantNameNorms: participant.searchName,
                             seenBy: { userId: participant?._id?.toString(), lastSeenAt: new Date(), messageId: conversation.lastMessage?._id?.toString() }
                         }
                     }
@@ -798,10 +1101,10 @@ export const addParticipants = async (req, res) => {
                                     addedBy: user._id.toString()
                                 }))
                             },
-                            participantNameNorms: toInsert.map(participant => participant.searchName),
                             seenBy: toInsert.map(participant => ({ userId: participant._id.toString(), lastSeenAt: new Date(), messageId: conversation.lastMessage?._id.toString() }))
                         },
                         $set: toInsert.reduce((acc, participant) => {
+                            acc[`participantNameNormsById.${participant._id.toString()}`] = participant.searchName;
                             acc[`unreadCounts.${participant._id.toString()}`] = 0;
                             return acc;
                         }, {})
@@ -903,5 +1206,128 @@ export const updateParticipantRole = async (req, res) => {
     } catch (error) {
         console.error("Error when calling updateParticipantRole: " + error);
         return res.status(500).send();
+    }
+}
+
+export const leaveConversation = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { conversationId } = req.params;
+        const user = req.user;
+        const userId = user._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findById(conversationId).session(session).lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        if (conversation.type !== "group") {
+            return res.status(400).json({ message: "Only group conversations can be left." });
+        }
+
+        const participant = conversation.participants.find(
+            p => p.userId.toString() === userId.toString()
+        );
+
+        if (!participant || participant.status !== 'ACTIVE') {
+            return res.status(400).json({ message: "You are not an active member of this conversation." });
+        }
+
+        // Prevent the last admin from leaving without transferring ownership
+        const activeAdmins = conversation.participants.filter(
+            p => p.role === 'ADMIN' && p.status === 'ACTIVE'
+        );
+        const activeMembers = conversation.participants.filter(p => p.status === 'ACTIVE');
+
+        if (
+            participant.role === 'ADMIN' &&
+            activeAdmins.length === 1 &&
+            activeMembers.length > 1
+        ) {
+            return res.status(400).json({
+                message: "You are the only admin. Transfer admin rights before leaving."
+            });
+        }
+
+        const now = new Date();
+
+        await Conversation.findOneAndUpdate(
+            { _id: conversationId, "participants.userId": userId },
+            {
+                $set: {
+                    "participants.$.status": "LEFT",
+                    "participants.$.leftAt": now,
+                },
+                $unset: {
+                    [`unreadCounts.${userId.toString()}`]: "",
+                    [`participantNameNormsById.${userId.toString()}`]: ""
+                },
+                $pull: {
+                    seenBy: { userId },
+                }
+            },
+            { session }
+        );
+
+        const systemMessage = await Message.create([{
+            conversationId,
+            senderId: userId,
+            type: 'system',
+            systemType: 'USER_LEFT',
+            meta: { actorId: userId },
+            createdAt: now
+        }], { session });
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            {
+                $set: {
+                    lastMessage: {
+                        _id: systemMessage[0]._id.toString(),
+                        content: null,
+                        senderId: userId,
+                        type: 'system',
+                        systemType: 'USER_LEFT',
+                        createdAt: systemMessage[0].createdAt
+                    },
+                    lastMessageAt: systemMessage[0].createdAt
+                }
+            },
+            { session }
+        );
+
+        await session.commitTransaction();
+
+        // Remove user's sockets from the conversation room
+        const userSocketIds = onlineUsers.get(userId.toString());
+        if (userSocketIds?.size) {
+            const sockets = await io.fetchSockets();
+            for (const s of sockets) {
+                if (userSocketIds.has(s.id)) {
+                    s.leave(conversationId);
+                }
+            }
+        }
+
+        // Notify remaining members
+        io.to(conversationId).emit("participant-left", {
+            conversationId,
+            participantId: userId,
+            systemMessage: systemMessage[0]
+        });
+
+        return res.status(200).json({ message: "Left conversation successfully." });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error when calling leaveConversation: " + error);
+        return res.status(500).json({ message: "Internal server error" });
+    } finally {
+        session.endSession();
     }
 }
