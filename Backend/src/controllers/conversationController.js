@@ -448,6 +448,147 @@ export const getMessages = async (req, res) => {
     }
 }
 
+export const updateGroupProfile = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+        const { name, avtUrl } = req.body || {};
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        if (name == null && avtUrl == null) {
+            return res.status(400).json({ message: "Nothing to update!" });
+        }
+
+        const conversation = await Conversation.findById(conversationId).session(session);
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        if (conversation.type !== "group") {
+            return res.status(400).json({ message: "Only group conversations can be updated." });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!participant || participant.status !== "ACTIVE") {
+            return res.status(403).json({ message: "You are not an active member of this conversation." });
+        }
+
+        const now = new Date();
+        const systemMessages = [];
+
+        const updates = {};
+        const changedGroup = {};
+
+        const prevName = (conversation.group?.name || "").trim();
+        const prevAvtUrl = (conversation.group?.avtUrl || "").trim();
+
+        const wantsName = typeof name === "string";
+        const wantsAvt = typeof avtUrl === "string";
+
+        const nextName = wantsName ? name.trim() : prevName;
+        const nextAvtUrl = wantsAvt ? avtUrl.trim() : prevAvtUrl;
+
+        const nameChanged = wantsName && nextName !== prevName;
+        const avatarChanged = wantsAvt && nextAvtUrl !== prevAvtUrl;
+
+        if (!nameChanged && !avatarChanged) {
+            await session.abortTransaction();
+            return res.status(200).json({
+                message: "No changes",
+                conversationId,
+                group: {}
+            });
+        }
+
+        if (nameChanged) {
+            updates["group.name"] = nextName || undefined;
+            updates["group.nameNorm"] = nextName ? getNormalizeString(nextName) : undefined;
+            changedGroup.name = nextName;
+
+            const msg = await Message.create([{
+                conversationId,
+                senderId: userId,
+                type: "system",
+                systemType: "GROUP_NAME_CHANGED",
+                meta: { actorId: userId, oldValue: prevName, newValue: nextName },
+                createdAt: now
+            }], { session });
+            systemMessages.push(msg[0]);
+        }
+
+        if (avatarChanged) {
+            updates["group.avtUrl"] = nextAvtUrl || undefined;
+            changedGroup.avtUrl = nextAvtUrl;
+
+            const msg = await Message.create([{
+                conversationId,
+                senderId: userId,
+                type: "system",
+                systemType: "GROUP_AVATAR_CHANGED",
+                meta: { actorId: userId, oldValue: prevAvtUrl, newValue: nextAvtUrl },
+                createdAt: now
+            }], { session });
+            systemMessages.push(msg[0]);
+        }
+
+        if (Object.keys(updates).length) {
+            await Conversation.updateOne(
+                { _id: conversationId },
+                { $set: updates },
+                { session }
+            );
+        }
+
+        const lastSystemMessage = systemMessages[systemMessages.length - 1];
+        if (lastSystemMessage) {
+            await Conversation.updateOne(
+                { _id: conversationId },
+                {
+                    $set: {
+                        lastMessage: {
+                            _id: lastSystemMessage._id.toString(),
+                            content: null,
+                            senderId: userId,
+                            type: "system",
+                            systemType: lastSystemMessage.systemType,
+                            createdAt: lastSystemMessage.createdAt
+                        },
+                        lastMessageAt: lastSystemMessage.createdAt
+                    }
+                },
+                { session }
+            );
+        }
+
+        await session.commitTransaction();
+
+        const payload = {
+            conversationId,
+            group: changedGroup,
+            systemMessages
+        };
+
+        if (Object.keys(changedGroup).length || systemMessages.length) {
+            io.to(conversationId).emit("group-profile-updated", payload);
+        }
+
+        return res.status(200).json({ message: "Update group profile success!", ...payload });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error when calling updateGroupProfile: " + error);
+        return res.status(500).json({ message: "Internal server error" });
+    } finally {
+        session.endSession();
+    }
+}
+
 export const unhideConversation = async (req, res) => {
     try {
         const { conversationId } = req.params;
