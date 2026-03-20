@@ -68,6 +68,7 @@ export interface ChatState {
   setSidebarTab: (tab: 'inbox' | 'hidden') => void;
   conversations: Conversation[];
   activeConversation: Conversation | null;
+  replyingTo: Message | null;
   users: Record<string, User>,
   messages: Record<
     string,
@@ -103,9 +104,15 @@ export interface ChatState {
     conversationId: string,
     recipientId: string,
     content: string,
-    media?: FileRequest[]
+    media?: FileRequest[],
+    replyToId?: string
   ) => Promise<void>;
-  sendGroupMessage: (conversationId: string, content: string, media: FileRequest[]) => Promise<void>;
+  sendGroupMessage: (
+    conversationId: string,
+    content: string,
+    media: FileRequest[],
+    replyToId?: string
+  ) => Promise<void>;
   onNewMessage: (data: NewMessageResponse) => void;
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;
@@ -129,6 +136,7 @@ export interface ChatState {
   onParticipantRoleUpdated: (data: ParticipantRoleUpdatedEvent) => void;
   onParticipantLeft: (data: ParticipantLeftEvent) => void;
   onGroupProfileUpdated: (data: GroupProfileUpdatedEvent) => void;
+  setReplyingTo: (message: Message | null) => void;
 }
 interface NewMessageResponse {
   conversation: Pick<

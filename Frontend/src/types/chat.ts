@@ -94,6 +94,13 @@ export interface Message {
   systemType?: SYSTEM_TYPE;
   meta?: SystemMeta;
   medias?: Media[];
+  replyTo?: {
+    _id: string;
+    senderId: string;
+    type: MESSAGE_TYPE;
+    content: string | null;
+    createdAt: string;
+  } | null;
   updatedAt?: string | null;
   createdAt: string;
   isOwner?: boolean;

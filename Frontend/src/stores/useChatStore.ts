@@ -34,6 +34,7 @@ export const useChatStore = create<ChatState>()(
       users: {},
       activeConversationId: null,
       activeConversation: null,
+      replyingTo: null,
       loading: false,
       messageLoading: false,
       searchedConversations: [],
@@ -42,6 +43,7 @@ export const useChatStore = create<ChatState>()(
           activeConversationId: activeConversation?._id,
           activeConversation,
         }),
+      setReplyingTo: (message) => set({ replyingTo: message }),
       setUser: (user) => {
         set((prev) => ({
           users: {
@@ -205,22 +207,25 @@ export const useChatStore = create<ChatState>()(
         });
         return groupMessages;
       },
-      sendDirectMessage: async (conversationId, recipientId, content, media) => {
+      sendDirectMessage: async (conversationId, recipientId, content, media, replyToId) => {
         try {
           await chatService.sendDirectMessage(
             conversationId,
             recipientId,
             content,
-            media
+            media,
+            replyToId
           );
+          set({ replyingTo: null });
         } catch (error) {
           console.error(error);
           toast.error("Lỗi khi gửi tin nhắn!");
         }
       },
-      sendGroupMessage: async (conversationId, content, media) => {
+      sendGroupMessage: async (conversationId, content, media, replyToId) => {
         try {
-          await chatService.sendGroupMessage(conversationId, content, media);
+          await chatService.sendGroupMessage(conversationId, content, media, replyToId);
+          set({ replyingTo: null });
         } catch (error) {
           console.error(error);
           toast.error("Lỗi khi gửi tin nhắn!");
@@ -877,6 +882,7 @@ export const useChatStore = create<ChatState>()(
           activeConversation: null,
           messages: {},
           activeConversationId: null,
+          replyingTo: null,
           loading: false,
         });
       },

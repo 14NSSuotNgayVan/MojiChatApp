@@ -52,6 +52,7 @@
     --shadow-2xl: 1px 2px 5px 1px hsl(0 0% 0% / 0.15);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
+    --message: rgb(204 196 218);
 }
 
 .dark {
@@ -106,6 +107,7 @@
     --shadow-lg: 1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 4px 6px 0px hsl(0 0% 0% / 0.06);
     --shadow-xl: 1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 8px 10px 0px hsl(0 0% 0% / 0.06);
     --shadow-2xl: 1px 2px 5px 1px hsl(0 0% 0% / 0.15);
+    --message: rgb(84 74 101);
 }
 
 @theme inline {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
-import { CircleX, ImagePlus, Play, Send, Smile } from 'lucide-react';
+import { CircleX, ImagePlus, Play, Send, Smile, X } from 'lucide-react';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerSearch } from '../ui/emoji-picker.tsx';
 import { Button } from '../ui/button.tsx';
 import { Input } from '../ui/input.tsx';
@@ -31,7 +31,7 @@ export const ChatWindowFooter = () => {
     (value.trim() && !files?.length) ||
     (files?.length && files?.every((f) => f?.status === 'done'));
 
-  const { activeConversationId, activeConversation, sendDirectMessage, sendGroupMessage } =
+  const { activeConversationId, activeConversation, sendDirectMessage, sendGroupMessage, replyingTo, setReplyingTo, users } =
     useChatStore();
   const { user } = useAuthStore();
 
@@ -39,6 +39,17 @@ export const ChatWindowFooter = () => {
   const isActiveInGroup =
     activeConversation?.type === 'direct' ||
     (currentParticipant?.status === 'ACTIVE');
+
+  const replySenderName = replyingTo ? users[replyingTo.senderId]?.displayName : '';
+  const replyPreviewText = replyingTo
+    ? replyingTo.content?.trim?.()
+      ? replyingTo.content
+      : replyingTo.type && replyingTo.type !== 'text'
+        ? 'Ảnh/Video'
+        : ''
+    : '';
+  const replyPreviewShort =
+    replyPreviewText.length > 70 ? `${replyPreviewText.slice(0, 70)}...` : replyPreviewText;
 
   const { getRootProps, getInputProps, isDragAccept } = useDropzone({
     accept: {
@@ -105,6 +116,7 @@ export const ChatWindowFooter = () => {
     }
 
     const content = value;
+    const replyToId = replyingTo?._id;
     const media = files?.map((file) => ({
       url: file.publicUrl!,
       type: file?.type,
@@ -118,9 +130,9 @@ export const ChatWindowFooter = () => {
     if (activeConversation?.type === 'direct') {
       const friend = activeConversation.participants.find((u) => u._id !== user._id);
       if (!friend?._id) return;
-      await sendDirectMessage(activeConversationId, friend._id, content, media);
+      await sendDirectMessage(activeConversationId, friend._id, content, media, replyToId);
     } else {
-      await sendGroupMessage(activeConversationId, content, media);
+      await sendGroupMessage(activeConversationId, content, media, replyToId);
     }
   };
 
@@ -229,6 +241,29 @@ export const ChatWindowFooter = () => {
             </div>
           ))}
         </div>
+        {replyingTo && (
+          <div
+            className={cn(
+              'mx-4 bg-muted/50 border-l-4 border-primary/60 rounded-md px-3 py-2 flex items-start justify-between gap-2',
+              files?.length ? 'mt-14' : 'mt-2'
+            )}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground truncate">
+                Đang trả lời {replySenderName || '...'}
+              </p>
+              <p className="text-sm text-muted-foreground truncate">{replyPreviewShort}</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Cancel reply"
+              onClick={() => setReplyingTo(null)}
+              className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
         <input id="chat-file-input" key={fileInputKey} {...getInputProps()}></input>
 
         {/* Input nhập tin nhắn */}

@@ -59,22 +59,29 @@ export const chatService = {
     conversationId: string,
     recipientId: string,
     content: string = "",
-    media?: FileRequest[]
+    media?: FileRequest[],
+    replyToId?: string
   ) {
     const res = await api.post("/message/direct", {
       conversationId,
       recipientId,
       content,
-      media
+      media,
+      replyTo: replyToId,
     });
     return res.data.message;
   },
-  async sendGroupMessage(conversationId: string, content: string = "",
-    media?: FileRequest[]) {
+  async sendGroupMessage(
+    conversationId: string,
+    content: string = "",
+    media?: FileRequest[],
+    replyToId?: string
+  ) {
     const res = await api.post("/message/group", {
       conversationId,
       content,
-      media
+      media,
+      replyTo: replyToId,
     });
     return res.data.message;
   },

@@ -4,6 +4,7 @@ import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
 import { cn, getMessageTime } from '../../lib/utils.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
+import { CornerUpLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
@@ -21,6 +22,21 @@ const getMessageIndexType = (idx: number, total: number): IndexMessageType => {
 
 const getMessageSeender = (seenByUsers: SeenBy[], messageId: string, userId: string) => {
   return seenByUsers.filter((i) => i.messageId === messageId && userId !== i.userId);
+};
+
+const truncateText = (text: string, maxLen: number) => {
+  const t = text?.trim?.() || '';
+  if (!t) return '';
+  if (t.length <= maxLen) return t;
+  return `${t.slice(0, maxLen)}...`;
+};
+
+const getReplyPreviewText = (replyTo: Message['replyTo']) => {
+  if (!replyTo) return '';
+  const content = replyTo.content?.trim?.() || '';
+  if (content) return content;
+  if (replyTo.type && replyTo.type !== 'text') return 'Ảnh/Video';
+  return '';
 };
 
 const MediaView = ({ className, media }: { className: string; media: Media }) => {
@@ -84,7 +100,7 @@ export const OtherMessage = ({
   message: Message;
   indexMessageType: IndexMessageType;
 }) => {
-  const { users, activeConversation } = useChatStore();
+  const { users, activeConversation, setReplyingTo } = useChatStore();
   const { user } = useAuthStore();
   const indexType = {
     isFirst: indexMessageType === 'first',
@@ -168,7 +184,18 @@ export const OtherMessage = ({
           {sender ? users[sender._id!]?.displayName : ''}
         </p>
       )}
-      <div className="flex max-w-2/3 gap-1 items-end">
+      <div className="flex max-w-2/3 gap-1 items-end relative group">
+        <button
+          type="button"
+          aria-label="Reply to message"
+          onClick={(e) => {
+            e.stopPropagation();
+            setReplyingTo(message);
+          }}
+          className="absolute -top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1"
+        >
+          <CornerUpLeft className="size-4" />
+        </button>
         {indexType.isLast || indexType.isSingle ? (
           <Popover>
             <PopoverTrigger>
@@ -187,6 +214,20 @@ export const OtherMessage = ({
           <div className="w-10 shrink-0"></div>
         )}
         <div className={cn('flex flex-col gap-1 max-w-full')}>
+          {message.replyTo && (
+            <>
+              <p className="text-xs text-muted-foreground truncate">
+                {users[message.replyTo.senderId]?.displayName
+                  ? `Đã trả lời ${users[message.replyTo.senderId]?.displayName}`
+                  : 'Đã trả lời'}
+              </p>
+              <div className="bg-secondary px-3 py-2 border-l-2 border-primary/40 rounded-t-2xl">
+                <p className="text-sm text-muted-foreground truncate">
+                  {truncateText(getReplyPreviewText(message.replyTo), 70)}
+                </p>
+              </div>
+            </>
+          )}
           {Boolean(message?.content) && (
             <div
               className={cn(
@@ -248,7 +289,7 @@ export const OwnerMessage = ({
     isSingle: indexMessageType === 'single',
   };
   const [isShowDes, setIsShowDes] = useState<boolean>(indexType.isFirst || indexType.isSingle);
-  const { activeConversation } = useChatStore();
+  const { activeConversation, users, setReplyingTo } = useChatStore();
   const { user } = useAuthStore();
   const seenByUsers = getMessageSeender(activeConversation?.seenBy || [], message._id, user!._id);
 
@@ -312,11 +353,38 @@ export const OwnerMessage = ({
       >
         {getMessageTime(message.createdAt)}
       </p>
-      <div className="self-end max-w-2/3 flex flex-col gap-1 items-end">
+      <div className="self-end max-w-2/3 flex flex-col items-end relative group">
+        <button
+          type="button"
+          aria-label="Reply to message"
+          onClick={(e) => {
+            e.stopPropagation();
+            setReplyingTo(message);
+          }}
+          className="absolute -top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1"
+        >
+          <CornerUpLeft className="size-4" />
+        </button>
+        {message.replyTo && (
+          <>
+            <p className="text-xs text-muted-foreground truncate text-left w-full pl-2">
+              {users[message.replyTo.senderId]?.displayName
+                ? `Đã trả lời ${users[message.replyTo.senderId]?.displayName}`
+                : 'Đã trả lời'}
+            </p>
+            <div className="w-full h-full">
+              <div className="bg-secondary px-3 py-2 border-primary/40 rounded-t-2xl w-full translate-y-5 -mt-4">
+                <p className="text-sm text-muted-foreground truncate pb-4">
+                  {truncateText(getReplyPreviewText(message.replyTo), 70)}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
         {message.content && (
           <div
             className={cn(
-              'bg-primary/40 px-3 py-2 hover:bg-accent',
+              'bg-(--message) px-3 py-2 hover:bg-accent z-1',
               ...(message.type === 'mixed'
                 ? [
                     'w-max max-w-full',

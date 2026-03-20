@@ -65,6 +65,7 @@ const config: Config = {
           border: "var(--color-sidebar-border)",
           ring: "var(--color-sidebar-ring)",
         },
+        message: "var(--message)",
       },
       borderRadius: {
         sm: "var(--radius-sm)",
