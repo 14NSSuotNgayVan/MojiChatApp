@@ -10,10 +10,11 @@ export const sendDirectMessage = async (req, res) => {
     const session = await mongoose.startSession()
     session.startTransaction()
     try {
-        const { recipientId, content, media, conversationId } = req.body;
+        const { recipientId, content, media, conversationId, replyTo } = req.body;
         const senderId = req.user._id;
 
         let conversation;
+        let repliedMessageId = undefined;
 
         if (!content && !media?.length) {
             return res.status(400).json({ message: "Content must not be empty!" })
@@ -50,11 +51,29 @@ export const sendDirectMessage = async (req, res) => {
             }
         }
 
+        if (replyTo != null) {
+            if (!mongoose.Types.ObjectId.isValid(replyTo)) {
+                return res.status(400).json({ message: "Invalid replyTo!" });
+            }
+
+            const repliedMessage = await Message.findOne({
+                _id: replyTo,
+                conversationId: conversation._id,
+            }).session(session);
+
+            if (!repliedMessage) {
+                return res.status(400).json({ message: "replyTo message not found in this conversation!" });
+            }
+
+            repliedMessageId = repliedMessage._id;
+        }
+
         const [message] = await Message.create([{
             conversationId: conversation._id,
             content: content,
             senderId: senderId,
-            type: media?.length ? (content ? 'mixed' : 'media') : 'text'
+            type: media?.length ? (content ? 'mixed' : 'media') : 'text',
+            replyTo: repliedMessageId,
         }], { session })
 
 
@@ -99,6 +118,10 @@ export const sendDirectMessage = async (req, res) => {
         const fullMessage = (await Message.findById(message._id)
             .populate([
                 {
+                    path: 'replyTo',
+                    select: 'senderId type content createdAt',
+                },
+                {
                     path: 'mediaIds', select: 'type url isDeleted createdAt'
                 }
             ])).toObject()
@@ -129,19 +152,38 @@ export const senGroupMessage = async (req, res) => {
     const session = await mongoose.startSession()
     session.startTransaction()
     try {
-        const { content, media } = req.body;
+        const { content, media, replyTo } = req.body;
         const senderId = req.user._id;
         const conversation = req.conversation;
+        let repliedMessageId = undefined;
 
         if (!content && !media?.length) {
             return res.status(400).json({ message: "content must not be empty!" })
+        }
+
+        if (replyTo != null) {
+            if (!mongoose.Types.ObjectId.isValid(replyTo)) {
+                return res.status(400).json({ message: "Invalid replyTo!" });
+            }
+
+            const repliedMessage = await Message.findOne({
+                _id: replyTo,
+                conversationId: conversation._id,
+            }).session(session);
+
+            if (!repliedMessage) {
+                return res.status(400).json({ message: "replyTo message not found in this conversation!" });
+            }
+
+            repliedMessageId = repliedMessage._id;
         }
 
         const [message] = await Message.create([{
             conversationId: conversation._id,
             content: content,
             senderId: senderId,
-            type: media?.length ? (content ? 'mixed' : 'media') : 'text'
+            type: media?.length ? (content ? 'mixed' : 'media') : 'text',
+            replyTo: repliedMessageId,
         }], { session })
 
         if (media?.length) {
@@ -184,6 +226,10 @@ export const senGroupMessage = async (req, res) => {
 
         const fullMessage = (await Message.findById(message._id)
             .populate([
+                {
+                    path: 'replyTo',
+                    select: 'senderId type content createdAt',
+                },
                 {
                     path: 'mediaIds', select: 'type url isDeleted createdAt'
                 }
