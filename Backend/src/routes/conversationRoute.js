@@ -1,5 +1,5 @@
 import express from 'express';
-import { addParticipant, addParticipants, clearDirectConversation, createConversation, deleteGroupConversation, deleteParticipant, getConversations, getConversationsByKeyword, getHiddenConversations, getMessages, hideConversation, leaveConversation, unhideConversation, updateParticipantRole } from '../controllers/conversationController.js';
+import { addParticipant, addParticipants, clearDirectConversation, createConversation, deleteGroupConversation, deleteParticipant, getConversations, getConversationsByKeyword, getHiddenConversations, getMessages, hideConversation, leaveConversation, unhideConversation, updateGroupProfile, updateParticipantRole } from '../controllers/conversationController.js';
 
 const conversationRoute = express.Router();
 
@@ -8,6 +8,7 @@ conversationRoute.get('/', getConversations)
 conversationRoute.get('/hidden', getHiddenConversations)
 conversationRoute.get('/search', getConversationsByKeyword)
 conversationRoute.get('/:conversationId', getMessages)
+conversationRoute.put('/:conversationId/group-profile', updateGroupProfile)
 conversationRoute.post('/:conversationId/hide', hideConversation)
 conversationRoute.post('/:conversationId/unhide', unhideConversation)
 conversationRoute.post('/:conversationId/clear', clearDirectConversation)
