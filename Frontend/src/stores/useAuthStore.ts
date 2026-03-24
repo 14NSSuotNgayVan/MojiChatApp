@@ -57,6 +57,14 @@ export const useAuthStore = create<AuthState>()(
           set({ loading: false });
         }
       },
+      signInWithGoogle: () => {
+        const url = authService.getOAuthStartUrl("google");
+        window.location.href = url;
+      },
+      signInWithFacebook: () => {
+        const url = authService.getOAuthStartUrl("facebook");
+        window.location.href = url;
+      },
       signOut: async () => {
         try {
           await authService.signOut();

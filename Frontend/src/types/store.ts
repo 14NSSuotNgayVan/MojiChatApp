@@ -31,6 +31,8 @@ export interface AuthState {
   ) => Promise<void>;
 
   signIn: (username: string, password: string) => Promise<boolean>;
+  signInWithGoogle: () => void;
+  signInWithFacebook: () => void;
   clearState: () => void;
   signOut: () => Promise<void>;
   refreshToken: () => Promise<void>;

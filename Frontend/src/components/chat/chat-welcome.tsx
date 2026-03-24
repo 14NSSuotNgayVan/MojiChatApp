@@ -93,7 +93,7 @@ export const ChatWelcome = () => {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-2 text-center text-gray-500 text-sm border-t">
+        <div className="px-8 py-2 text-center text-muted-foreground text-sm border-t">
           <p>Hãy chọn một đoạn hội thoại từ danh sách bên trái để bắt đầu</p>
         </div>
       </div>

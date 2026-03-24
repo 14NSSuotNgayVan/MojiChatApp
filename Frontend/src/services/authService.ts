@@ -33,6 +33,10 @@ export const authService = {
   signOut: async () => {
     await api.post("auth/signout", {}, { withCredentials: true });
   },
+  getOAuthStartUrl: (provider: "google" | "facebook") => {
+    const baseURL = (api.defaults.baseURL || "").replace(/\/+$/, "");
+    return `${baseURL}/auth/oauth/${provider}`;
+  },
   refreshToken: async () => {
     const res = await api.post("auth/refresh-token", {}, {
       withCredentials: true,
