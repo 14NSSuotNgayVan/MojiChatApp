@@ -125,3 +125,8 @@ export function mergeById<T extends { _id: string }>(
 
   return Array.from(map.values());
 }
+
+/** Escape string for use inside RegExp source (e.g. user search input). */
+export function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

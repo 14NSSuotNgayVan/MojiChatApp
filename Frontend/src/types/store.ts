@@ -88,6 +88,13 @@ export interface ChatState {
   loading: boolean;
   messageLoading: boolean;
   searchedConversations: Conversation[];
+  messageSearchResults: Message[];
+  messageSearchKeyword: string;
+  messageSearchNextCursor: string | null;
+  messageSearchTotal: number;
+  messageSearchLoading: boolean;
+  highlightedMessageId: string | null;
+  currentSearchIndex: number;
   reset: () => void;
   setActiveConversation: (activeConversation: Conversation | null) => void;
   getConversations: () => Promise<void>;
@@ -119,6 +126,12 @@ export interface ChatState {
   seenMessage: () => void;
   setUser: (user: User) => void;
   searchConversations: (keyword: string) => Promise<void>;
+  searchMessagesInConversation: (conversationId: string, keyword: string) => Promise<void>;
+  loadMoreMessageSearchResults: (conversationId: string) => Promise<void>;
+  navigateMessageSearchResult: (direction: "prev" | "next") => Promise<void>;
+  setHighlightedMessageId: (messageId: string | null) => void;
+  clearMessageSearch: () => void;
+  loadMessagesUntilMessageId: (conversationId: string, messageId: string) => Promise<boolean>;
   getHiddenConversations: () => Promise<void>;
   unhideConversation: (conversationId: string) => Promise<void>;
   updateGroupProfile: (conversationId: string, payload: { name?: string; avtUrl?: string }) => Promise<void>;

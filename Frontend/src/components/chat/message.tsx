@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
-import { cn, getMessageTime } from '../../lib/utils.ts';
+import { cn, escapeRegex, getMessageTime } from '../../lib/utils.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { CornerUpLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
@@ -37,6 +37,30 @@ const getReplyPreviewText = (replyTo: Message['replyTo']) => {
   if (content) return content;
   if (replyTo.type && replyTo.type !== 'text') return 'Ảnh/Video';
   return '';
+};
+
+const MessageHighlightText = ({ text, keyword }: { text: string; keyword: string }) => {
+  const k = keyword.trim();
+  if (!k) return <>{text}</>;
+  try {
+    const re = new RegExp(`(${escapeRegex(k)})`, 'gi');
+    const parts = text.split(re);
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === k.toLowerCase() ? (
+            <mark key={i} className="rounded bg-yellow-400/40 px-0.5 dark:bg-yellow-500/25">
+              {part}
+            </mark>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </>
+    );
+  } catch {
+    return <>{text}</>;
+  }
 };
 
 const MediaView = ({ className, media }: { className: string; media: Media }) => {
@@ -100,7 +124,8 @@ export const OtherMessage = ({
   message: Message;
   indexMessageType: IndexMessageType;
 }) => {
-  const { users, activeConversation, setReplyingTo } = useChatStore();
+  const { users, activeConversation, setReplyingTo, highlightedMessageId, messageSearchKeyword } =
+    useChatStore();
   const { user } = useAuthStore();
   const indexType = {
     isFirst: indexMessageType === 'first',
@@ -154,7 +179,7 @@ export const OtherMessage = ({
 
     if (message.medias?.length && message.medias?.length > 1) {
       return (
-        <div className="w-full flex flex-wrap gap-1">
+        <div className="max-w-full flex flex-wrap gap-1 w-max">
           {message.medias?.map((mda) => (
             <MediaView
               key={mda._id}
@@ -169,8 +194,16 @@ export const OtherMessage = ({
     }
   };
 
+  const isSearchHighlight = highlightedMessageId === message._id;
+
   return (
-    <>
+    <div
+      data-message-id={message._id}
+      className={cn(
+        'flex flex-col gap-1',
+        isSearchHighlight && 'ring-primary/80 rounded-lg ring-2 ring-offset-2 ring-offset-background'
+      )}
+    >
       <p
         className={cn(
           'text-sm text-muted-foreground text-center hidden slide-up-fade',
@@ -181,10 +214,14 @@ export const OtherMessage = ({
       </p>
       {isShowDes && (
         <p className="max-w-2/3 ml-14 text-sm text-muted-foreground slide-up-fade">
-          {sender ? users[sender._id!]?.displayName : ''}
+          {sender ? users[sender._id!]?.displayName : ''}{' '}
+          {message.replyTo &&
+            (users[message.replyTo.senderId]?.displayName
+              ? `đã trả lời ${message.replyTo.senderId === user?._id ? 'bạn' : users[message.replyTo.senderId]?.displayName}`
+              : 'đã trả lời')}
         </p>
       )}
-      <div className="flex max-w-2/3 gap-1 items-end relative group">
+      <div className="flex max-w-2/3 gap-1 items-end relative group w-max">
         <button
           type="button"
           aria-label="Reply to message"
@@ -192,7 +229,7 @@ export const OtherMessage = ({
             e.stopPropagation();
             setReplyingTo(message);
           }}
-          className="absolute -top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1"
+          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-14  opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
         >
           <CornerUpLeft className="size-4" />
         </button>
@@ -213,25 +250,18 @@ export const OtherMessage = ({
         ) : (
           <div className="w-10 shrink-0"></div>
         )}
-        <div className={cn('flex flex-col gap-1 max-w-full')}>
+        <div className={cn('flex flex-col gap-1 max-w-full w-max')}>
           {message.replyTo && (
-            <>
-              <p className="text-xs text-muted-foreground truncate">
-                {users[message.replyTo.senderId]?.displayName
-                  ? `Đã trả lời ${users[message.replyTo.senderId]?.displayName}`
-                  : 'Đã trả lời'}
+            <div className="bg-secondary px-3 py-2 rounded-t-2xl translate-y-5 -mt-4">
+              <p className="text-sm text-muted-foreground truncate pb-4">
+                {truncateText(getReplyPreviewText(message.replyTo), 70)}
               </p>
-              <div className="bg-secondary px-3 py-2 border-l-2 border-primary/40 rounded-t-2xl">
-                <p className="text-sm text-muted-foreground truncate">
-                  {truncateText(getReplyPreviewText(message.replyTo), 70)}
-                </p>
-              </div>
-            </>
+            </div>
           )}
           {Boolean(message?.content) && (
             <div
               className={cn(
-                'bg-secondary px-3 py-2 hover:bg-accent',
+                'bg-(--message) px-3 py-2 hover:bg-accent z-1',
                 ...(message.type === 'mixed'
                   ? [
                       'w-max max-w-full',
@@ -250,14 +280,14 @@ export const OtherMessage = ({
               )}
               onClick={handleToggleMessage}
             >
-              {message.content}
+              <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
             </div>
           )}
           {renderMediaGrid()}
         </div>
       </div>
       {seenByUsers && <SeenAvatars seenUsers={seenByUsers} />}
-    </>
+    </div>
   );
 };
 
@@ -289,7 +319,8 @@ export const OwnerMessage = ({
     isSingle: indexMessageType === 'single',
   };
   const [isShowDes, setIsShowDes] = useState<boolean>(indexType.isFirst || indexType.isSingle);
-  const { activeConversation, users, setReplyingTo } = useChatStore();
+  const { activeConversation, users, setReplyingTo, highlightedMessageId, messageSearchKeyword } =
+    useChatStore();
   const { user } = useAuthStore();
   const seenByUsers = getMessageSeender(activeConversation?.seenBy || [], message._id, user!._id);
 
@@ -297,6 +328,8 @@ export const OwnerMessage = ({
     if (indexType.isFirst || indexType.isSingle) return;
     setIsShowDes((prev) => !prev);
   };
+
+  const isSearchHighlight = highlightedMessageId === message._id;
 
   const renderMediaGrid = () => {
     if (message.type === 'media' && message.medias?.length === 1) {
@@ -344,7 +377,13 @@ export const OwnerMessage = ({
   };
 
   return (
-    <>
+    <div
+      data-message-id={message._id}
+      className={cn(
+        'flex flex-col gap-1',
+        isSearchHighlight && 'ring-primary/80 rounded-lg ring-2 ring-offset-2 ring-offset-background'
+      )}
+    >
       <p
         className={cn(
           'text-sm text-muted-foreground text-center hidden opacity-0 translate-y-4 slide-up-fade',
@@ -353,7 +392,7 @@ export const OwnerMessage = ({
       >
         {getMessageTime(message.createdAt)}
       </p>
-      <div className="self-end max-w-2/3 flex flex-col items-end relative group">
+      <div className="self-end max-w-2/3 flex flex-col items-end gap-1 relative group">
         <button
           type="button"
           aria-label="Reply to message"
@@ -361,7 +400,7 @@ export const OwnerMessage = ({
             e.stopPropagation();
             setReplyingTo(message);
           }}
-          className="absolute -top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1"
+          className="absolute top-1/2 left-0 -translate-x-14 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
         >
           <CornerUpLeft className="size-4" />
         </button>
@@ -369,7 +408,7 @@ export const OwnerMessage = ({
           <>
             <p className="text-xs text-muted-foreground truncate text-left w-full pl-2">
               {users[message.replyTo.senderId]?.displayName
-                ? `Đã trả lời ${users[message.replyTo.senderId]?.displayName}`
+                ? `Đã trả lời ${message.replyTo.senderId === user?._id ? 'Bản thân' : users[message.replyTo.senderId]?.displayName}`
                 : 'Đã trả lời'}
             </p>
             <div className="w-full h-full">
@@ -403,13 +442,13 @@ export const OwnerMessage = ({
             )}
             onClick={handleToggleMessage}
           >
-            {message.content}
+            <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
           </div>
         )}
         {renderMediaGrid()}
       </div>
       <SeenAvatars seenUsers={seenByUsers} />
-    </>
+    </div>
   );
 };
 

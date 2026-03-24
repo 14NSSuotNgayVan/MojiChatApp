@@ -69,6 +69,12 @@ export interface ConversationResponse {
   users: Record<string, User>,
 }
 
+export interface SearchMessagesResponse {
+  messages: Message[];
+  nextCursor?: string;
+  total: number;
+}
+
 export interface Media {
   _id: string;
   type: MEDIA_TYPE;

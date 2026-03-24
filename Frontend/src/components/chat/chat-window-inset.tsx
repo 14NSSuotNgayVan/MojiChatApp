@@ -21,6 +21,8 @@ export const ChatWindowInset = () => {
     seenMessage,
     users,
     getDefaultGroupName,
+    highlightedMessageId,
+    loadMessagesUntilMessageId,
   } = useChatStore();
   const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
   const { user } = useAuthStore();
@@ -35,6 +37,22 @@ export const ChatWindowInset = () => {
   useEffect(() => {
     if (isAtBottom) seenMessage();
   }, [isAtBottom, activeConversation?.lastMessage?._id, seenMessage]);
+
+  useEffect(() => {
+    if (!highlightedMessageId || !activeConversationId) return;
+    void loadMessagesUntilMessageId(activeConversationId, highlightedMessageId);
+  }, [highlightedMessageId, activeConversationId, loadMessagesUntilMessageId]);
+
+  useEffect(() => {
+    if (!highlightedMessageId) return;
+    const id = requestAnimationFrame(() => {
+      const el = document.querySelector(
+        `[data-message-id="${highlightedMessageId}"]`
+      ) as HTMLElement | null;
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [highlightedMessageId, items]);
 
   const messageGroups = useMemo(() => getGroupMessages(items), [items, getGroupMessages]);
 

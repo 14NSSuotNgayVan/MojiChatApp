@@ -1,6 +1,6 @@
 import type { FileRequest } from "@/types/store.ts";
 import api from "../lib/axios.ts";
-import type { Conversation, ConversationResponse } from "../types/chat.ts";
+import type { Conversation, ConversationResponse, SearchMessagesResponse } from "../types/chat.ts";
 
 export const chatService = {
   //conversation
@@ -53,6 +53,13 @@ export const chatService = {
     params: { limit: number; cursor: string | null | undefined }
   ) {
     const res = await api.get(`/conversations/${conversationId}`, { params });
+    return res.data;
+  },
+  async searchMessages(
+    conversationId: string,
+    params: { keyword: string; cursor?: string; limit?: number }
+  ): Promise<SearchMessagesResponse> {
+    const res = await api.get(`/conversations/${conversationId}/messages/search`, { params });
     return res.data;
   },
   async sendDirectMessage(

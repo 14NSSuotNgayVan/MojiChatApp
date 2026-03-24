@@ -20,7 +20,9 @@ export const GroupAvatar = ({
       </div>
     );
 
-  const filteredParticipants = participants.filter((p) => users[p?._id]?.avtUrl).slice(0, 2);
+  const filteredParticipants = participants
+    .filter((p) => users[p?._id]?.avtUrl && p.status !== 'LEFT')
+    .slice(0, 2);
 
   return (
     <div className={cn('overflow-hidden w-12 h-12 relative shrink-0', className)}>

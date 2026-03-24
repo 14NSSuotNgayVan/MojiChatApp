@@ -31,16 +31,26 @@ export const ChatWindowFooter = () => {
     (value.trim() && !files?.length) ||
     (files?.length && files?.every((f) => f?.status === 'done'));
 
-  const { activeConversationId, activeConversation, sendDirectMessage, sendGroupMessage, replyingTo, setReplyingTo, users } =
-    useChatStore();
+  const {
+    activeConversationId,
+    activeConversation,
+    sendDirectMessage,
+    sendGroupMessage,
+    replyingTo,
+    setReplyingTo,
+    users,
+  } = useChatStore();
   const { user } = useAuthStore();
 
   const currentParticipant = activeConversation?.participants.find((p) => p._id === user?._id);
   const isActiveInGroup =
-    activeConversation?.type === 'direct' ||
-    (currentParticipant?.status === 'ACTIVE');
+    activeConversation?.type === 'direct' || currentParticipant?.status === 'ACTIVE';
 
-  const replySenderName = replyingTo ? users[replyingTo.senderId]?.displayName : '';
+  const replySenderName = replyingTo
+    ? replyingTo.senderId === user?._id
+      ? 'bản thân'
+      : users[replyingTo.senderId]?.displayName
+    : '';
   const replyPreviewText = replyingTo
     ? replyingTo.content?.trim?.()
       ? replyingTo.content
@@ -86,13 +96,13 @@ export const ChatWindowFooter = () => {
               prev.map((file) =>
                 file.id === id
                   ? {
-                    ...file,
-                    publicUrl: res.secure_url,
-                    publicId: res.public_id,
-                    poster: `${res.url.split('/video/upload')[0]}/video/upload/so_1/${res.public_id}.jpg`,
-                    duration: res?.duration,
-                    status: 'done',
-                  }
+                      ...file,
+                      publicUrl: res.secure_url,
+                      publicId: res.public_id,
+                      poster: `${res.url.split('/video/upload')[0]}/video/upload/so_1/${res.public_id}.jpg`,
+                      duration: res?.duration,
+                      status: 'done',
+                    }
                   : file
               )
             );
@@ -185,132 +195,133 @@ export const ChatWindowFooter = () => {
   }
 
   return (
-    <footer className="p-2 flex border-t gap-2 items-center">
-      <label
-        htmlFor="chat-file-input"
-        className="hover:bg-accent transition-colors p-2 rounded-md cursor-pointer"
-      >
-        <ImagePlus className="size-4" />
-      </label>
-      {/* Vùng drop ảnh */}
-      <div
-        className={cn(
-          'flex-1 relative rounded-md',
-          isDragAccept &&
-          'bg-accent after:border-accent-foreground after:absolute after:inset-0 after:border-dashed after:border after:rounded-md'
-        )}
-        {...getRootProps()}
-      >
-        {/* vùng xem trước ảnh */}
-        <div className="absolute pt-2 mx-4 flex gap-2 overflow-x-auto">
-          {files.map((file) => (
-            <div className="relative shrink-0" key={file.id}>
-              {/* progress */}
-              <div
-                className={cn(
-                  'absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 z-30',
-                  file.status === 'done' && 'progress-faded-out'
-                )}
-              >
-                <CircularProgress
-                  className="stroke-gray-500"
-                  progressClassName="stroke-white"
-                  size={40}
-                  strokeWidth={4}
-                  value={getProgress(file.status)}
-                />
-              </div>
-              {/* nút xóa */}
-              <CircleX
-                className="absolute right-0 z-10 size-4 text-white bg-muted-foreground dark:bg-muted-foreground/50 rounded-full cursor-pointer"
-                onClick={() => handleDeleteImage(file)}
-              />
-              {file.type === 'image' ? (
-                <img src={file.preview} className="w-14 h-14 rounded-md object-contain border" />
-              ) : (
-                <>
-                  <video
-                    poster={file?.poster}
-                    className="w-14 h-14 rounded-md object-contain border"
-                  >
-                    <source src={file.preview}></source>
-                  </video>
-                  <Play className="size-4 absolute inset-0 top-1/2 left-1/2 -translate-1/2" />
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-        {replyingTo && (
-          <div
-            className={cn(
-              'mx-4 bg-muted/50 border-l-4 border-primary/60 rounded-md px-3 py-2 flex items-start justify-between gap-2',
-              files?.length ? 'mt-14' : 'mt-2'
-            )}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground truncate">
-                Đang trả lời {replySenderName || '...'}
-              </p>
-              <p className="text-sm text-muted-foreground truncate">{replyPreviewShort}</p>
-            </div>
-            <button
-              type="button"
-              aria-label="Cancel reply"
-              onClick={() => setReplyingTo(null)}
-              className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
+    <footer className="p-2 border-t">
+      {replyingTo && (
+        <div
+          className={cn(
+            'mx-2 bg-muted/50 border-l-4 border-primary/60 rounded-md px-3 py-2 flex items-center justify-between gap-2 my-2'
+          )}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground truncate">
+              Đang trả lời {replySenderName || '...'}
+            </p>
+            <p className="text-sm text-muted-foreground truncate">{replyPreviewShort}</p>
           </div>
-        )}
-        <input id="chat-file-input" key={fileInputKey} {...getInputProps()}></input>
-
-        {/* Input nhập tin nhắn */}
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.repeat) {
-              e.preventDefault();
-              if (isSendable) {
-                handleSendMessage();
-              }
-            }
-          }}
-          className={cn('pr-8 h-10', !!files?.length && 'h-28 pt-18 transition-all')}
-        ></Input>
-
-        {/* Modal icon */}
-        <Popover>
-          <PopoverTrigger
-            asChild
-            className="cursor-pointer absolute bottom-1.5 right-0.5 resize-none"
+          <button
+            type="button"
+            aria-label="Cancel reply"
+            onClick={() => setReplyingTo(null)}
+            className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
           >
-            <Smile className="hover:bg-accent size-7 transition-colors p-1 rounded-full" />
-          </PopoverTrigger>
-          <PopoverContent className="w-fit p-0 m-2" align="end">
-            <EmojiPicker
-              className="h-[342px]"
-              onEmojiSelect={({ emoji }) => {
-                setValue((prev) => prev + emoji);
-              }}
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+      <div className="flex gap-2 items-center">
+        <label
+          htmlFor="chat-file-input"
+          className="hover:bg-accent transition-colors p-2 rounded-md cursor-pointer"
+        >
+          <ImagePlus className="size-4" />
+        </label>
+        {/* Vùng drop ảnh */}
+        <div
+          className={cn(
+            'flex-1 relative rounded-md',
+            isDragAccept &&
+              'bg-accent after:border-accent-foreground after:absolute after:inset-0 after:border-dashed after:border after:rounded-md'
+          )}
+          {...getRootProps()}
+        >
+          {/* vùng xem trước ảnh */}
+          <div className="absolute pt-2 mx-4 flex gap-2 overflow-x-auto">
+            {files.map((file) => (
+              <div className="relative shrink-0" key={file.id}>
+                {/* progress */}
+                <div
+                  className={cn(
+                    'absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 z-30',
+                    file.status === 'done' && 'progress-faded-out'
+                  )}
+                >
+                  <CircularProgress
+                    className="stroke-gray-500"
+                    progressClassName="stroke-white"
+                    size={40}
+                    strokeWidth={4}
+                    value={getProgress(file.status)}
+                  />
+                </div>
+                {/* nút xóa */}
+                <CircleX
+                  className="absolute right-0 z-10 size-4 text-white bg-muted-foreground dark:bg-muted-foreground/50 rounded-full cursor-pointer"
+                  onClick={() => handleDeleteImage(file)}
+                />
+                {file.type === 'image' ? (
+                  <img src={file.preview} className="w-14 h-14 rounded-md object-contain border" />
+                ) : (
+                  <>
+                    <video
+                      poster={file?.poster}
+                      className="w-14 h-14 rounded-md object-contain border"
+                    >
+                      <source src={file.preview}></source>
+                    </video>
+                    <Play className="size-4 absolute inset-0 top-1/2 left-1/2 -translate-1/2" />
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          <input id="chat-file-input" key={fileInputKey} {...getInputProps()}></input>
+
+          {/* Input nhập tin nhắn */}
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.repeat) {
+                e.preventDefault();
+                if (isSendable) {
+                  handleSendMessage();
+                }
+              }
+            }}
+            className={cn('pr-8 h-10', !!files?.length && 'h-28 pt-18 transition-all')}
+          ></Input>
+
+          {/* Modal icon */}
+          <Popover>
+            <PopoverTrigger
+              asChild
+              className="cursor-pointer absolute bottom-1.5 right-0.5 resize-none"
             >
-              <EmojiPickerSearch />
-              <EmojiPickerContent />
-            </EmojiPicker>
-          </PopoverContent>
-        </Popover>
+              <Smile className="hover:bg-accent size-7 transition-colors p-1 rounded-full" />
+            </PopoverTrigger>
+            <PopoverContent className="w-fit p-0 m-2" align="end">
+              <EmojiPicker
+                className="h-[342px]"
+                onEmojiSelect={({ emoji }) => {
+                  setValue((prev) => prev + emoji);
+                }}
+              >
+                <EmojiPickerSearch />
+                <EmojiPickerContent />
+              </EmojiPicker>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="hover:bg-accent transition-colors size-9 p-2"
+          onClick={handleSendMessage}
+          disabled={!isSendable}
+        >
+          <Send />
+        </Button>
       </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        className="hover:bg-accent transition-colors size-9 p-2"
-        onClick={handleSendMessage}
-        disabled={!isSendable}
-      >
-        <Send />
-      </Button>
     </footer>
   );
 };
