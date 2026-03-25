@@ -123,6 +123,12 @@ export interface ChatState {
     replyToId?: string
   ) => Promise<void>;
   onNewMessage: (data: NewMessageResponse) => void;
+  toggleMessageReaction: (
+    conversationId: string,
+    messageId: string,
+    emoji: string
+  ) => Promise<void>;
+  onMessageReactionUpdated: (data: MessageReactionUpdatedResponse) => void;
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;
   seenMessage: () => void;
@@ -159,6 +165,15 @@ interface NewMessageResponse {
     "_id" | "lastMessageAt" | "lastMessage" | "unreadCounts"
   >;
   message: Message;
+}
+
+export interface MessageReactionUpdatedResponse {
+  conversationId: string;
+  messageId: string;
+  reactions: Array<{
+    emoji: string;
+    userId: string;
+  }>;
 }
 
 interface SeenMessageResponse {

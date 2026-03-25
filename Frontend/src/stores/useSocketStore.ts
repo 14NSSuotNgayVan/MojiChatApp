@@ -38,6 +38,10 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
       socket.on("new-message", useChatStore.getState().onNewMessage);
       socket.on("seen-message-updated", useChatStore.getState().onSeenMessage);
+      socket.on(
+        "message-reaction-updated",
+        useChatStore.getState().onMessageReactionUpdated
+      );
       socket.on("participant-added", useChatStore.getState().onParticipantAdded);
       socket.on("participant-removed", useChatStore.getState().onParticipantRemoved);
       socket.on("participant-role-updated", useChatStore.getState().onParticipantRoleUpdated);
@@ -85,6 +89,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     if (socket) {
       socket.off("new-message");
       socket.off("seen-message-updated");
+      socket.off("message-reaction-updated");
       socket.off("participant-added");
       socket.off("participant-removed");
       socket.off("participant-role-updated");

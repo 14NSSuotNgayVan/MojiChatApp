@@ -22,6 +22,35 @@ export const useChatStore = create<ChatState>()(
         }));
       };
 
+      const mergeMessageReactions = (
+        conversationId: string,
+        messageId: string,
+        reactions: Array<{ emoji: string; userId: string }>
+      ) => {
+        set((prev) => {
+          const prevConv = prev.messages?.[conversationId];
+          const nextItems = prevConv?.items?.map((m) =>
+            m._id === messageId ? { ...m, reactions } : m
+          );
+
+          return {
+            ...prev,
+            messages: prevConv
+              ? {
+                  ...prev.messages,
+                  [conversationId]: {
+                    ...prevConv,
+                    items: nextItems,
+                  },
+                }
+              : prev.messages,
+            messageSearchResults: prev.messageSearchResults?.map((m) =>
+              m._id === messageId ? { ...m, reactions } : m
+            ),
+          };
+        });
+      };
+
       return ({
         isSearching: false,
         isFetchOldMessage: false,
@@ -383,6 +412,23 @@ export const useChatStore = create<ChatState>()(
             console.error(error);
             toast.error("Lỗi khi gửi tin nhắn!");
           }
+        },
+        toggleMessageReaction: async (conversationId, messageId, emoji) => {
+          try {
+            const res = await chatService.toggleMessageReaction({
+              conversationId,
+              messageId,
+              emoji,
+            });
+            mergeMessageReactions(conversationId, messageId, res?.reactions ?? []);
+          } catch (error) {
+            console.error(error);
+            toast.error("Lỗi khi thả cảm xúc!");
+          }
+        },
+        onMessageReactionUpdated: (data) => {
+          if (!data?.conversationId || !data?.messageId) return;
+          mergeMessageReactions(data.conversationId, data.messageId, data.reactions ?? []);
         },
         onNewMessage: (data) => {
           const { user } = useAuthStore.getState();

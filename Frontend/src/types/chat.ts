@@ -100,6 +100,10 @@ export interface Message {
   systemType?: SYSTEM_TYPE;
   meta?: SystemMeta;
   medias?: Media[];
+  reactions?: Array<{
+    emoji: string;
+    userId: string;
+  }>;
   replyTo?: {
     _id: string;
     senderId: string;
