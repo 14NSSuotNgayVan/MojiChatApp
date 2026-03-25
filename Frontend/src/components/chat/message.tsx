@@ -201,7 +201,7 @@ export const OtherMessage = ({
       data-message-id={message._id}
       className={cn(
         'flex flex-col gap-1',
-        isSearchHighlight && 'ring-primary/80 rounded-lg ring-2 ring-offset-2 ring-offset-background'
+        isSearchHighlight && 'bg-primary/10 rounded-lg'
       )}
     >
       <p
@@ -381,7 +381,7 @@ export const OwnerMessage = ({
       data-message-id={message._id}
       className={cn(
         'flex flex-col gap-1',
-        isSearchHighlight && 'ring-primary/80 rounded-lg ring-2 ring-offset-2 ring-offset-background'
+        isSearchHighlight && 'bg-primary/10 rounded-lg'
       )}
     >
       <p
