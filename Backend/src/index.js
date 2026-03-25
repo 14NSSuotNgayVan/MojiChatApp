@@ -1,5 +1,5 @@
+import './loadEnv.js';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { connectDB } from './libs/db.js';
@@ -11,8 +11,6 @@ import friendRouter from './routes/friendRoute.js';
 import messageRoute from './routes/messageRoute.js';
 import conversationRoute from './routes/conversationRoute.js';
 import uploadFileRoute from './routes/fileRoute.js';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
