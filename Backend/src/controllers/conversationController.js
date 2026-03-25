@@ -412,6 +412,12 @@ export const getMessages = async (req, res) => {
                     doc.isOwner = doc.senderId.toString() === userId;
                     doc.medias = doc.mediaIds;
                     delete doc.mediaIds;
+                    if (Array.isArray(doc.reactions)) {
+                        doc.reactions = doc.reactions.map((r) => ({
+                            ...r,
+                            userId: r.userId?.toString?.() ?? r.userId,
+                        }));
+                    }
                     return doc;
                 }
             });
@@ -543,6 +549,12 @@ export const searchMessages = async (req, res) => {
         const messageRes = messages.map((currentMsg) => {
             const medias = currentMsg.mediaIds;
             delete currentMsg.mediaIds;
+            if (Array.isArray(currentMsg.reactions)) {
+                currentMsg.reactions = currentMsg.reactions.map((r) => ({
+                    ...r,
+                    userId: r.userId?.toString?.() ?? r.userId,
+                }));
+            }
             return {
                 ...currentMsg,
                 isOwner: currentMsg.senderId.toString() === userId,

@@ -13,6 +13,14 @@ const metaSchema = new mongoose.Schema({
     newValue: { type: String },
 }, { _id: false });
 
+const reactionSchema = new mongoose.Schema(
+    {
+        emoji: { type: String, required: true, trim: true, maxlength: 32 },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    },
+    { _id: false }
+);
+
 const messageSchema = new mongoose.Schema({
     conversationId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -57,6 +65,11 @@ const messageSchema = new mongoose.Schema({
     replyTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Message"
+    },
+    // Reactions are stored per message; each user can toggle one emoji.
+    reactions: {
+        type: [reactionSchema],
+        default: [],
     },
     isDeleted: {
         type: Boolean,
