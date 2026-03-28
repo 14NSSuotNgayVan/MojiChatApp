@@ -255,3 +255,127 @@ export const senGroupMessage = async (req, res) => {
         session.endSession()
     }
 }
+
+export const toggleMessageReaction = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { conversationId, messageId, emoji } = req.body || {};
+        const userId = req.user?._id;
+
+        if (!userId) {
+            await session.abortTransaction();
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        if (!conversationId || !messageId) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "conversationId and messageId are required!" });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(messageId)) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "Invalid messageId!" });
+        }
+
+        if (typeof emoji !== "string" || !emoji.trim()) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "emoji is required!" });
+        }
+
+        const trimmedEmoji = emoji.trim();
+        if (trimmedEmoji.length > 32) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "emoji is too long!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId,
+        }).select("participants").session(session).lean();
+
+        if (!conversation) {
+            await session.abortTransaction();
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.() && p.status === "ACTIVE"
+        );
+
+        if (!participant) {
+            await session.abortTransaction();
+            return res.status(403).json({ message: "You are not an active participant in this conversation." });
+        }
+
+        const message = await Message.findOne({
+            _id: messageId,
+            conversationId,
+        }).select("reactions").session(session).lean();
+
+        if (!message) {
+            await session.abortTransaction();
+            return res.status(404).json({ message: "Message not found!" });
+        }
+
+        const existing = (message.reactions || []).find(
+            (r) => r.userId?.toString?.() === userId.toString()
+        );
+
+        if (existing && existing.emoji === trimmedEmoji) {
+            await Message.updateOne(
+                { _id: messageId, conversationId },
+                { $pull: { reactions: { userId } } },
+                { session }
+            );
+        } else {
+            // MongoDB doesn't allow updating the same array path with $pull and $push together.
+            // Do it in two steps to preserve single_toggle semantics.
+            await Message.updateOne(
+                { _id: messageId, conversationId },
+                { $pull: { reactions: { userId } } },
+                { session }
+            );
+
+            await Message.updateOne(
+                { _id: messageId, conversationId },
+                { $push: { reactions: { emoji: trimmedEmoji, userId } } },
+                { session }
+            );
+        }
+
+        await session.commitTransaction();
+
+        const updated = await Message.findOne({ _id: messageId, conversationId })
+            .select("reactions")
+            .lean();
+
+        const normalizedReactions = (updated?.reactions || []).map((r) => ({
+            emoji: r.emoji,
+            userId: r.userId.toString(),
+        }));
+
+        io.to(conversationId.toString()).emit("message-reaction-updated", {
+            conversationId: conversationId.toString(),
+            messageId: messageId.toString(),
+            reactions: normalizedReactions,
+        });
+
+        return res.status(200).json({
+            conversationId: conversationId.toString(),
+            messageId: messageId.toString(),
+            reactions: normalizedReactions,
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error when calling toggleMessageReaction: " + error);
+        return res.status(500).send();
+    } finally {
+        session.endSession();
+    }
+};
