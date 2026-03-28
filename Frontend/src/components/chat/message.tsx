@@ -4,8 +4,11 @@ import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
 import { cn, escapeRegex, getMessageTime } from '../../lib/utils.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
-import { CornerUpLeft } from 'lucide-react';
+import { CornerUpLeft, Smile, SmilePlus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
+import { Button } from '../ui/button.tsx';
+import { Dialog, DialogContent } from '../ui/dialog.tsx';
+import { EmojiPicker, EmojiPickerContent, EmojiPickerSearch } from '../ui/emoji-picker.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
@@ -39,28 +42,164 @@ const getReplyPreviewText = (replyTo: Message['replyTo']) => {
   return '';
 };
 
+const REACTION_PRESETS = ['😂', '😭', '👍', '❤️', '😮', '😡'] as const;
+
+const MessageReactions = ({ message, isOwner }: { message: Message; isOwner: boolean }) => {
+  const { toggleMessageReaction } = useChatStore();
+  const { user } = useAuthStore();
+  const reactions = message.reactions ?? [];
+  const myEmoji = user?._id ? reactions.find((r) => r.userId === user._id)?.emoji : undefined;
+
+  const counts = reactions.reduce<Record<string, number>>((acc, r) => {
+    acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const entries = Object.entries(counts);
+
+  const handleToggle = (emoji: string) => {
+    if (!message.conversationId || !message._id) return;
+    void toggleMessageReaction(message.conversationId, message._id, emoji);
+  };
+  return (
+    <div
+      className={cn(
+        'absolute -bottom-1 translate-y-1/2 z-10 group/emoji transition-all bg-accent/50 rounded-full px-2',
+        isOwner ? 'right-0' : 'left-full -translate-x-6'
+      )}
+    >
+      {entries.length > 0 && (
+        <div className="flex gap-0.5">
+          {entries.map(([emoji, count]) => (
+            <button
+              key={emoji}
+              type="button"
+              className={cn(
+                'flex items-center gap-1 py-0.5 text-xs rounded-full cursor-pointer',
+                myEmoji === emoji
+                  ? 'group-hover/emoji:bg-muted-foreground/50 text-foreground'
+                  : 'text-muted-foreground'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggle(emoji);
+              }}
+            >
+              <span className="text-xs leading-none group-hover/emoji:pl-0.5">{emoji}</span>
+              <span className="text-xs text-muted-foreground hidden group-hover/emoji:block group-hover/emoji:pr-1">
+                x{count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MessageReactionBar = ({ message }: { message: Message }) => {
+  const { user } = useAuthStore();
+  const { toggleMessageReaction } = useChatStore();
+  const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  if (message.type === 'system') return null;
+  const reactions = message.reactions ?? [];
+  const myEmoji = user?._id ? reactions.find((r) => r.userId === user._id)?.emoji : undefined;
+
+  const handleToggle = (emoji: string) => {
+    if (!message.conversationId || !message._id) return;
+    void toggleMessageReaction(message.conversationId, message._id, emoji);
+  };
+
+  return (
+    <div className="flex flex-col gap-1 w-full">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label="Reaction to message"
+            onClick={(e) => e.stopPropagation()}
+            className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-0.5 cursor-pointer"
+          >
+            <Smile className="size-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-max p-2  bg-accent/70 rounded-full"
+          align="center"
+          side="top"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-wrap gap-1 items-center">
+            {REACTION_PRESETS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className={cn(
+                  'flex size-6 items-center justify-center rounded-sm text-lg hover:scale-200 hover:mx-2 transition-all p-1',
+                  myEmoji === emoji && 'bg-muted-foreground/50'
+                )}
+                onClick={() => {
+                  handleToggle(emoji);
+                  setOpen(false);
+                }}
+              >
+                {emoji}
+              </button>
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                setModalOpen(true);
+              }}
+              className="p-1! size-5"
+            >
+              <SmilePlus className="size-5" />
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="w-max p-0">
+          <EmojiPicker
+            className="h-[420px]"
+            onEmojiSelect={({ emoji }) => {
+              handleToggle(emoji);
+              setModalOpen(false);
+            }}
+          >
+            <EmojiPickerSearch />
+            <EmojiPickerContent />
+          </EmojiPicker>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
 const MessageHighlightText = ({ text, keyword }: { text: string; keyword: string }) => {
   const k = keyword.trim();
   if (!k) return <>{text}</>;
-  try {
-    const re = new RegExp(`(${escapeRegex(k)})`, 'gi');
-    const parts = text.split(re);
-    return (
-      <>
-        {parts.map((part, i) =>
-          part.toLowerCase() === k.toLowerCase() ? (
-            <mark key={i} className="rounded bg-yellow-400/40 px-0.5 dark:bg-yellow-500/25">
-              {part}
-            </mark>
-          ) : (
-            <span key={i}>{part}</span>
-          )
-        )}
-      </>
-    );
-  } catch {
-    return <>{text}</>;
-  }
+  const re = new RegExp(`(${escapeRegex(k)})`, 'gi');
+  const parts = text.split(re);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === k.toLowerCase() ? (
+          <mark key={i} className="rounded bg-yellow-400/40 px-0.5 dark:bg-yellow-500/25">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
 };
 
 const MediaView = ({ className, media }: { className: string; media: Media }) => {
@@ -199,10 +338,7 @@ export const OtherMessage = ({
   return (
     <div
       data-message-id={message._id}
-      className={cn(
-        'flex flex-col gap-1',
-        isSearchHighlight && 'ring-primary/80 rounded-lg ring-2 ring-offset-2 ring-offset-background'
-      )}
+      className={cn('flex flex-col gap-1 group', isSearchHighlight && 'bg-primary/10 rounded-lg')}
     >
       <p
         className={cn(
@@ -221,18 +357,27 @@ export const OtherMessage = ({
               : 'đã trả lời')}
         </p>
       )}
-      <div className="flex max-w-2/3 gap-1 items-end relative group w-max">
-        <button
-          type="button"
-          aria-label="Reply to message"
-          onClick={(e) => {
-            e.stopPropagation();
-            setReplyingTo(message);
-          }}
-          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-14  opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
-        >
-          <CornerUpLeft className="size-4" />
-        </button>
+      <div
+        className={cn(
+          'flex max-w-2/3 gap-1 items-end relative w-max',
+          message.reactions?.length && 'mb-3'
+        )}
+      >
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 flex translate-x-[calc(100%+0.5rem)] items-center gap-1">
+          <MessageReactionBar message={message} />
+          <button
+            type="button"
+            aria-label="Reply to message"
+            onClick={(e) => {
+              e.stopPropagation();
+              setReplyingTo(message);
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+          >
+            <CornerUpLeft className="size-3" />
+          </button>
+        </div>
+
         {indexType.isLast || indexType.isSingle ? (
           <Popover>
             <PopoverTrigger>
@@ -250,7 +395,7 @@ export const OtherMessage = ({
         ) : (
           <div className="w-10 shrink-0"></div>
         )}
-        <div className={cn('flex flex-col gap-1 max-w-full w-max')}>
+        <div className={cn('flex flex-col gap-1 max-w-full w-max relative')}>
           {message.replyTo && (
             <div className="bg-secondary px-3 py-2 rounded-t-2xl translate-y-5 -mt-4">
               <p className="text-sm text-muted-foreground truncate pb-4">
@@ -258,6 +403,7 @@ export const OtherMessage = ({
               </p>
             </div>
           )}
+          <MessageReactions message={message} isOwner={false} />
           {Boolean(message?.content) && (
             <div
               className={cn(
@@ -379,10 +525,7 @@ export const OwnerMessage = ({
   return (
     <div
       data-message-id={message._id}
-      className={cn(
-        'flex flex-col gap-1',
-        isSearchHighlight && 'ring-primary/80 rounded-lg ring-2 ring-offset-2 ring-offset-background'
-      )}
+      className={cn('flex flex-col gap-1', isSearchHighlight && 'bg-primary/10 rounded-lg')}
     >
       <p
         className={cn(
@@ -392,18 +535,26 @@ export const OwnerMessage = ({
       >
         {getMessageTime(message.createdAt)}
       </p>
-      <div className="self-end max-w-2/3 flex flex-col items-end gap-1 relative group">
-        <button
-          type="button"
-          aria-label="Reply to message"
-          onClick={(e) => {
-            e.stopPropagation();
-            setReplyingTo(message);
-          }}
-          className="absolute top-1/2 left-0 -translate-x-14 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
-        >
-          <CornerUpLeft className="size-4" />
-        </button>
+      <div
+        className={cn(
+          'self-end max-w-2/3 flex flex-col items-end gap-1 relative group',
+          message.reactions?.length && 'mb-3'
+        )}
+      >
+        <div className="absolute top-1/2 left-0 -translate-x-14 -translate-y-1/2 flex items-center gap-0.5">
+          <button
+            type="button"
+            aria-label="Reply to message"
+            onClick={(e) => {
+              e.stopPropagation();
+              setReplyingTo(message);
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+          >
+            <CornerUpLeft className="size-3" />
+          </button>
+          <MessageReactionBar message={message} />
+        </div>
         {message.replyTo && (
           <>
             <p className="text-xs text-muted-foreground truncate text-left w-full pl-2">
@@ -446,6 +597,7 @@ export const OwnerMessage = ({
           </div>
         )}
         {renderMediaGrid()}
+        <MessageReactions message={message} isOwner />
       </div>
       <SeenAvatars seenUsers={seenByUsers} />
     </div>

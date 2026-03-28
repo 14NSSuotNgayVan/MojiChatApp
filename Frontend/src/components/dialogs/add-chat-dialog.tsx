@@ -300,9 +300,7 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                             <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
                             <p className="">{user.displayName}</p>
                           </div>
-                          {mode === 'group' && selectedMemberIds.has(user._id) && (
-                            <Check className="size-4" />
-                          )}
+                            <Check className={cn("size-4 hidden group-hover:block",(mode === 'group' && selectedMemberIds.has(user._id)) ? 'block':'')} />
                           {mode === 'direct' && (
                             <Button
                               variant="primary"
@@ -340,9 +338,7 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                           <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
                           <p className="">{user.displayName}</p>
                         </div>
-                        {mode === 'group' && selectedMemberIds.has(user._id) && (
-                          <Check className="size-4" />
-                        )}
+                        <Check className={cn("size-4 hidden group-hover:block",(mode === 'group' && selectedMemberIds.has(user._id)) ? 'block':'')} />
                         {mode === 'direct' && (
                           <Button
                             variant="primary"

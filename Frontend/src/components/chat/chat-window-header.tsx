@@ -86,7 +86,7 @@ export const ChatWindowHeader = () => {
             {messageSearchLoading && !messageSearchTotal ? (
               '…'
             ) : messageSearchTotal > 0 ? (
-              `${currentSearchIndex + 1}/${messageSearchTotal}`
+              `${messageSearchTotal- currentSearchIndex}/${messageSearchTotal}`
             ) : (
               '0/0'
             )}

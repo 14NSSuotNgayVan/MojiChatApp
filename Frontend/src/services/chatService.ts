@@ -93,6 +93,13 @@ export const chatService = {
     return res.data.message;
   },
 
+  async toggleMessageReaction(
+    payload: { conversationId: string; messageId: string; emoji: string }
+  ): Promise<{ conversationId: string; messageId: string; reactions: Array<{ emoji: string; userId: string }> }> {
+    const res = await api.post("/message/reaction/toggle", payload);
+    return res.data;
+  },
+
   async addParticipant(conversationId: string, participantId: string) {
     const res = await api.post(`/conversations/${conversationId}/participant/add`, null, {
       params: { participantId }

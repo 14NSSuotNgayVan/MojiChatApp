@@ -1,14 +1,50 @@
 import { SigninForm } from '@/components/auth/signin-form';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { ToggleTheme } from '../../components/toggle-theme.tsx';
+import { toast } from 'sonner';
 const SignInPage = () => {
-  const { accessToken } = useAuthStore();
+  const { accessToken, setAccessToken, getProfile } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const handleNavigateHome = () => {
     navigate('/');
   };
+
+  useEffect(() => {
+    const oauthStatus = searchParams.get('oauth');
+    if (!oauthStatus) return;
+
+    if (oauthStatus === 'success') {
+      const token = searchParams.get('accessToken');
+      if (!token) {
+        toast.error('Đăng nhập OAuth thất bại: thiếu token.');
+        navigate('/signin', { replace: true });
+        return;
+      }
+      void (async () => {
+        try {
+          setAccessToken(token);
+          await getProfile();
+          toast.success('Đăng nhập thành công!');
+          navigate('/', { replace: true });
+        } catch (error) {
+          console.error(error);
+          toast.error('Không thể lấy thông tin người dùng sau khi đăng nhập OAuth.');
+          navigate('/signin', { replace: true });
+        }
+      })();
+      return;
+    }
+
+    const provider = searchParams.get('provider');
+    const reason = searchParams.get('reason');
+    toast.error(`Đăng nhập ${provider || 'OAuth'} thất bại${reason ? `: ${reason}` : '.'}`);
+    navigate('/signin', { replace: true });
+  }, [getProfile, navigate, searchParams, setAccessToken]);
+
   return (
     <div className="animated-bg dark:bg-login flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
       <div className="absolute top-2 right-2">

@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     },
     hashPassword: {
         type: String,
-        required: true
+        required: false
     },
     email: {
         type: String,
@@ -48,6 +48,23 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: String,
         parse: true
+    },
+    oauthProviders: {
+        googleId: {
+            type: String,
+            index: true,
+            sparse: true
+        },
+        facebookId: {
+            type: String,
+            index: true,
+            sparse: true
+        }
+    },
+    authType: {
+        type: String,
+        enum: ['local', 'oauth', 'hybrid'],
+        default: 'local'
     }
 }, {
     timestamps: true
