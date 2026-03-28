@@ -448,6 +448,120 @@ export const getMessages = async (req, res) => {
     }
 }
 
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const searchMessages = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { keyword, limit = 20, cursor } = req.query;
+        const userIdObj = req.user._id;
+        const userId = userIdObj?.toString?.() || String(userIdObj);
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const kw = typeof keyword === "string" ? keyword.trim() : "";
+        if (!kw) {
+            return res.status(400).json({ message: "Keyword is required!" });
+        }
+
+        const conv = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userIdObj,
+        })
+            .select("type clearedAt participants")
+            .lean();
+
+        if (!conv) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const selfParticipant = conv?.participants?.find(
+            (p) => p?.userId?.toString?.() === userIdObj?.toString?.()
+        );
+        if (!selfParticipant) {
+            return res.status(403).json({ message: "You are not a participant in this conversation." });
+        }
+
+        const clearedAt =
+            conv?.clearedAt?.get?.(userId) ?? conv?.clearedAt?.[userId];
+
+        const visibilityCreatedAt = {};
+        if (conv?.type === "direct" && clearedAt) visibilityCreatedAt.$gte = new Date(clearedAt);
+        if (conv?.type === "group" && selfParticipant?.status === "LEFT" && selfParticipant?.leftAt) {
+            visibilityCreatedAt.$lte = new Date(selfParticipant.leftAt);
+        }
+
+        const createdAtFilter = { ...visibilityCreatedAt };
+        if (cursor) createdAtFilter.$lt = new Date(cursor);
+
+        const baseMatch = {
+            conversationId: new mongoose.Types.ObjectId(conversationId),
+            type: { $ne: "system" },
+            isDeleted: { $ne: true },
+            content: { $regex: escapeRegex(kw), $options: "i" },
+        };
+
+        const countQuery = { ...baseMatch };
+        if (Object.keys(visibilityCreatedAt).length) {
+            countQuery.createdAt = visibilityCreatedAt;
+        }
+
+        const findQuery = { ...baseMatch };
+        if (Object.keys(createdAtFilter).length) {
+            findQuery.createdAt = createdAtFilter;
+        }
+
+        const lim = Math.min(Math.max(Number(limit) || 20, 1), 50);
+
+        const total = await Message.countDocuments(countQuery);
+
+        let messages = await Message.find(findQuery)
+            .sort({ createdAt: -1, _id: -1 })
+            .limit(lim + 1)
+            .populate([
+                {
+                    path: "replyTo",
+                    select: "senderId type content createdAt",
+                    options: { lean: true },
+                },
+                {
+                    path: "mediaIds",
+                    select: "type url isDeleted createdAt meta",
+                    options: { lean: true },
+                },
+            ])
+            .lean();
+
+        let nextCursor;
+        if (messages.length > lim) {
+            nextCursor = messages[messages.length - 2].createdAt.toISOString();
+            messages.pop();
+        }
+
+        const messageRes = messages.map((currentMsg) => {
+            const medias = currentMsg.mediaIds;
+            delete currentMsg.mediaIds;
+            return {
+                ...currentMsg,
+                isOwner: currentMsg.senderId.toString() === userId,
+                medias,
+            };
+        });
+
+        return res.status(200).json({
+            message: "Search messages success!",
+            messages: messageRes,
+            nextCursor,
+            total,
+        });
+    } catch (error) {
+        console.error("Error when calling searchMessages: " + error);
+        return res.status(500).send();
+    }
+};
+
 export const updateGroupProfile = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
