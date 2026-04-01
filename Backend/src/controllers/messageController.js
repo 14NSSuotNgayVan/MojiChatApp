@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
 import ConversationStats from "../models/ConversationStats.js";
 import Message from "../models/Message.js";
-import { io } from "../socket/index.js";
+import { io, onlineUsers } from "../socket/index.js";
 import { emmitNewMessage, updateConversationAfterCreateMessage } from "../utils/messageHelper.js";
 import Attachment from "../models/Attachment.js";
 
@@ -374,6 +374,185 @@ export const toggleMessageReaction = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         console.error("Error when calling toggleMessageReaction: " + error);
+        return res.status(500).send();
+    } finally {
+        session.endSession();
+    }
+};
+
+export const deleteMessageForMe = async (req, res) => {
+    try {
+        const { conversationId, messageId } = req.body || {};
+        const userId = req.user?._id;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        if (!conversationId || !messageId) {
+            return res.status(400).json({ message: "conversationId and messageId are required!" });
+        }
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+        if (!mongoose.Types.ObjectId.isValid(messageId)) {
+            return res.status(400).json({ message: "Invalid messageId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId,
+        }).select("participants").lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.() && p.status === "ACTIVE"
+        );
+        if (!participant) {
+            return res.status(403).json({ message: "You are not an active participant in this conversation." });
+        }
+
+        const updated = await Message.findOneAndUpdate(
+            { _id: messageId, conversationId },
+            { $addToSet: { deletedFor: userId } },
+            { new: true }
+        ).select("_id");
+
+        if (!updated) {
+            return res.status(404).json({ message: "Message not found!" });
+        }
+
+        const userSocketIds = onlineUsers.get(userId.toString());
+        if (userSocketIds?.size) {
+            for (const socketId of userSocketIds) {
+                io.to(socketId).emit("message-deleted-for-me", {
+                    conversationId: conversationId.toString(),
+                    messageId: messageId.toString(),
+                    userId: userId.toString(),
+                });
+            }
+        }
+
+        return res.status(200).json({
+            conversationId: conversationId.toString(),
+            messageId: messageId.toString(),
+            userId: userId.toString(),
+        });
+    } catch (error) {
+        console.error("Error when calling deleteMessageForMe: " + error);
+        return res.status(500).send();
+    }
+};
+
+export const deleteMessageForEveryone = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { conversationId, messageId } = req.body || {};
+        const userId = req.user?._id;
+
+        if (!userId) {
+            await session.abortTransaction();
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        if (!conversationId || !messageId) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "conversationId and messageId are required!" });
+        }
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+        if (!mongoose.Types.ObjectId.isValid(messageId)) {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "Invalid messageId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId,
+        }).session(session);
+
+        if (!conversation) {
+            await session.abortTransaction();
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.() && p.status === "ACTIVE"
+        );
+        if (!participant) {
+            await session.abortTransaction();
+            return res.status(403).json({ message: "You are not an active participant in this conversation." });
+        }
+
+        const message = await Message.findOne({ _id: messageId, conversationId }).session(session);
+        if (!message) {
+            await session.abortTransaction();
+            return res.status(404).json({ message: "Message not found!" });
+        }
+
+        if (message.type === "system") {
+            await session.abortTransaction();
+            return res.status(400).json({ message: "System message cannot be deleted for everyone." });
+        }
+
+        if (message.senderId?.toString?.() !== userId?.toString?.()) {
+            await session.abortTransaction();
+            return res.status(403).json({ message: "Only sender can delete this message for everyone." });
+        }
+
+        if (!message.isDeleted) {
+            message.isDeleted = true;
+            message.content = null;
+            message.mediaIds = [];
+            message.replyTo = null;
+            message.reactions = [];
+            await message.save({ session });
+        }
+
+        if (conversation.lastMessage?._id?.toString?.() === messageId.toString()) {
+            const fallback = await Message.findOne({
+                conversationId,
+                isDeleted: { $ne: true },
+            })
+                .sort({ createdAt: -1, _id: -1 })
+                .session(session)
+                .lean();
+
+            if (fallback) {
+                conversation.lastMessage = {
+                    _id: fallback._id.toString(),
+                    content: fallback.content,
+                    senderId: fallback.senderId,
+                    type: fallback.type,
+                    systemType: fallback.systemType,
+                    createdAt: fallback.createdAt,
+                };
+                conversation.lastMessageAt = fallback.createdAt;
+            } else {
+                conversation.lastMessage = null;
+                conversation.lastMessageAt = conversation.createdAt;
+            }
+            await conversation.save({ session });
+        }
+
+        await session.commitTransaction();
+
+        io.to(conversationId.toString()).emit("message-deleted-for-everyone", {
+            conversationId: conversationId.toString(),
+            messageId: messageId.toString(),
+        });
+
+        return res.status(200).json({
+            conversationId: conversationId.toString(),
+            messageId: messageId.toString(),
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error when calling deleteMessageForEveryone: " + error);
         return res.status(500).send();
     } finally {
         session.endSession();
