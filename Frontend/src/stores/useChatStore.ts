@@ -51,6 +51,122 @@ export const useChatStore = create<ChatState>()(
         });
       };
 
+      const removeMessageFromStore = (conversationId: string, messageId: string) => {
+        set((prev) => {
+          const prevConv = prev.messages?.[conversationId];
+          const prevItems = prevConv?.items ?? [];
+          const nextItems = prevItems.filter((m) => m._id !== messageId);
+          const removedMessage = prevItems.find((m) => m._id === messageId);
+
+          const nextConversation =
+            prev.activeConversation?._id === conversationId && prev.activeConversation.lastMessage?._id === messageId
+              ? {
+                  ...prev.activeConversation,
+                  lastMessage:
+                    nextItems.length > 0
+                      ? {
+                          _id: nextItems[nextItems.length - 1]._id,
+                          content: nextItems[nextItems.length - 1].content ?? '',
+                          senderId: nextItems[nextItems.length - 1].senderId,
+                          type: nextItems[nextItems.length - 1].type,
+                          systemType: nextItems[nextItems.length - 1].systemType,
+                          createdAt: nextItems[nextItems.length - 1].createdAt,
+                        }
+                      : null,
+                  lastMessageAt:
+                    nextItems.length > 0
+                      ? nextItems[nextItems.length - 1].createdAt
+                      : prev.activeConversation.lastMessageAt,
+                }
+              : prev.activeConversation;
+
+          const nextConversations = prev.conversations.map((c) => {
+            if (c._id !== conversationId || c.lastMessage?._id !== messageId) return c;
+            const fallback = nextItems[nextItems.length - 1];
+            return {
+              ...c,
+              lastMessage: fallback
+                ? {
+                    _id: fallback._id,
+                    content: fallback.content ?? '',
+                    senderId: fallback.senderId,
+                    type: fallback.type,
+                    systemType: fallback.systemType,
+                    createdAt: fallback.createdAt,
+                  }
+                : c.lastMessage,
+              lastMessageAt: fallback ? fallback.createdAt : c.lastMessageAt,
+            };
+          });
+
+          return {
+            ...prev,
+            messages: prevConv
+              ? {
+                  ...prev.messages,
+                  [conversationId]: {
+                    ...prevConv,
+                    items: nextItems,
+                  },
+                }
+              : prev.messages,
+            messageSearchResults: prev.messageSearchResults.filter((m) => m._id !== messageId),
+            replyingTo: prev.replyingTo?._id === messageId ? null : prev.replyingTo,
+            activeConversation: nextConversation,
+            conversations: nextConversations,
+            medias: removedMessage?.medias?.length
+              ? {
+                  ...prev.medias,
+                  [conversationId]: prev.medias?.[conversationId]
+                    ? {
+                        ...prev.medias[conversationId],
+                        items: prev.medias[conversationId].items.filter(
+                          (md) => !removedMessage.medias?.some((rmd) => rmd._id === md._id)
+                        ),
+                      }
+                    : prev.medias?.[conversationId],
+                }
+              : prev.medias,
+          };
+        });
+      };
+
+      const markMessageDeletedForEveryone = (conversationId: string, messageId: string) => {
+        set((prev) => {
+          const prevConv = prev.messages?.[conversationId];
+          const nextItems = prevConv?.items?.map((m) =>
+            m._id === messageId
+              ? {
+                  ...m,
+                  isDeleted: true,
+                  content: null,
+                  medias: [],
+                  replyTo: null,
+                  reactions: [],
+                }
+              : m
+          );
+
+          const nextSearch = prev.messageSearchResults.filter((m) => m._id !== messageId);
+          const shouldClearReply = prev.replyingTo?._id === messageId;
+
+          return {
+            ...prev,
+            messages: prevConv
+              ? {
+                  ...prev.messages,
+                  [conversationId]: {
+                    ...prevConv,
+                    items: nextItems,
+                  },
+                }
+              : prev.messages,
+            messageSearchResults: nextSearch,
+            replyingTo: shouldClearReply ? null : prev.replyingTo,
+          };
+        });
+      };
+
       return ({
         isSearching: false,
         isFetchOldMessage: false,
@@ -207,8 +323,8 @@ export const useChatStore = create<ChatState>()(
         navigateMessageSearchResult: async (direction) => {
           const activeId = get().activeConversationId;
           if (!activeId) return;
-          let { messageSearchResults, currentSearchIndex, messageSearchNextCursor, messageSearchKeyword } =
-            get();
+          let { messageSearchResults } = get();
+          const { currentSearchIndex, messageSearchNextCursor, messageSearchKeyword } = get();
           const len = messageSearchResults.length;
           if (len === 0) return;
 
@@ -429,6 +545,32 @@ export const useChatStore = create<ChatState>()(
         onMessageReactionUpdated: (data) => {
           if (!data?.conversationId || !data?.messageId) return;
           mergeMessageReactions(data.conversationId, data.messageId, data.reactions ?? []);
+        },
+        deleteMessageForMe: async (conversationId, messageId) => {
+          try {
+            const res = await chatService.deleteMessageForMe({ conversationId, messageId });
+            get().onMessageDeletedForMe(res);
+          } catch (error) {
+            console.error(error);
+            toast.error("Lỗi khi xóa tin nhắn phía bạn!");
+          }
+        },
+        deleteMessageForEveryone: async (conversationId, messageId) => {
+          try {
+            const res = await chatService.deleteMessageForEveryone({ conversationId, messageId });
+            get().onMessageDeletedForEveryone(res);
+          } catch (error) {
+            console.error(error);
+            toast.error("Lỗi khi thu hồi tin nhắn!");
+          }
+        },
+        onMessageDeletedForMe: (data) => {
+          if (!data?.conversationId || !data?.messageId) return;
+          removeMessageFromStore(data.conversationId, data.messageId);
+        },
+        onMessageDeletedForEveryone: (data) => {
+          if (!data?.conversationId || !data?.messageId) return;
+          markMessageDeletedForEveryone(data.conversationId, data.messageId);
         },
         onNewMessage: (data) => {
           const { user } = useAuthStore.getState();

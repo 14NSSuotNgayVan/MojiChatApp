@@ -97,6 +97,7 @@ export interface Message {
   conversationId: string;
   senderId: string;
   content: string | null;
+  isDeleted?: boolean;
   systemType?: SYSTEM_TYPE;
   meta?: SystemMeta;
   medias?: Media[];

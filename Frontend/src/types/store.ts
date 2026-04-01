@@ -129,6 +129,10 @@ export interface ChatState {
     emoji: string
   ) => Promise<void>;
   onMessageReactionUpdated: (data: MessageReactionUpdatedResponse) => void;
+  deleteMessageForMe: (conversationId: string, messageId: string) => Promise<void>;
+  deleteMessageForEveryone: (conversationId: string, messageId: string) => Promise<void>;
+  onMessageDeletedForMe: (data: MessageDeletedForMeResponse) => void;
+  onMessageDeletedForEveryone: (data: MessageDeletedForEveryoneResponse) => void;
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;
   seenMessage: () => void;
@@ -174,6 +178,17 @@ export interface MessageReactionUpdatedResponse {
     emoji: string;
     userId: string;
   }>;
+}
+
+export interface MessageDeletedForMeResponse {
+  conversationId: string;
+  messageId: string;
+  userId: string;
+}
+
+export interface MessageDeletedForEveryoneResponse {
+  conversationId: string;
+  messageId: string;
 }
 
 interface SeenMessageResponse {

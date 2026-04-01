@@ -42,6 +42,11 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         "message-reaction-updated",
         useChatStore.getState().onMessageReactionUpdated
       );
+      socket.on("message-deleted-for-me", useChatStore.getState().onMessageDeletedForMe);
+      socket.on(
+        "message-deleted-for-everyone",
+        useChatStore.getState().onMessageDeletedForEveryone
+      );
       socket.on("participant-added", useChatStore.getState().onParticipantAdded);
       socket.on("participant-removed", useChatStore.getState().onParticipantRemoved);
       socket.on("participant-role-updated", useChatStore.getState().onParticipantRoleUpdated);
@@ -90,6 +95,8 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       socket.off("new-message");
       socket.off("seen-message-updated");
       socket.off("message-reaction-updated");
+      socket.off("message-deleted-for-me");
+      socket.off("message-deleted-for-everyone");
       socket.off("participant-added");
       socket.off("participant-removed");
       socket.off("participant-role-updated");

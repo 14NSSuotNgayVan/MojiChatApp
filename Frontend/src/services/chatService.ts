@@ -99,6 +99,14 @@ export const chatService = {
     const res = await api.post("/message/reaction/toggle", payload);
     return res.data;
   },
+  async deleteMessageForMe(payload: { conversationId: string; messageId: string }) {
+    const res = await api.post("/message/delete-for-me", payload);
+    return res.data as { conversationId: string; messageId: string; userId: string };
+  },
+  async deleteMessageForEveryone(payload: { conversationId: string; messageId: string }) {
+    const res = await api.post("/message/delete-for-everyone", payload);
+    return res.data as { conversationId: string; messageId: string };
+  },
 
   async addParticipant(conversationId: string, participantId: string) {
     const res = await api.post(`/conversations/${conversationId}/participant/add`, null, {

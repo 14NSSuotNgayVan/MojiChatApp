@@ -4,7 +4,7 @@ import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
 import { cn, escapeRegex, getMessageTime } from '../../lib/utils.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
-import { CornerUpLeft, Smile, SmilePlus } from 'lucide-react';
+import { CornerUpLeft, EllipsisVertical, Smile, SmilePlus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
 import { Button } from '../ui/button.tsx';
 import { Dialog, DialogContent } from '../ui/dialog.tsx';
@@ -13,6 +13,12 @@ import { OthersProfileCard } from '../profile/profile-card.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
 import { renderSystemMessage } from '@/utils/systemMessageText.tsx';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu.tsx';
 
 type IndexMessageType = 'first' | 'middle' | 'last' | 'single';
 
@@ -39,7 +45,7 @@ const getReplyPreviewText = (replyTo: Message['replyTo']) => {
   const content = replyTo.content?.trim?.() || '';
   if (content) return content;
   if (replyTo.type && replyTo.type !== 'text') return 'Ảnh/Video';
-  return '';
+  return 'Tin nhắn đã được thu hồi';
 };
 
 const REACTION_PRESETS = ['😂', '😭', '👍', '❤️', '😮', '😡'] as const;
@@ -179,6 +185,41 @@ const MessageReactionBar = ({ message }: { message: Message }) => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+const MessageDeleteMenu = ({ message, isOwner }: { message: Message; isOwner: boolean }) => {
+  const { deleteMessageForMe, deleteMessageForEveryone } = useChatStore();
+  if (message.type === 'system' || message.isDeleted) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Message actions"
+          onClick={(e) => e.stopPropagation()}
+          className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+        >
+          <EllipsisVertical className="size-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+        {!message.isDeleted && (
+          <DropdownMenuItem onClick={() => void deleteMessageForMe(message.conversationId, message._id)}>
+            Xóa phía tôi
+          </DropdownMenuItem>
+        )}
+        {isOwner && !message.isDeleted && (
+          <DropdownMenuItem
+            onClick={() => void deleteMessageForEveryone(message.conversationId, message._id)}
+            className="text-destructive focus:text-destructive"
+          >
+            Xóa với tất cả mọi người
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -364,18 +405,23 @@ export const OtherMessage = ({
         )}
       >
         <div className="absolute top-1/2 right-0 -translate-y-1/2 flex translate-x-[calc(100%+0.5rem)] items-center gap-1">
-          <MessageReactionBar message={message} />
-          <button
-            type="button"
-            aria-label="Reply to message"
-            onClick={(e) => {
-              e.stopPropagation();
-              setReplyingTo(message);
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
-          >
-            <CornerUpLeft className="size-3" />
-          </button>
+          {!message.isDeleted && (
+            <>
+              <MessageReactionBar message={message} />
+              <button
+                type="button"
+                aria-label="Reply to message"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReplyingTo(message);
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+              >
+                <CornerUpLeft className="size-3" />
+              </button>
+            </>
+          )}
+          <MessageDeleteMenu message={message} isOwner={false} />
         </div>
 
         {indexType.isLast || indexType.isSingle ? (
@@ -396,15 +442,19 @@ export const OtherMessage = ({
           <div className="w-10 shrink-0"></div>
         )}
         <div className={cn('flex flex-col gap-1 max-w-full w-max relative')}>
-          {message.replyTo && (
+          {!message.isDeleted && message.replyTo && (
             <div className="bg-secondary px-3 py-2 rounded-t-2xl translate-y-5 -mt-4">
               <p className="text-sm text-muted-foreground truncate pb-4">
                 {truncateText(getReplyPreviewText(message.replyTo), 70)}
               </p>
             </div>
           )}
-          <MessageReactions message={message} isOwner={false} />
-          {Boolean(message?.content) && (
+          {!message.isDeleted && <MessageReactions message={message} isOwner={false} />}
+          {message.isDeleted ? (
+            <div className="bg-(--message) px-3 py-2 rounded-2xl italic text-muted-foreground">
+              Tin nhắn đã được thu hồi
+            </div>
+          ) : Boolean(message?.content) && (
             <div
               className={cn(
                 'bg-(--message) px-3 py-2 hover:bg-accent z-1',
@@ -429,7 +479,7 @@ export const OtherMessage = ({
               <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
             </div>
           )}
-          {renderMediaGrid()}
+          {!message.isDeleted && renderMediaGrid()}
         </div>
       </div>
       {seenByUsers && <SeenAvatars seenUsers={seenByUsers} />}
@@ -541,21 +591,26 @@ export const OwnerMessage = ({
           message.reactions?.length && 'mb-3'
         )}
       >
-        <div className="absolute top-1/2 left-0 -translate-x-14 -translate-y-1/2 flex items-center gap-0.5">
-          <button
-            type="button"
-            aria-label="Reply to message"
-            onClick={(e) => {
-              e.stopPropagation();
-              setReplyingTo(message);
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
-          >
-            <CornerUpLeft className="size-3" />
-          </button>
-          <MessageReactionBar message={message} />
+        <div className="absolute top-1/2 left-0 -translate-x-[calc(100%+0.5rem)] -translate-y-1/2 flex items-center gap-0.5">
+          <MessageDeleteMenu message={message} isOwner />
+          {!message.isDeleted && (
+            <>
+              <button
+                type="button"
+                aria-label="Reply to message"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReplyingTo(message);
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+              >
+                <CornerUpLeft className="size-3" />
+              </button>
+              <MessageReactionBar message={message} />
+            </>
+          )}
         </div>
-        {message.replyTo && (
+        {!message.isDeleted && message.replyTo && (
           <>
             <p className="text-xs text-muted-foreground truncate text-left w-full pl-2">
               {users[message.replyTo.senderId]?.displayName
@@ -571,7 +626,11 @@ export const OwnerMessage = ({
             </div>
           </>
         )}
-        {message.content && (
+        {message.isDeleted ? (
+          <div className="bg-(--message) px-3 py-2 rounded-2xl italic text-muted-foreground">
+            Tin nhắn đã được thu hồi
+          </div>
+        ) : message.content && (
           <div
             className={cn(
               'bg-(--message) px-3 py-2 hover:bg-accent z-1',
@@ -596,8 +655,8 @@ export const OwnerMessage = ({
             <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
           </div>
         )}
-        {renderMediaGrid()}
-        <MessageReactions message={message} isOwner />
+        {!message.isDeleted && renderMediaGrid()}
+        {!message.isDeleted && <MessageReactions message={message} isOwner />}
       </div>
       <SeenAvatars seenUsers={seenByUsers} />
     </div>
