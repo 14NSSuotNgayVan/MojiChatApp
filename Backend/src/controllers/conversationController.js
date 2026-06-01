@@ -383,7 +383,10 @@ export const getMessages = async (req, res) => {
             (p) => p?.userId?.toString?.() === userIdObj?.toString?.()
         );
 
-        const query = { conversationId };
+        const query = {
+            conversationId,
+            deletedFor: { $ne: userIdObj }
+        };
 
         const createdAt = {};
         if (cursor) createdAt.$lt = new Date(cursor);
@@ -506,6 +509,7 @@ export const searchMessages = async (req, res) => {
             conversationId: new mongoose.Types.ObjectId(conversationId),
             type: { $ne: "system" },
             isDeleted: { $ne: true },
+            deletedFor: { $ne: userIdObj },
             content: { $regex: escapeRegex(kw), $options: "i" },
         };
 
