@@ -1,7 +1,10 @@
 import { Slider } from '@/components/ui/slider.tsx';
+import { useCanHover } from '@/hooks/use-can-hover.ts';
 import { cn } from '@/lib/utils.ts';
 import { Pause, Play, Volume2, VolumeOff } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const CONTROLS_HIDE_DELAY_MS = 3500;
 
 export interface ChatVideoProps {
   src: string; // video url (Cloudinary)
@@ -24,12 +27,34 @@ export function ChatVideo({
   videoClassName,
   showProgress = false,
 }: ChatVideoProps) {
+  const canHover = useCanHover();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [seeking, setSeeking] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(false);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    clearHideTimer();
+    if (!canHover) {
+      hideTimerRef.current = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_DELAY_MS);
+    }
+  }, [canHover, clearHideTimer]);
+
+  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+
+  const showControlsOverlay = canHover || controlsVisible;
 
   function formatTime(seconds: number) {
     const m = Math.floor(seconds / 60);
@@ -44,6 +69,7 @@ export function ChatVideo({
 
     video.play();
     setIsPlaying(true);
+    if (!canHover) showControls();
   };
 
   const handlePause = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -53,9 +79,12 @@ export function ChatVideo({
 
     video.pause();
     setIsPlaying(false);
+    if (!canHover) showControls();
   };
+
   const handleEnded = () => {
     setIsPlaying(false);
+    setControlsVisible(false);
   };
 
   const handleTimeUpdate = () => {
@@ -66,13 +95,14 @@ export function ChatVideo({
   const handleSeek = ([value]: number[]) => {
     setSeeking(true);
     setCurrentTime(value);
+    if (!canHover) showControls();
   };
 
-  // Khi thả slider
   const handleSeekCommit = ([value]: number[]) => {
     if (!videoRef.current) return;
     videoRef.current.currentTime = value;
     setSeeking(false);
+    if (!canHover) showControls();
   };
 
   const handleToggleMute = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -81,12 +111,41 @@ export function ChatVideo({
     if (!video) return;
 
     video.muted = !isMuted;
-
     setIsMuted((prev) => !prev);
+    if (!canHover) showControls();
+  };
+
+  const handleVideoClick = (e: React.MouseEvent<HTMLVideoElement>) => {
+    if (!canHover) {
+      if (onClick && !isPlaying) {
+        onClick(e);
+        return;
+      }
+      if (onClick && isPlaying) {
+        e.preventDefault();
+        e.stopPropagation();
+        showControls();
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      showControls();
+      return;
+    }
+    onClick?.(e);
+  };
+
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (canHover || onClick) return;
+    e.stopPropagation();
+    showControls();
   };
 
   return (
-    <div className={cn('relative group/video', className)}>
+    <div
+      className={cn('relative group/video', className)}
+      onClick={handleContainerClick}
+    >
       <video
         ref={videoRef}
         src={src}
@@ -100,7 +159,7 @@ export function ChatVideo({
           setDuration(e.currentTarget.duration);
         }}
         onTimeUpdate={handleTimeUpdate}
-        onClick={onClick && onClick}
+        onClick={handleVideoClick}
       />
 
       {!isPlaying ? (
@@ -126,24 +185,47 @@ export function ChatVideo({
           className={cn(
             'absolute',
             !onClick
-              ? '/video flex justify-center items-center inset-0'
-              : 'top-1/2 left-1/2 -translate-1/2 p-2 rounded-full border-0 cursor-pointer hidden group-hover/video:block bg-accent/30'
+              ? cn(
+                  'flex justify-center items-center inset-0',
+                  !showControlsOverlay && 'pointer-events-none'
+                )
+              : cn(
+                  'top-1/2 left-1/2 -translate-1/2 p-2 rounded-full border-0 cursor-pointer bg-accent/30',
+                  canHover
+                    ? 'hidden group-hover/video:block'
+                    : showControlsOverlay
+                      ? 'block'
+                      : 'hidden'
+                )
           )}
         >
           <Pause
             className={cn(
               'text-white',
               !onClick &&
-                'size-10 p-2 rounded-full border-0 cursor-pointer opacity-0 bg-accent/30 group-hover/video:opacity-100'
+                cn(
+                  'size-10 p-2 rounded-full border-0 cursor-pointer bg-accent/30',
+                  canHover
+                    ? 'opacity-0 group-hover/video:opacity-100'
+                    : showControlsOverlay
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                )
             )}
           />
         </button>
       )}
       <div
         className={cn(
-          'absolute bottom-0 right-0 left-0 justify-between items-center px-4 py-2 text-xs tracking-wider font-semibold gap-1 hidden group-hover/video:flex',
-          !onClick && 'bg-linear-to-t from-black/40 via-black/25 to-black/10'
+          'absolute bottom-0 right-0 left-0 justify-between items-center px-4 py-2 text-xs tracking-wider font-semibold gap-1',
+          !onClick && 'bg-linear-to-t from-black/40 via-black/25 to-black/10',
+          canHover
+            ? 'hidden group-hover/video:flex'
+            : showControlsOverlay
+              ? 'flex'
+              : 'hidden'
         )}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 text-white">
           {formatTime(currentTime)} / {formatTime(duration)}
@@ -157,6 +239,7 @@ export function ChatVideo({
             onValueChange={handleSeek}
             onValueCommit={handleSeekCommit}
             className="cursor-pointer"
+            alwaysShowThumb={!canHover && showControlsOverlay}
           />
         )}
         <button

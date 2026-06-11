@@ -10,6 +10,7 @@ import { fileService } from '@/services/fileService.ts';
 import { friendService } from '@/services/friendService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { Check, ImagePlus, SearchIcon, Send, Users } from 'lucide-react';
+import { useCanHover } from '@/hooks/use-can-hover.ts';
 import { useEffect, useState } from 'react';
 
 type NotUser = {
@@ -25,7 +26,14 @@ type DialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+const memberCheckClass = (canHover: boolean, isSelected: boolean) =>
+  cn(
+    'size-4',
+    isSelected ? 'block' : canHover ? 'hidden group-hover:block' : 'hidden'
+  );
+
 export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
+  const canHover = useCanHover();
   const [loading, setLoading] = useState<boolean>(false);
   const [openProfileDialog, setOpenProfileDialog] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -300,7 +308,12 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                             <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
                             <p className="">{user.displayName}</p>
                           </div>
-                            <Check className={cn("size-4 hidden group-hover:block",(mode === 'group' && selectedMemberIds.has(user._id)) ? 'block':'')} />
+                            <Check
+                              className={memberCheckClass(
+                                canHover,
+                                mode === 'group' && selectedMemberIds.has(user._id)
+                              )}
+                            />
                           {mode === 'direct' && (
                             <Button
                               variant="primary"
@@ -338,7 +351,12 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                           <Avatar name={user.displayName} avatarUrl={user?.avtUrl} />
                           <p className="">{user.displayName}</p>
                         </div>
-                        <Check className={cn("size-4 hidden group-hover:block",(mode === 'group' && selectedMemberIds.has(user._id)) ? 'block':'')} />
+                        <Check
+                          className={memberCheckClass(
+                            canHover,
+                            mode === 'group' && selectedMemberIds.has(user._id)
+                          )}
+                        />
                         {mode === 'direct' && (
                           <Button
                             variant="primary"

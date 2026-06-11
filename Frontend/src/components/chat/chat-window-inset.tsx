@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useCanHover } from '../../hooks/use-can-hover.ts';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import type { MessageGroup } from '../../types/chat.ts';
 import { ChatEmptyMessageWelcome } from './chat-empty-message-welcome.tsx';
@@ -23,7 +24,10 @@ export const ChatWindowInset = () => {
     getDefaultGroupName,
     highlightedMessageId,
     loadMessagesUntilMessageId,
+    activeMessageId,
+    setActiveMessageId,
   } = useChatStore();
+  const canHover = useCanHover();
   const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
   const { user } = useAuthStore();
   const { items } = currentMessages;
@@ -37,6 +41,18 @@ export const ChatWindowInset = () => {
   useEffect(() => {
     if (isAtBottom) seenMessage();
   }, [isAtBottom, activeConversation?.lastMessage?._id, seenMessage]);
+
+  useEffect(() => {
+    if (canHover || !activeMessageId) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-message-id]')) {
+        setActiveMessageId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [canHover, activeMessageId, setActiveMessageId]);
 
   useEffect(() => {
     if (!highlightedMessageId || !activeConversationId) return;

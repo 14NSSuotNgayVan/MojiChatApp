@@ -9,8 +9,9 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  alwaysShowThumb = false,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: React.ComponentProps<typeof SliderPrimitive.Root> & { alwaysShowThumb?: boolean }) {
   const _values = React.useMemo(
     () => (Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]),
     [value, defaultValue, min, max]
@@ -46,7 +47,10 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="hidden border-primary ring-ring/50 group-hover/slider:block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          className={cn(
+            'border-primary ring-ring/50 size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50',
+            alwaysShowThumb ? 'block' : 'hidden group-hover/slider:block'
+          )}
         />
       ))}
     </SliderPrimitive.Root>

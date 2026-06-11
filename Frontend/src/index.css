@@ -2,6 +2,8 @@
 @import './styles/style-index.css';
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant can-hover (@media (hover: hover) and (pointer: fine));
+@custom-variant no-hover (@media not all and (hover: hover) and (pointer: fine));
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
