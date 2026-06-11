@@ -31,7 +31,10 @@ export const authService = {
     return res.data;
   },
   signOut: async () => {
-    await api.post("auth/signout", {}, { withCredentials: true });
+    await api.post("auth/signout", {}, {
+      withCredentials: true,
+      skipAuth: true,
+    } as any);
   },
   getOAuthStartUrl: (provider: "google" | "facebook") => {
     const baseURL = (api.defaults.baseURL || "").replace(/\/+$/, "");
