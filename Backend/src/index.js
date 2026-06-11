@@ -14,9 +14,16 @@ import uploadFileRoute from './routes/fileRoute.js';
 
 const PORT = process.env.PORT || 5000;
 
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(
+    cors({
+        origin: process.env.CLIENT_URL?.replace(/\/+$/, ""),
+        credentials: true,
+    })
+);
 //protected route
 
 

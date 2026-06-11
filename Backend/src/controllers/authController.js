@@ -9,6 +9,23 @@ import { OAuth2Client } from "google-auth-library";
 const ACCESS_TOKEN_TTL = "30m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; //14 ngày
 const OAUTH_STATE_TTL = 10 * 60 * 1000;
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+// Cross-origin SPA (Pages + API khác domain) cần sameSite=none + secure
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    maxAge: REFRESH_TOKEN_TTL,
+    path: "/",
+};
+
+const OAUTH_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    path: "/",
+};
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -49,15 +66,11 @@ const makeOauthState = (provider) =>
 
 const setOauthStateCookie = (res, provider, state) => {
     res.cookie("oauthState", state, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        ...OAUTH_COOKIE_OPTIONS,
         maxAge: OAUTH_STATE_TTL,
     });
     res.cookie("oauthProvider", provider, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        ...OAUTH_COOKIE_OPTIONS,
         maxAge: OAUTH_STATE_TTL,
     });
 };
@@ -73,8 +86,8 @@ const validateOauthState = (req, provider) => {
 };
 
 const clearOauthStateCookies = (res) => {
-    res.clearCookie("oauthState");
-    res.clearCookie("oauthProvider");
+    res.clearCookie("oauthState", OAUTH_COOKIE_OPTIONS);
+    res.clearCookie("oauthProvider", OAUTH_COOKIE_OPTIONS);
 };
 
 const buildAccessToken = (user) =>
@@ -92,11 +105,7 @@ const createSessionAndSetCookie = async (res, userId) => {
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL),
     });
 
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: REFRESH_TOKEN_TTL,
-    });
+    res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 };
 
 const sanitizeUser = (user) => {
@@ -251,19 +260,32 @@ export const signInhandler = async (req, res) => {
 
 export const signOutHandler = async (req, res) => {
     try {
-        //lấy refresh token từ cookie
         const { refreshToken } = req.cookies;
-        if (!refreshToken) {
-            return res.status(400).json({ message: "No refresh token in cookie" });
-        }
-        //xóa refresh token trong db
-        const deleted = await Session.findOneAndDelete({ refreshToken });
 
-        if (!deleted) {
-            return res.status(400).json({ message: "Invalid refresh token" });
+        if (refreshToken) {
+            const deleted = await Session.findOneAndDelete({ refreshToken });
+            if (!deleted) {
+                return res.status(400).json({ message: "Invalid refresh token" });
+            }
+        } else {
+            // Fallback khi cookie không được gửi cross-origin (sameSite cũ)
+            const header = req.headers?.["authorization"];
+            const accessToken = header?.split(" ")?.[1];
+            if (!accessToken) {
+                return res.status(400).json({ message: "No refresh token in cookie" });
+            }
+
+            let decoded;
+            try {
+                decoded = jwt.verify(accessToken, process.env.ASSET_TOKEN_SECRET);
+            } catch {
+                return res.status(400).json({ message: "No refresh token in cookie" });
+            }
+
+            await Session.deleteMany({ userId: decoded.id });
         }
-        // xóa refresh token trong cookie
-        res.clearCookie("refreshToken");
+
+        res.clearCookie("refreshToken", REFRESH_TOKEN_COOKIE_OPTIONS);
         return res.status(204).send();
     } catch (error) {
         console.error("Error when calling signOut: " + error);
