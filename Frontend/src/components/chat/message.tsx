@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCanHover } from '../../hooks/use-can-hover.ts';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
@@ -50,7 +51,19 @@ const getReplyPreviewText = (replyTo: Message['replyTo']) => {
 
 const REACTION_PRESETS = ['😂', '😭', '👍', '❤️', '😮', '😡'] as const;
 
+const messageActionBtnClass = (canHover: boolean, isActive: boolean, size: 'sm' | 'md' = 'md') =>
+  cn(
+    'transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full cursor-pointer',
+    size === 'sm' ? 'p-0.5' : 'p-1',
+    canHover
+      ? 'opacity-0 group-hover:opacity-100'
+      : isActive
+        ? 'opacity-100'
+        : 'opacity-0 pointer-events-none'
+  );
+
 const MessageReactions = ({ message, isOwner }: { message: Message; isOwner: boolean }) => {
+  const canHover = useCanHover();
   const { toggleMessageReaction } = useChatStore();
   const { user } = useAuthStore();
   const reactions = message.reactions ?? [];
@@ -91,8 +104,17 @@ const MessageReactions = ({ message, isOwner }: { message: Message; isOwner: boo
                 handleToggle(emoji);
               }}
             >
-              <span className="text-xs leading-none group-hover/emoji:pl-0.5">{emoji}</span>
-              <span className="text-xs text-muted-foreground hidden group-hover/emoji:block group-hover/emoji:pr-1">
+              <span
+                className={cn('text-xs leading-none', canHover && 'group-hover/emoji:pl-0.5')}
+              >
+                {emoji}
+              </span>
+              <span
+                className={cn(
+                  'text-xs text-muted-foreground pr-1',
+                  canHover ? 'hidden group-hover/emoji:block' : 'block'
+                )}
+              >
                 x{count}
               </span>
             </button>
@@ -103,7 +125,15 @@ const MessageReactions = ({ message, isOwner }: { message: Message; isOwner: boo
   );
 };
 
-const MessageReactionBar = ({ message }: { message: Message }) => {
+const MessageReactionBar = ({
+  message,
+  canHover,
+  isActionsVisible,
+}: {
+  message: Message;
+  canHover: boolean;
+  isActionsVisible: boolean;
+}) => {
   const { user } = useAuthStore();
   const { toggleMessageReaction } = useChatStore();
   const [open, setOpen] = useState(false);
@@ -126,7 +156,7 @@ const MessageReactionBar = ({ message }: { message: Message }) => {
             type="button"
             aria-label="Reaction to message"
             onClick={(e) => e.stopPropagation()}
-            className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-0.5 cursor-pointer"
+            className={messageActionBtnClass(canHover, isActionsVisible, 'sm')}
           >
             <Smile className="size-4" />
           </button>
@@ -188,7 +218,17 @@ const MessageReactionBar = ({ message }: { message: Message }) => {
   );
 };
 
-const MessageDeleteMenu = ({ message, isOwner }: { message: Message; isOwner: boolean }) => {
+const MessageDeleteMenu = ({
+  message,
+  isOwner,
+  canHover,
+  isActionsVisible,
+}: {
+  message: Message;
+  isOwner: boolean;
+  canHover: boolean;
+  isActionsVisible: boolean;
+}) => {
   const { deleteMessageForMe, deleteMessageForEveryone } = useChatStore();
   if (message.type === 'system' || message.isDeleted) return null;
 
@@ -199,7 +239,7 @@ const MessageDeleteMenu = ({ message, isOwner }: { message: Message; isOwner: bo
           type="button"
           aria-label="Message actions"
           onClick={(e) => e.stopPropagation()}
-          className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+          className={messageActionBtnClass(canHover, isActionsVisible)}
         >
           <EllipsisVertical className="size-3" />
         </button>
@@ -304,9 +344,18 @@ export const OtherMessage = ({
   message: Message;
   indexMessageType: IndexMessageType;
 }) => {
-  const { users, activeConversation, setReplyingTo, highlightedMessageId, messageSearchKeyword } =
-    useChatStore();
+  const {
+    users,
+    activeConversation,
+    setReplyingTo,
+    highlightedMessageId,
+    messageSearchKeyword,
+    activeMessageId,
+    setActiveMessageId,
+  } = useChatStore();
   const { user } = useAuthStore();
+  const canHover = useCanHover();
+  const isActionsVisible = canHover || activeMessageId === message._id;
   const indexType = {
     isFirst: indexMessageType === 'first',
     isMiddle: indexMessageType === 'middle',
@@ -323,6 +372,23 @@ export const OtherMessage = ({
   const handleToggleMessage = () => {
     if (indexType.isFirst || indexType.isSingle) return;
     setIsShowDes((prev) => !prev);
+  };
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    if (!canHover) {
+      e.stopPropagation();
+      if (activeMessageId !== message._id) {
+        setActiveMessageId(message._id);
+        return;
+      }
+    }
+    handleToggleMessage();
+  };
+
+  const handleMessageTap = (e: React.MouseEvent) => {
+    if (canHover) return;
+    e.stopPropagation();
+    setActiveMessageId(activeMessageId === message._id ? null : message._id);
   };
 
   const renderMediaGrid = () => {
@@ -380,6 +446,7 @@ export const OtherMessage = ({
     <div
       data-message-id={message._id}
       className={cn('flex flex-col gap-1 group', isSearchHighlight && 'bg-primary/10 rounded-lg')}
+      onClick={handleMessageTap}
     >
       <p
         className={cn(
@@ -407,7 +474,11 @@ export const OtherMessage = ({
         <div className="absolute top-1/2 right-0 -translate-y-1/2 flex translate-x-[calc(100%+0.5rem)] items-center gap-1">
           {!message.isDeleted && (
             <>
-              <MessageReactionBar message={message} />
+              <MessageReactionBar
+                message={message}
+                canHover={canHover}
+                isActionsVisible={isActionsVisible}
+              />
               <button
                 type="button"
                 aria-label="Reply to message"
@@ -415,13 +486,18 @@ export const OtherMessage = ({
                   e.stopPropagation();
                   setReplyingTo(message);
                 }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+                className={messageActionBtnClass(canHover, isActionsVisible)}
               >
                 <CornerUpLeft className="size-3" />
               </button>
             </>
           )}
-          <MessageDeleteMenu message={message} isOwner={false} />
+          <MessageDeleteMenu
+            message={message}
+            isOwner={false}
+            canHover={canHover}
+            isActionsVisible={isActionsVisible}
+          />
         </div>
 
         {indexType.isLast || indexType.isSingle ? (
@@ -474,7 +550,7 @@ export const OtherMessage = ({
                       isShowDes && !indexType.isFirst && 'rounded-2xl',
                     ])
               )}
-              onClick={handleToggleMessage}
+              onClick={handleBubbleClick}
             >
               <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
             </div>
@@ -515,14 +591,40 @@ export const OwnerMessage = ({
     isSingle: indexMessageType === 'single',
   };
   const [isShowDes, setIsShowDes] = useState<boolean>(indexType.isFirst || indexType.isSingle);
-  const { activeConversation, users, setReplyingTo, highlightedMessageId, messageSearchKeyword } =
-    useChatStore();
+  const {
+    activeConversation,
+    users,
+    setReplyingTo,
+    highlightedMessageId,
+    messageSearchKeyword,
+    activeMessageId,
+    setActiveMessageId,
+  } = useChatStore();
   const { user } = useAuthStore();
+  const canHover = useCanHover();
+  const isActionsVisible = canHover || activeMessageId === message._id;
   const seenByUsers = getMessageSeender(activeConversation?.seenBy || [], message._id, user!._id);
 
   const handleToggleMessage = () => {
     if (indexType.isFirst || indexType.isSingle) return;
     setIsShowDes((prev) => !prev);
+  };
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    if (!canHover) {
+      e.stopPropagation();
+      if (activeMessageId !== message._id) {
+        setActiveMessageId(message._id);
+        return;
+      }
+    }
+    handleToggleMessage();
+  };
+
+  const handleMessageTap = (e: React.MouseEvent) => {
+    if (canHover) return;
+    e.stopPropagation();
+    setActiveMessageId(activeMessageId === message._id ? null : message._id);
   };
 
   const isSearchHighlight = highlightedMessageId === message._id;
@@ -576,6 +678,7 @@ export const OwnerMessage = ({
     <div
       data-message-id={message._id}
       className={cn('flex flex-col gap-1', isSearchHighlight && 'bg-primary/10 rounded-lg')}
+      onClick={handleMessageTap}
     >
       <p
         className={cn(
@@ -592,7 +695,12 @@ export const OwnerMessage = ({
         )}
       >
         <div className="absolute top-1/2 left-0 -translate-x-[calc(100%+0.5rem)] -translate-y-1/2 flex items-center gap-0.5">
-          <MessageDeleteMenu message={message} isOwner />
+          <MessageDeleteMenu
+            message={message}
+            isOwner
+            canHover={canHover}
+            isActionsVisible={isActionsVisible}
+          />
           {!message.isDeleted && (
             <>
               <button
@@ -602,11 +710,15 @@ export const OwnerMessage = ({
                   e.stopPropagation();
                   setReplyingTo(message);
                 }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full p-1 cursor-pointer"
+                className={messageActionBtnClass(canHover, isActionsVisible)}
               >
                 <CornerUpLeft className="size-3" />
               </button>
-              <MessageReactionBar message={message} />
+              <MessageReactionBar
+                message={message}
+                canHover={canHover}
+                isActionsVisible={isActionsVisible}
+              />
             </>
           )}
         </div>
@@ -650,7 +762,7 @@ export const OwnerMessage = ({
                     isShowDes && !indexType.isFirst && 'rounded-2xl',
                   ])
             )}
-            onClick={handleToggleMessage}
+            onClick={handleBubbleClick}
           >
             <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
           </div>

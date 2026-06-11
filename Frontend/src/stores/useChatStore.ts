@@ -190,6 +190,7 @@ export const useChatStore = create<ChatState>()(
         messageSearchTotal: 0,
         messageSearchLoading: false,
         highlightedMessageId: null,
+        activeMessageId: null,
         currentSearchIndex: 0,
         setActiveConversation: (activeConversation) =>
           set((prev) => {
@@ -206,11 +207,13 @@ export const useChatStore = create<ChatState>()(
                   messageSearchNextCursor: null,
                   messageSearchTotal: 0,
                   highlightedMessageId: null,
+                  activeMessageId: null,
                   currentSearchIndex: 0,
                 }
                 : {}),
             };
           }),
+        setActiveMessageId: (messageId) => set({ activeMessageId: messageId }),
         setReplyingTo: (message) => set({ replyingTo: message }),
         setUser: (user) => {
           set((prev) => ({
@@ -1239,6 +1242,7 @@ export const useChatStore = create<ChatState>()(
             messageSearchTotal: 0,
             messageSearchLoading: false,
             highlightedMessageId: null,
+            activeMessageId: null,
             currentSearchIndex: 0,
           });
         },

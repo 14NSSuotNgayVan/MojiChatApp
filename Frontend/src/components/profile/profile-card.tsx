@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu.tsx';
+import { useCanHover } from '../../hooks/use-can-hover.ts';
 import { cn } from '../../lib/utils.ts';
 import { Avatar } from '../avatars/avatar.tsx';
 import { chatService } from '@/services/chatService.ts';
@@ -40,14 +41,23 @@ export const ProfileCard = ({
   onAvtClick?: () => void;
   onBgClick?: () => void;
 }) => {
+  const canHover = useCanHover();
+  const [bgOverlayVisible, setBgOverlayVisible] = useState(false);
+  const [avtOverlayVisible, setAvtOverlayVisible] = useState(false);
+
   return (
     <div className="w-full">
       {/* Background Image */}
       <div
         className={cn(
           'relative w-full aspect-video overflow-hidden bg-gray-200 rounded-lg group',
-          onBgClick && 'group'
+          onBgClick && 'cursor-pointer'
         )}
+        onClick={
+          onBgClick && !canHover
+            ? () => setBgOverlayVisible((prev) => !prev)
+            : undefined
+        }
       >
         {user?.bgUrl && (
           <img src={user?.bgUrl} alt="Background" className="w-full h-full object-cover" />
@@ -55,9 +65,14 @@ export const ProfileCard = ({
         {onBgClick && (
           <div
             className={cn(
-              'hidden justify-center items-center absolute inset-0 bg-black/30 group-hover:flex cursor-pointer'
+              'justify-center items-center absolute inset-0 bg-black/30 cursor-pointer',
+              canHover ? 'hidden group-hover:flex' : bgOverlayVisible ? 'flex' : 'hidden'
             )}
-            onClick={onBgClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBgClick();
+              if (!canHover) setBgOverlayVisible(false);
+            }}
           >
             <ImageUp />
           </div>
@@ -69,21 +84,41 @@ export const ProfileCard = ({
         {/* Avatar & Info */}
         <div className="mb-2 -mt-[calc(1/6)*100%] z-10">
           {user && (
-            <Avatar
-              name={user.displayName}
-              avatarUrl={user.avtUrl}
-              className=" w-1/4 h-auto aspect-square border-4 border-background shrink-0 group relative"
-              layer={
-                onAvtClick && (
-                  <div
-                    className="hidden justify-center items-center absolute inset-0 bg-black/30 group-hover:flex cursor-pointer transition-smooth"
-                    onClick={onAvtClick}
-                  >
-                    <ImageUp />
-                  </div>
-                )
+            <div
+              className={cn('w-1/4 relative', onAvtClick && !canHover && 'cursor-pointer')}
+              onClick={
+                onAvtClick && !canHover
+                  ? () => setAvtOverlayVisible((prev) => !prev)
+                  : undefined
               }
-            />
+            >
+              <Avatar
+                name={user.displayName}
+                avatarUrl={user.avtUrl}
+                className="w-full h-auto aspect-square border-4 border-background shrink-0 group relative"
+                layer={
+                  onAvtClick && (
+                    <div
+                      className={cn(
+                        'justify-center items-center absolute inset-0 bg-black/30 cursor-pointer transition-smooth',
+                        canHover
+                          ? 'hidden group-hover:flex'
+                          : avtOverlayVisible
+                            ? 'flex'
+                            : 'hidden'
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAvtClick();
+                        if (!canHover) setAvtOverlayVisible(false);
+                      }}
+                    >
+                      <ImageUp />
+                    </div>
+                  )
+                }
+              />
+            </div>
           )}
         </div>
         <div className="mb-2">
@@ -100,9 +135,11 @@ export const ProfileCard = ({
 };
 
 export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
+  const canHover = useCanHover();
   const firstRender = useRef<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [unfriendDialogOpen, setUnfriendDialogOpen] = useState(false);
 
   const handleChat = async (userId: string) => {
     try {
@@ -180,37 +217,63 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
     getUserInfo();
   }, []);
 
+  const unfriendDialog = (
+    <Dialog open={unfriendDialogOpen} onOpenChange={setUnfriendDialogOpen}>
+      {canHover && (
+        <DialogTrigger asChild>
+          <Button variant="primary" className="hidden group-hover:flex active:flex">
+            <UserRoundX />
+            Hủy kết bạn
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Xác nhận</DialogTitle>
+          <DialogDescription>Bạn có xác nhận hủy kết bạn với người này ?</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="primary">Hủy</Button>
+          </DialogClose>
+          <Button onClick={unFriendHandler} disabled={loading}>
+            Xác nhận
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   const renderButtons = () => {
     if (profile?.isFriend)
       return (
-        <div className="group transition-smooth">
-          <Button variant="primary" className="group-hover:hidden">
-            <UserRoundCheck />
-            Bạn bè
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="primary" className="hidden group-hover:flex active:flex">
-                <UserRoundX />
-                Hủy kết bạn
+        <>
+          {canHover ? (
+            <div className="group transition-smooth">
+              <Button variant="primary" className="group-hover:hidden">
+                <UserRoundCheck />
+                Bạn bè
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Xác nhận</DialogTitle>
-                <DialogDescription>Bạn có xác nhận hủy kết bạn với người này ?</DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="primary">Hủy</Button>
-                </DialogClose>
-                <Button onClick={unFriendHandler} disabled={loading}>
-                  Xác nhận
+              {unfriendDialog}
+            </div>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="primary" disabled={loading}>
+                  <UserRoundCheck />
+                  Bạn bè
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuItem onSelect={() => setUnfriendDialogOpen(true)}>
+                  <UserRoundX />
+                  Hủy kết bạn
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {!canHover && unfriendDialog}
+        </>
       );
 
     if (profile?.receivedRequest)

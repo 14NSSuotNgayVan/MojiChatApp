@@ -96,6 +96,7 @@ export interface ChatState {
   messageSearchTotal: number;
   messageSearchLoading: boolean;
   highlightedMessageId: string | null;
+  activeMessageId: string | null;
   currentSearchIndex: number;
   reset: () => void;
   setActiveConversation: (activeConversation: Conversation | null) => void;
@@ -142,6 +143,7 @@ export interface ChatState {
   loadMoreMessageSearchResults: (conversationId: string) => Promise<void>;
   navigateMessageSearchResult: (direction: "prev" | "next") => Promise<void>;
   setHighlightedMessageId: (messageId: string | null) => void;
+  setActiveMessageId: (messageId: string | null) => void;
   clearMessageSearch: () => void;
   loadMessagesUntilMessageId: (conversationId: string, messageId: string) => Promise<boolean>;
   getHiddenConversations: () => Promise<void>;

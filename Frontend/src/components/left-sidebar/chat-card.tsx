@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu.tsx';
 import { BellOff, Check, MoreHorizontal } from 'lucide-react';
+import { useCanHover } from '../../hooks/use-can-hover.ts';
 import { useIsMobile } from '../../hooks/use-mobile.ts';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
@@ -23,6 +24,7 @@ interface ChatCardProps {
 }
 export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardProps) => {
   const isMobile = useIsMobile();
+  const canHover = useCanHover();
   const { setOpenMobile } = useSidebar();
   const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading, hideConversation, unhideConversation } =
     useChatStore();
@@ -98,9 +100,16 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
           <div className="text-muted-foreground text-xs">{fromNow(lastMessageAt)}</div>
         )}
         <div className="h-4 relative">
-          <div className="opacity-0 group-hover/item:opacity-100">
+          <div
+            className={cn(
+              canHover ? 'opacity-0 group-hover/item:opacity-100' : 'opacity-100'
+            )}
+          >
             <DropdownMenu>
-              <DropdownMenuTrigger className="w-4 h-4 hover:bg-primary dark:hover:bg-neutral-700 rounded-sm">
+              <DropdownMenuTrigger
+                className="w-4 h-4 hover:bg-primary dark:hover:bg-neutral-700 rounded-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="size-full" />
                 <span className="sr-only">More</span>
               </DropdownMenuTrigger>
@@ -140,11 +149,20 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="block group-hover/item:hidden absolute top-0 right-0">
-            <div className="bg-red-500 text-xs px-1 rounded-full text-white">
-              {user && unreadCounts?.[user._id] ? unreadCounts?.[user._id] : ''}
+          {canHover && (
+            <div className="block group-hover/item:hidden absolute top-0 right-0">
+              <div className="bg-red-500 text-xs px-1 rounded-full text-white">
+                {user && unreadCounts?.[user._id] ? unreadCounts?.[user._id] : ''}
+              </div>
             </div>
-          </div>
+          )}
+          {!canHover && user && !!unreadCounts?.[user._id] && (
+            <div className="absolute -top-1 -right-1">
+              <div className="bg-red-500 text-[10px] min-w-4 h-4 px-0.5 rounded-full text-white flex items-center justify-center">
+                {unreadCounts[user._id]}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
