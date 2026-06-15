@@ -14,6 +14,7 @@ import { BellOff, Check, MoreHorizontal } from 'lucide-react';
 import { useCanHover } from '../../hooks/use-can-hover.ts';
 import { useIsMobile } from '../../hooks/use-mobile.ts';
 import { useChatStore } from '../../stores/useChatStore.ts';
+import { UnreadBadge } from '@/components/ui/unread-badge.tsx';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { useSidebar } from '../ui/sidebar.tsx';
 
@@ -149,18 +150,14 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          {canHover && (
+          {canHover && user && !!unreadCounts?.[user._id] && (
             <div className="block group-hover/item:hidden absolute top-0 right-0">
-              <div className="bg-red-500 text-xs px-1 rounded-full text-white">
-                {user && unreadCounts?.[user._id] ? unreadCounts?.[user._id] : ''}
-              </div>
+              <UnreadBadge count={unreadCounts[user._id]} />
             </div>
           )}
           {!canHover && user && !!unreadCounts?.[user._id] && (
             <div className="absolute -top-1 -right-1">
-              <div className="bg-red-500 text-[10px] min-w-4 h-4 px-0.5 rounded-full text-white flex items-center justify-center">
-                {unreadCounts[user._id]}
-              </div>
+              <UnreadBadge count={unreadCounts[user._id]} size="sm" />
             </div>
           )}
         </div>

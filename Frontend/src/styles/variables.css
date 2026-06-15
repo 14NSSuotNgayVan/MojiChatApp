@@ -32,8 +32,7 @@
     --sidebar-accent-foreground: rgb(75, 46, 54);
     --sidebar-border: rgb(215, 210, 224);
     --sidebar-ring: rgb(138, 121, 171);
-    --font-sans: Geist, sans-serif;
-    --font-serif: "Lora", Georgia, serif;
+    --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
     --font-mono: "Fira Code", "Courier New", monospace;
     --radius: 0.5rem;
     --shadow-x: 1px;
@@ -89,8 +88,7 @@
     --sidebar-accent-foreground: rgb(169, 149, 201);
     --sidebar-border: rgb(42, 39, 58);
     --sidebar-ring: rgb(169, 149, 201);
-    --font-sans: Geist, sans-serif;
-    --font-serif: "Lora", Georgia, serif;
+    --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
     --font-mono: "Fira Code", "Courier New", monospace;
     --radius: 0.5rem;
     --shadow-x: 1px;
@@ -146,7 +144,9 @@
 
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
-    --font-serif: var(--font-serif);
+    --color-message: var(--message);
+    --color-unread-badge: var(--unread-badge);
+    --color-unread-badge-foreground: var(--unread-badge-foreground);
 
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
