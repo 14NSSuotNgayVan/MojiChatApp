@@ -173,7 +173,7 @@ const MessageReactionBar = ({
                 key={emoji}
                 type="button"
                 className={cn(
-                  'flex size-6 items-center justify-center rounded-sm text-lg hover:scale-200 hover:mx-2 transition-all p-1',
+                  'flex size-6 items-center justify-center rounded-sm text-lg hover:scale-110 hover:bg-muted transition-all p-1',
                   myEmoji === emoji && 'bg-muted-foreground/50'
                 )}
                 onClick={() => {

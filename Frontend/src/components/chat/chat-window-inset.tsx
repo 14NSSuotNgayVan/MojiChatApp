@@ -9,6 +9,7 @@ import { useChatScroll } from '../../hooks/use-chat-scroll.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { ArrowDown } from 'lucide-react';
 import { Button } from '../ui/button.tsx';
+import { UnreadBadge } from '@/components/ui/unread-badge.tsx';
 
 export const ChatWindowInset = () => {
   const {
@@ -137,9 +138,7 @@ export const ChatWindowInset = () => {
             {user && !!activeConversation?.unreadCounts?.[user._id] && (
               <>
                 <p className="truncate max-w-3xs pl-1">{activeConversation.lastMessage?.content}</p>
-                <div className="bg-red-500 text-xs px-1 rounded-full text-white">
-                  {activeConversation.unreadCounts?.[user._id]}
-                </div>
+                <UnreadBadge count={activeConversation.unreadCounts[user._id]} />
               </>
             )}
             <Button asChild variant="ghost" className="transition-colors size-6 p-1 rounded-full">

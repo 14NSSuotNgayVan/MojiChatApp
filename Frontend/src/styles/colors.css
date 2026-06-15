@@ -1,0 +1,11 @@
+/* Semantic color aliases — single source for component-specific tokens */
+
+:root {
+    --unread-badge: var(--destructive);
+    --unread-badge-foreground: var(--destructive-foreground);
+}
+
+.dark {
+    --unread-badge: var(--destructive);
+    --unread-badge-foreground: var(--destructive-foreground);
+}

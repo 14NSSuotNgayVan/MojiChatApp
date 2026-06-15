@@ -87,7 +87,7 @@ export const Header = () => {
                 onClick={handleOnSearchClick}
                 onTouchCancel={() => setKeyword('')}
               />
-              <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
+              <div className="text-muted-foreground pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
                 <SearchIcon className="text-primary" size={16} />
               </div>
             </div>

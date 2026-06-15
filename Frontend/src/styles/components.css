@@ -17,7 +17,12 @@
     top: 0;
     margin-left: -55%;
     margin-top: -55%;
-    background: linear-gradient(744deg, #af40ff, #6a55f5 60%, #68f5ff);
+    background: linear-gradient(
+        744deg,
+        color-mix(in srgb, var(--primary) 80%, white),
+        var(--primary) 60%,
+        color-mix(in srgb, var(--secondary) 70%, var(--primary))
+    );
 }
 
 .name {
@@ -81,18 +86,22 @@
 
 /* Light Theme */
 .animated-bg {
-    background: radial-gradient(125% 125% at 50% var(--gradient-y),
-            #fff 40%,
-            #7c3aed 100%);
+    background: radial-gradient(
+        125% 125% at 50% var(--gradient-y),
+        var(--background) 40%,
+        color-mix(in srgb, var(--primary) 35%, var(--secondary)) 100%
+    );
     --gradient-y: 90%;
     animation: moveToBottom 1s ease-out forwards;
 }
 
 /* Dark Theme */
 .dark .animated-bg {
-    background: radial-gradient(125% 125% at 50% var(--gradient-y),
-            #1e1b4b 40%,
-            #0f172a 100%);
+    background: radial-gradient(
+        125% 125% at 50% var(--gradient-y),
+        var(--background) 40%,
+        color-mix(in srgb, var(--primary) 25%, var(--background)) 100%
+    );
     --gradient-y: 10%;
     animation: moveToTop 1s ease-out forwards;
 }
