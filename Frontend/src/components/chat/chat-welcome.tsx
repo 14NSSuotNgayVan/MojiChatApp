@@ -22,7 +22,7 @@ export const ChatWelcome = () => {
       <div className="flex-1 overflow-scroll flex flex-col bg-background">
         <div className="flex-1 flex items-center justify-center px-8 pb-4">
           <div className="text-center max-w-md w-full">
-            <MojiLogo size="md" className="my-4 mx-auto" />
+            <MojiLogo size="xl" variant="app" className="my-4 mx-auto" />
 
             <h2 className="text-3xl font-bold mb-4">Chào mừng đến với</h2>
             <p className="text-4xl font-black mb-6 text-primary">MOJI</p>

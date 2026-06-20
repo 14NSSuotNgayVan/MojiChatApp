@@ -1,5 +1,6 @@
 import { AddChatDialog } from '@/components/dialogs/add-chat-dialog.tsx';
 import { AddFriendDialog } from '@/components/dialogs/add-friend-dialog';
+import { MojiLogo } from '@/components/brand/moji-logo';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { SidebarHeader, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar';
@@ -66,7 +67,7 @@ export const Header = () => {
           <SidebarMenuItem className="flex p-2 items-center gap-2 justify-between">
             <div className="flex items-center gap-2">
               <div className="text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <img src="logo.svg" className="w-6" />
+                <MojiLogo size="sm" variant="mark" className="gap-0" />
               </div>
               <div className="grid flex-1 text-left text-lg leading-tight">
                 <span className="truncate font-bold">MOJI</span>

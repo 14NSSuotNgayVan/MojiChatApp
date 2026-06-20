@@ -32,9 +32,9 @@
     --sidebar-accent-foreground: rgb(75, 46, 54);
     --sidebar-border: rgb(215, 210, 224);
     --sidebar-ring: rgb(138, 121, 171);
-    --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    --font-sans: "Geist Variable", system-ui, sans-serif;
     --font-mono: "Fira Code", "Courier New", monospace;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --shadow-x: 1px;
     --shadow-y: 2px;
     --shadow-blur: 5px;
@@ -88,9 +88,9 @@
     --sidebar-accent-foreground: rgb(169, 149, 201);
     --sidebar-border: rgb(42, 39, 58);
     --sidebar-ring: rgb(169, 149, 201);
-    --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    --font-sans: "Geist Variable", system-ui, sans-serif;
     --font-mono: "Fira Code", "Courier New", monospace;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --shadow-x: 1px;
     --shadow-y: 2px;
     --shadow-blur: 5px;
