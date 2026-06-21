@@ -93,15 +93,21 @@ const MediaCarousel = (props: PropType) => {
   const renderMedia = (media: Media) => {
     switch (media.type) {
       case 'image': {
-        return <img src={media.url} className={'object-contain max-w-full h-full m-auto'} />;
+        return (
+          <img
+            src={media.url}
+            alt=""
+            className="max-h-full max-w-full object-contain"
+          />
+        );
       }
 
       case 'video': {
         return (
           <ChatVideo
             src={media.url}
-            className={'object-contain h-full max-w-full'}
-            videoClassName="object-contain"
+            className="max-h-full max-w-full"
+            videoClassName="max-h-full max-w-full object-contain"
             poster={media?.meta?.poster}
             showProgress
           />
@@ -170,11 +176,11 @@ const MediaCarousel = (props: PropType) => {
   const renderMediaInfo = () => {
     const sender = users[slides?.[selectedIndex].senderId];
     return (
-      <div className="flex items-center shrink-0 mt-7 gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <Avatar name={sender?.displayName || ''} avatarUrl={sender?.avtUrl} />
-        <div className="space-y-1 flex-1">
-          <div className="font-medium truncate max-w-56 text-sm">{sender?.displayName}</div>
-          <div className="text-muted-foreground text-xs">
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="truncate text-sm font-medium">{sender?.displayName}</div>
+          <div className="text-xs text-muted-foreground">
             {getMessageTime(slides?.[selectedIndex].createdAt)}
           </div>
         </div>
@@ -182,30 +188,47 @@ const MediaCarousel = (props: PropType) => {
     );
   };
 
+  const canGoPrevious = selectedIndex > 0;
+  const canGoNext = selectedIndex + 1 < slides.length;
+
   return (
-    <div className="m-auto h-full flex flex-col">
-      <div className="overflow-hidden grow">
-        <div className="flex -ml-4 touch-pinch-zoom h-full select-none">
-          {selected && (
-            <div className={cn('pl-4 grow-0 shrink-0 basis-full')} key={selected._id}>
-              <div className="h-full flex items-center justify-center gap-1">
-                <button
-                  className="p-2 hover:bg-muted rounded-full cursor-pointer active:-translate-x-0.5"
-                  onClick={handleClickPrevious}
-                >
-                  <ArrowLeft />
-                </button>
-                <div className="grow h-full">{renderMedia(selected)}</div>
-                <button
-                  className="p-2 hover:bg-muted rounded-full cursor-pointer active:translate-x-0.5"
-                  onClick={handleClickNext}
-                >
-                  <ArrowRight />
-                </button>
-              </div>
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
+      <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden px-1 sm:px-2">
+        {selected && (
+          <>
+            <button
+              type="button"
+              aria-label="Ảnh trước"
+              disabled={!canGoPrevious}
+              className={cn(
+                'absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full p-1.5 touch-manipulation sm:left-2 sm:p-2',
+                'bg-background/70 backdrop-blur-sm hover:bg-muted active:-translate-x-0.5',
+                !canGoPrevious && 'pointer-events-none opacity-30'
+              )}
+              onClick={handleClickPrevious}
+            >
+              <ArrowLeft className="size-5 sm:size-6" />
+            </button>
+
+            <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center px-9 sm:px-12">
+              {renderMedia(selected)}
             </div>
-          )}
-        </div>
+
+            <button
+              type="button"
+              aria-label="Ảnh sau"
+              disabled={!canGoNext}
+              className={cn(
+                'absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full p-1.5 touch-manipulation sm:right-2 sm:p-2',
+                'bg-background/70 backdrop-blur-sm hover:bg-muted active:translate-x-0.5',
+                !canGoNext && 'pointer-events-none opacity-30'
+              )}
+              onClick={handleClickNext}
+            >
+              <ArrowRight className="size-5 sm:size-6" />
+            </button>
+          </>
+        )}
       </div>
 
       <div className="mt-3 shrink-0">
@@ -224,7 +247,10 @@ const MediaCarousel = (props: PropType) => {
           </div>
         </div>
       </div>
-      {renderMediaInfo()}
+
+      <div className="shrink-0 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:pb-4">
+        {renderMediaInfo()}
+      </div>
     </div>
   );
 };

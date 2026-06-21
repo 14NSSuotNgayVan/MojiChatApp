@@ -15,6 +15,12 @@ const SignInPage = () => {
   };
 
   useEffect(() => {
+    if (searchParams.get('registered') === '1') {
+      toast.success('Đăng ký thành công! Hãy đăng nhập để tiếp tục.');
+      navigate('/signin', { replace: true });
+      return;
+    }
+
     const oauthStatus = searchParams.get('oauth');
     if (!oauthStatus) return;
 

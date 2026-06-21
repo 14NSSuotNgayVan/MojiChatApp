@@ -60,6 +60,7 @@ export interface Conversation {
   seenBy: SeenBy[] | [];
   lastMessage: LastMessage | null;
   unreadCounts: Record<string, number>; // key = userId, value = unread count
+  mutedFor?: Record<string, boolean>;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +116,7 @@ export interface Message {
   updatedAt?: string | null;
   createdAt: string;
   isOwner?: boolean;
+  isNew?: boolean;
 }
 
 export interface MessageGroup {

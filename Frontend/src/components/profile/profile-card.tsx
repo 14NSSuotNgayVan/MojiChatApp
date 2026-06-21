@@ -26,6 +26,7 @@ import { cn } from '../../lib/utils.ts';
 import { Avatar } from '../avatars/avatar.tsx';
 import { chatService } from '@/services/chatService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
+import { useFriendStore } from '@/stores/useFriendStore';
 
 interface ProfileCardProps {
   userId: string;
@@ -140,6 +141,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [unfriendDialogOpen, setUnfriendDialogOpen] = useState(false);
+  const refreshFriends = useFriendStore((s) => s.refreshFriends);
 
   const handleChat = async (userId: string) => {
     try {
@@ -175,6 +177,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
     try {
       setLoading(true);
       await friendService.unFriend(userId);
+      await refreshFriends();
       getUserInfo();
     } catch (error) {
       console.log('Lỗi khi gọi unFriendHandler: ' + error);
@@ -185,6 +188,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
     try {
       setLoading(true);
       await friendService.addFriend(userId);
+      await refreshFriends();
       getUserInfo();
     } catch (error) {
       console.log('Lỗi khi gọi addFriendHandler: ' + error);
@@ -196,6 +200,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
       if (!profile) return;
       setLoading(true);
       await friendService.acceptFriendRequest(profile.receivedRequest!);
+      await refreshFriends();
       getUserInfo();
     } catch (error) {
       console.log('Lỗi khi gọi acceptFriendHandler: ' + error);
@@ -206,6 +211,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
     try {
       setLoading(true);
       await friendService.declineFriendRequest(id);
+      await refreshFriends();
       getUserInfo();
     } catch (error) {
       console.log('Lỗi khi gọi declineFriendHandler: ' + error);
@@ -227,7 +233,7 @@ export const OthersProfileCard = ({ userId, closeAll }: ProfileCardProps) => {
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent variant="centered" className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Xác nhận</DialogTitle>
           <DialogDescription>Bạn có xác nhận hủy kết bạn với người này ?</DialogDescription>

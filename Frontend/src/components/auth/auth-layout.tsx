@@ -21,6 +21,10 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
           <ToggleTheme />
         </header>
 
+        <div className="auth-brand-side--mobile lg:hidden">
+          <AuthBrandPanel variant="mobile" />
+        </div>
+
         <div className="auth-form-side__inner">{children}</div>
       </main>
     </div>

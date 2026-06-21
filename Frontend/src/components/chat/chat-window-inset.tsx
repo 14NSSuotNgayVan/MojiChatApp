@@ -5,6 +5,7 @@ import type { MessageGroup } from '../../types/chat.ts';
 import { ChatEmptyMessageWelcome } from './chat-empty-message-welcome.tsx';
 
 import { OtherMessageGroup, OwnerMessageGroup, SystemMessage } from './message.tsx';
+import { MessageActionsOverlay } from './message-actions-overlay.tsx';
 import { useChatScroll } from '../../hooks/use-chat-scroll.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { ArrowDown } from 'lucide-react';
@@ -25,8 +26,7 @@ export const ChatWindowInset = () => {
     getDefaultGroupName,
     highlightedMessageId,
     loadMessagesUntilMessageId,
-    activeMessageId,
-    setActiveMessageId,
+    clearNewMessageFlags,
   } = useChatStore();
   const canHover = useCanHover();
   const currentMessages = messages?.[activeConversationId!]; // Đảm bảo luôn có vì đã check từ component cha
@@ -44,18 +44,6 @@ export const ChatWindowInset = () => {
   }, [isAtBottom, activeConversation?.lastMessage?._id, seenMessage]);
 
   useEffect(() => {
-    if (canHover || !activeMessageId) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-message-id]')) {
-        setActiveMessageId(null);
-      }
-    };
-    document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
-  }, [canHover, activeMessageId, setActiveMessageId]);
-
-  useEffect(() => {
     if (!highlightedMessageId || !activeConversationId) return;
     void loadMessagesUntilMessageId(activeConversationId, highlightedMessageId);
   }, [highlightedMessageId, activeConversationId, loadMessagesUntilMessageId]);
@@ -66,10 +54,21 @@ export const ChatWindowInset = () => {
       const el = document.querySelector(
         `[data-message-id="${highlightedMessageId}"]`
       ) as HTMLElement | null;
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center',
+      });
     });
     return () => cancelAnimationFrame(id);
   }, [highlightedMessageId, items]);
+
+  useEffect(() => {
+    if (!activeConversationId) return;
+    const hasNew = items?.some((m) => m.isNew);
+    if (!hasNew) return;
+    const timer = window.setTimeout(() => clearNewMessageFlags(activeConversationId), 320);
+    return () => window.clearTimeout(timer);
+  }, [items, activeConversationId, clearNewMessageFlags]);
 
   const messageGroups = useMemo(() => getGroupMessages(items), [items, getGroupMessages]);
 
@@ -86,7 +85,16 @@ export const ChatWindowInset = () => {
     );
 
   return (
-    <div className="h-full overflow-y-auto text-base select-none" ref={scrollRef}>
+    <>
+      {!canHover && <MessageActionsOverlay scrollContainerRef={scrollRef} />}
+      <div
+        className="h-full overflow-y-auto text-base"
+        ref={scrollRef}
+      role="log"
+      aria-label="Tin nhắn"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
       <div className="flex flex-col gap-4 p-4" ref={scrollContentRef}>
         {messageLoading && isFetchOldMessage && (
           <>
@@ -113,7 +121,7 @@ export const ChatWindowInset = () => {
         )}
         {!(messageLoading && isFetchOldMessage) && currentMessages.nextCursor && (
           <div
-            className="text-primary/70 col-span-full text-center cursor-pointer hover:text-primary"
+            className="text-primary/70 col-span-full text-center cursor-pointer touch-manipulation active:text-primary py-2"
             onClick={() => {
               if (activeConversationId) getMessages(activeConversationId!, true);
             }}
@@ -148,5 +156,6 @@ export const ChatWindowInset = () => {
         )}
       </div>
     </div>
+    </>
   );
 };

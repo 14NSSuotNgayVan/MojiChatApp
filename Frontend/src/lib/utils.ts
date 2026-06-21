@@ -6,6 +6,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Dropdown / overflow menu trigger sized for touch vs hover devices. */
+export function menuActionTriggerClass(canHover: boolean) {
+  return cn(
+    "inline-flex items-center justify-center rounded-sm shrink-0 touch-manipulation",
+    canHover
+      ? "size-4 hover:bg-primary dark:hover:bg-neutral-700"
+      : "size-8 active:bg-accent"
+  );
+}
+
 export function fromNow(datetime: string | Date): string {
   const date = typeof datetime === "string" ? new Date(datetime) : datetime;
   const now = new Date();
@@ -58,6 +68,52 @@ export const getNormalizeString = (input: string) => {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/Đ/g, 'D')
     .replace(/đ/g, 'd');
+};
+
+/** Split text into segments for highlight; matches keyword ignoring Vietnamese diacritics. */
+export const splitByNormalizedKeyword = (
+  text: string,
+  keyword: string
+): Array<{ value: string; match: boolean }> => {
+  const target = getNormalizeString(keyword.trim()).toLowerCase();
+  if (!target) return [{ value: text, match: false }];
+
+  const result: Array<{ value: string; match: boolean }> = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    let matched: { start: number; end: number } | null = null;
+
+    for (let end = cursor + 1; end <= text.length; end++) {
+      const norm = getNormalizeString(text.slice(cursor, end)).toLowerCase();
+      if (norm === target) {
+        matched = { start: cursor, end };
+        break;
+      }
+      if (norm.length > target.length || (norm.length > 0 && !target.startsWith(norm))) {
+        break;
+      }
+    }
+
+    if (matched) {
+      result.push({ value: text.slice(matched.start, matched.end), match: true });
+      cursor = matched.end;
+    } else {
+      result.push({ value: text[cursor], match: false });
+      cursor += 1;
+    }
+  }
+
+  const merged: Array<{ value: string; match: boolean }> = [];
+  for (const seg of result) {
+    const last = merged[merged.length - 1];
+    if (last && last.match === seg.match) {
+      last.value += seg.value;
+    } else {
+      merged.push({ ...seg });
+    }
+  }
+  return merged;
 };
 
 export const stringToHexColor = (str: string): { backgroundColor: string, color: string } => {

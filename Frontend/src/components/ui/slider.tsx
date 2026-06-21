@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Slider as SliderPrimitive } from 'radix-ui';
 
+import { useCanHover } from '@/hooks/use-can-hover';
 import { cn } from '@/lib/utils';
 
 function Slider({
@@ -12,6 +13,7 @@ function Slider({
   alwaysShowThumb = false,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root> & { alwaysShowThumb?: boolean }) {
+  const canHover = useCanHover();
   const _values = React.useMemo(
     () => (Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]),
     [value, defaultValue, min, max]
@@ -49,7 +51,7 @@ function Slider({
           key={index}
           className={cn(
             'border-primary ring-ring/50 size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50',
-            alwaysShowThumb ? 'block' : 'hidden group-hover/slider:block'
+            alwaysShowThumb || !canHover ? 'block' : 'hidden group-hover/slider:block'
           )}
         />
       ))}

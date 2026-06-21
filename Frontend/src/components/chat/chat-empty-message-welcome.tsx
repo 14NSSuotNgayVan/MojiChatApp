@@ -1,63 +1,59 @@
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { Button } from '@/components/ui/button.tsx';
-import { MessageCircleHeart } from 'lucide-react';
 
 const quickActions = [
-  { label: '👋 Xin chào!', content: '👋 Xin chào!' },
-  { label: '🎉 Vui vẻ!', content: '🎉 Vui vẻ!' },
-  { label: '❓ Bạn khỏe không?', content: '❓ Bạn khỏe không?' },
+  { label: 'Xin chào', content: '👋 Xin chào!' },
+  { label: 'Vui vẻ', content: '🎉 Vui vẻ!' },
+  { label: 'Khỏe không?', content: '❓ Bạn khỏe không?' },
 ] as const;
 
-export const ChatEmptyMessageWelcome = ({ friendName }: { friendName: string }) => {
-  const { sendDirectMessage, activeConversationId, activeConversation } = useChatStore();
+type ChatEmptyMessageWelcomeProps = {
+  friendName: string;
+};
+
+export function ChatEmptyMessageWelcome({ friendName }: ChatEmptyMessageWelcomeProps) {
+  const { sendDirectMessage, sendGroupMessage, activeConversationId, activeConversation } =
+    useChatStore();
 
   const handleSendHello = async (content: string) => {
     if (!activeConversationId || !activeConversation) return;
-    await sendDirectMessage(activeConversationId, activeConversation?.participants[0]._id, content);
+    if (activeConversation.type === 'group') {
+      await sendGroupMessage(activeConversationId, content, []);
+    } else {
+      await sendDirectMessage(
+        activeConversationId,
+        activeConversation.participants[0]._id,
+        content
+      );
+    }
   };
 
   return (
-    <div className="flex-1 justify-center overflow-y-auto h-full">
-      <div className="text-center max-w-md lg:max-w-lg mx-auto p-8">
-        <div className="mb-6 flex justify-center">
-          <MessageCircleHeart size="6rem" className="text-primary" />
-        </div>
-
-        <h3 className="text-3xl font-bold text-foreground mb-3">Bắt đầu cuộc trò chuyện</h3>
-
-        <p className="text-muted-foreground mb-8 text-lg leading-relaxed">
+    <div className="flex-1 flex items-center justify-center overflow-y-auto h-full px-4">
+      <div className="app-empty-chat app-reveal">
+        <p className="app-empty-chat__eyebrow">Cuộc trò chuyện mới</p>
+        <h2 className="app-empty-chat__title">
+          Gửi lời chào <span className="italic font-medium">đầu tiên.</span>
+        </h2>
+        <p className="app-empty-chat__subtitle">
           Bạn và <span className="font-semibold text-primary">{friendName}</span> chưa có tin nhắn
-          nào. Hãy gửi lời chào đầu tiên!
+          nào. Chọn một gợi ý bên dưới hoặc nhập tin nhắn ở ô bên dưới màn hình.
         </p>
 
-        <div className="space-y-3 mb-8">
-          <p className="text-muted-foreground text-sm font-medium">Thao tác nhanh</p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {quickActions.map(({ label, content }) => (
-              <Button
-                key={content}
-                variant="secondary"
-                size="sm"
-                className="rounded-full"
-                onClick={() => handleSendHello(content)}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
+        <div className="app-empty-chat__chips app-reveal app-reveal--delay-1">
+          {quickActions.map(({ label, content }) => (
+            <Button
+              key={content}
+              variant="outline"
+              size="sm"
+              className="rounded-full border-primary/30 hover:bg-primary/10"
+              onClick={() => handleSendHello(content)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
-
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px border-b"></div>
-          <span className="text-muted-foreground text-sm">hoặc</span>
-          <div className="flex-1 h-px border-b"></div>
-        </div>
-
-        <p className="text-muted-foreground text-sm">
-          Bạn có thể chia sẻ ảnh, emoji, sticker và nhiều nội dung khác. Bắt đầu bằng cách nhập tin
-          nhắn bên dưới!
-        </p>
       </div>
     </div>
   );
-};
+}

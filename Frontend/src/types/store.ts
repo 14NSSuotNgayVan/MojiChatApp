@@ -28,7 +28,7 @@ export interface AuthState {
     email: string,
     password: string,
     displayName: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 
   signIn: (username: string, password: string) => Promise<boolean>;
   signInWithGoogle: () => void;
@@ -39,6 +39,8 @@ export interface AuthState {
   getProfile: () => Promise<void>;
   setAccessToken: (accessToken: string) => void;
   updateProfile: (payload: UpdateProfileRequest) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<boolean>;
+  resetPassword: (token: string, password: string) => Promise<boolean>;
 }
 
 export interface ThemeState {
@@ -137,6 +139,7 @@ export interface ChatState {
   updateConversation: (data: Conversation) => void;
   onSeenMessage: (data: SeenMessageResponse) => void;
   seenMessage: () => void;
+  markConversationRead: (conversationId: string) => void;
   setUser: (user: User) => void;
   searchConversations: (keyword: string) => Promise<void>;
   searchMessagesInConversation: (conversationId: string, keyword: string) => Promise<void>;
@@ -144,6 +147,7 @@ export interface ChatState {
   navigateMessageSearchResult: (direction: "prev" | "next") => Promise<void>;
   setHighlightedMessageId: (messageId: string | null) => void;
   setActiveMessageId: (messageId: string | null) => void;
+  clearNewMessageFlags: (conversationId: string) => void;
   clearMessageSearch: () => void;
   loadMessagesUntilMessageId: (conversationId: string, messageId: string) => Promise<boolean>;
   getHiddenConversations: () => Promise<void>;
@@ -154,6 +158,8 @@ export interface ChatState {
   removeParticipant: (conversationId: string, participantId: string) => Promise<void>;
   updateParticipantRole: (conversationId: string, participantId: string, role: 'ADMIN' | 'MEMBER') => Promise<void>;
   hideConversation: (conversationId: string) => Promise<void>;
+  muteConversation: (conversationId: string) => Promise<void>;
+  unmuteConversation: (conversationId: string) => Promise<void>;
   clearDirectConversation: (conversationId: string) => Promise<void>;
   deleteGroupConversation: (conversationId: string) => Promise<void>;
   leaveConversation: (conversationId: string) => Promise<void>;
@@ -168,7 +174,7 @@ export interface ChatState {
 interface NewMessageResponse {
   conversation: Pick<
     Conversation,
-    "_id" | "lastMessageAt" | "lastMessage" | "unreadCounts"
+    "_id" | "lastMessageAt" | "lastMessage" | "unreadCounts" | "mutedFor"
   >;
   message: Message;
 }

@@ -22,7 +22,7 @@ export const Header = () => {
   }, 500);
 
   const handleChangeSearch = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const value = getNormalizeString(e.target.value);
+    const value = e.target.value;
     setKeyword(value);
     handleSearch(value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,31 +124,25 @@ export const Header = () => {
         </div>
         {!isSearching && (
           <div className="px-2 pb-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="primary"
-                className={cn(
-                  sidebarTab === 'inbox' &&
-                    'bg-secondary/50 text-primary dark:bg-accent/50 dark:text-primary',
-                  'hover:bg-secondary/50'
-                )}
-                size="sm"
+            <div className="sidebar-tabs" role="tablist" aria-label="Lọc cuộc trò chuyện">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sidebarTab === 'inbox'}
+                className={cn('sidebar-tabs__item', sidebarTab === 'inbox' && 'sidebar-tabs__item--active')}
                 onClick={() => setSidebarTab('inbox')}
               >
                 Tất cả
-              </Button>
-              <Button
-                variant="primary"
-                className={cn(
-                  sidebarTab === 'hidden' &&
-                    'bg-secondary/50 text-primary dark:bg-accent/50 dark:text-primary',
-                  'hover:bg-secondary/50'
-                )}
-                size="sm"
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sidebarTab === 'hidden'}
+                className={cn('sidebar-tabs__item', sidebarTab === 'hidden' && 'sidebar-tabs__item--active')}
                 onClick={() => setSidebarTab('hidden')}
               >
                 Đã ẩn
-              </Button>
+              </button>
             </div>
           </div>
         )}

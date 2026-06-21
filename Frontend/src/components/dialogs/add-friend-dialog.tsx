@@ -6,7 +6,7 @@ import Loading from '@/components/ui/loading.tsx';
 import { debounce, getNormalizeString } from '@/lib/utils.ts';
 import { userService } from '@/services/userService.ts';
 import { SearchIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
 
 type NotUser = {
   _id: string;
@@ -30,11 +30,19 @@ export const AddFriendDialog = ({ open, onOpenChange }: DialogProps) => {
     isMore: false,
     size: 10,
   });
+  const [inputKeyword, setInputKeyword] = useState('');
   const [users, setUsers] = useState<NotUser[]>([]);
 
-  const handleSearch = debounce((e) => {
-    setFilter((prev) => ({ ...prev, keyword: getNormalizeString(e?.target?.value) }));
+  const handleSearch = debounce((value: string) => {
+    setFilter((prev) => ({ ...prev, keyword: getNormalizeString(value) }));
   }, 500);
+
+  const handleChangeSearch = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputKeyword(value);
+    handleSearch(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGetUsers = async () => {
     setLoading(true);
@@ -52,6 +60,7 @@ export const AddFriendDialog = ({ open, onOpenChange }: DialogProps) => {
     onOpenChange(open);
     if (!open) {
       setUsers([]);
+      setInputKeyword('');
       setFilter({
         keyword: '',
         isMore: false,
@@ -88,7 +97,8 @@ export const AddFriendDialog = ({ open, onOpenChange }: DialogProps) => {
               className="peer h-8 ps-8 pe-2 text-sm"
               placeholder={'Tìm kiếm...'}
               type="search"
-              onChange={handleSearch}
+              value={inputKeyword}
+              onChange={handleChangeSearch}
             />
             <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
               <SearchIcon className="text-primary" size={16} />

@@ -11,7 +11,7 @@ import { friendService } from '@/services/friendService.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { Check, ImagePlus, SearchIcon, Send, Users } from 'lucide-react';
 import { useCanHover } from '@/hooks/use-can-hover.ts';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
 
 type NotUser = {
   _id: string;
@@ -28,8 +28,15 @@ type DialogProps = {
 
 const memberCheckClass = (canHover: boolean, isSelected: boolean) =>
   cn(
-    'size-4',
-    isSelected ? 'block' : canHover ? 'hidden group-hover:block' : 'hidden'
+    'size-4 shrink-0',
+    isSelected ? 'block text-primary' : canHover ? 'hidden group-hover:block' : 'opacity-0'
+  );
+
+const memberRowClass = (canHover: boolean, isSelected: boolean) =>
+  cn(
+    'group flex p-2 items-center justify-between rounded-sm gap-2 touch-manipulation',
+    canHover ? 'hover:bg-muted' : 'active:bg-muted/70',
+    isSelected && 'bg-muted'
   );
 
 export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
@@ -47,11 +54,19 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
     isMore: false,
     size: 10,
   });
+  const [inputKeyword, setInputKeyword] = useState('');
   const [users, setUsers] = useState<NotUser[]>([]);
 
-  const handleSearch = debounce((e) => {
-    setFilter((prev) => ({ ...prev, keyword: getNormalizeString(e?.target?.value) }));
+  const handleSearch = debounce((value: string) => {
+    setFilter((prev) => ({ ...prev, keyword: getNormalizeString(value) }));
   }, 500);
+
+  const handleChangeSearch = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputKeyword(value);
+    handleSearch(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGetFriends = async () => {
     setLoading(true);
@@ -74,6 +89,7 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
       setGroupName('');
       setGroupAvatarUrl('');
       setGroupAvatarUploading(false);
+      setInputKeyword('');
       setFilter({
         keyword: '',
         isMore: false,
@@ -269,7 +285,8 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
               className="peer h-8 ps-8 pe-2 text-sm"
               placeholder={'Tìm kiếm...'}
               type="search"
-              onChange={handleSearch}
+              value={inputKeyword}
+              onChange={handleChangeSearch}
             />
             <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
               <SearchIcon className="text-primary" size={16} />
@@ -294,7 +311,10 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                     ) : (
                       users?.map((user) => (
                         <div
-                          className="group flex p-2 items-center justify-between rounded-sm gap-2 hover:bg-muted"
+                          className={memberRowClass(
+                            canHover,
+                            mode === 'group' && selectedMemberIds.has(user._id)
+                          )}
                           onClick={() => {
                             if (mode === 'group') {
                               toggleSelectMember(user._id);
@@ -337,7 +357,10 @@ export const AddChatDialog = ({ open, onOpenChange }: DialogProps) => {
                     <p className="text-foreground text-sm">Gợi ý</p>
                     {users?.map((user) => (
                       <div
-                        className="group flex p-2 items-center justify-between rounded-sm gap-2 dark:hover:bg-muted hover:bg-secondary/50"
+                        className={memberRowClass(
+                          canHover,
+                          mode === 'group' && selectedMemberIds.has(user._id)
+                        )}
                         onClick={() => {
                           if (mode === 'group') {
                             toggleSelectMember(user._id);

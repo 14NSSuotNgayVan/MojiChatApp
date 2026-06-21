@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatState } from "@/types/store.ts";
 import { chatService } from "../services/chatService.ts";
-import type { MessageGroup } from "../types/chat.ts";
-import { diffMinutes } from "../lib/utils.ts";
+import type { Conversation, MessageGroup } from "../types/chat.ts";
+import { diffMinutes, getNormalizeString } from "../lib/utils.ts";
 import { playIncomingMessageSound } from "../lib/notificationSound.ts";
 import { toast } from "sonner";
 import { useAuthStore } from "./useAuthStore.ts";
@@ -214,6 +214,23 @@ export const useChatStore = create<ChatState>()(
             };
           }),
         setActiveMessageId: (messageId) => set({ activeMessageId: messageId }),
+        clearNewMessageFlags: (conversationId) => {
+          set((state) => {
+            const convMessages = state.messages?.[conversationId];
+            if (!convMessages?.items.some((m) => m.isNew)) return state;
+            return {
+              messages: {
+                ...state.messages,
+                [conversationId]: {
+                  ...convMessages,
+                  items: convMessages.items.map((m) =>
+                    m.isNew ? { ...m, isNew: false } : m
+                  ),
+                },
+              },
+            };
+          });
+        },
         setReplyingTo: (message) => set({ replyingTo: message }),
         setUser: (user) => {
           set((prev) => ({
@@ -270,7 +287,7 @@ export const useChatStore = create<ChatState>()(
             currentSearchIndex: 0,
           }),
         searchMessagesInConversation: async (conversationId: string, keyword: string) => {
-          const k = keyword.trim();
+          const k = getNormalizeString(keyword.trim());
           if (!k) {
             get().clearMessageSearch();
             return;
@@ -593,6 +610,7 @@ export const useChatStore = create<ChatState>()(
               ? {
                 ...conversations[idx],
                 ...conversation,
+                mutedFor: conversation.mutedFor ?? conversations[idx].mutedFor,
               }
               : null;
 
@@ -603,7 +621,8 @@ export const useChatStore = create<ChatState>()(
 
           const shouldPlayIncomingSound =
             !!user?._id &&
-            message.senderId !== user._id;
+            message.senderId !== user._id &&
+            !(conversation.mutedFor?.[user._id] ?? conversations[idx]?.mutedFor?.[user._id]);
 
           if (shouldPlayIncomingSound) {
             void playIncomingMessageSound();
@@ -618,7 +637,7 @@ export const useChatStore = create<ChatState>()(
                   nextCursor: convMessages?.nextCursor,
                   items: [
                     ...convMessages.items,
-                    { ...message, isOwner: message.senderId === user?._id },
+                    { ...message, isOwner: message.senderId === user?._id, isNew: true },
                   ],
                 },
               }
@@ -627,7 +646,7 @@ export const useChatStore = create<ChatState>()(
                 [conversation._id]: {
                   hasMore: false,
                   nextCursor: undefined,
-                  items: [{ ...message, isOwner: message.senderId === user?._id }],
+                  items: [{ ...message, isOwner: message.senderId === user?._id, isNew: true }],
                 },
               },
             activeConversation:
@@ -762,6 +781,49 @@ export const useChatStore = create<ChatState>()(
           });
         },
 
+        markConversationRead: (conversationId: string) => {
+          const userId = useAuthStore.getState().user?._id;
+          const socket = useSocketStore.getState().socket;
+          if (!socket || !userId) return;
+
+          const conv =
+            get().conversations.find((c) => c._id === conversationId) ??
+            get().hiddenConversations.find((c) => c._id === conversationId);
+
+          if (!conv?.lastMessage || (conv.unreadCounts?.[userId] ?? 0) <= 0) return;
+          if (conv.lastMessage.senderId === userId) return;
+
+          socket.emit("seen-message-request", {
+            conversationId,
+            lastSeenAt: conv.lastMessageAt,
+          });
+
+          const patchUnread = (list: Conversation[]) =>
+            list.map((c) =>
+              c._id === conversationId
+                ? {
+                    ...c,
+                    unreadCounts: { ...c.unreadCounts, [userId]: 0 },
+                  }
+                : c
+            );
+
+          set({
+            conversations: patchUnread(get().conversations),
+            hiddenConversations: patchUnread(get().hiddenConversations),
+            activeConversation:
+              get().activeConversation?._id === conversationId
+                ? {
+                    ...get().activeConversation!,
+                    unreadCounts: {
+                      ...get().activeConversation!.unreadCounts,
+                      [userId]: 0,
+                    },
+                  }
+                : get().activeConversation,
+          });
+        },
+
         addParticipant: async (conversationId, participantId) => {
           try {
             await chatService.addParticipant(conversationId, participantId);
@@ -796,6 +858,64 @@ export const useChatStore = create<ChatState>()(
           } catch (error) {
             console.error(error);
             toast.error("Lỗi khi ẩn cuộc trò chuyện!");
+          }
+        },
+
+        muteConversation: async (conversationId) => {
+          const userId = useAuthStore.getState().user?._id;
+          if (!userId) return;
+          try {
+            await chatService.muteConversation(conversationId);
+            const patchMuted = (list: Conversation[]) =>
+              list.map((c) =>
+                c._id === conversationId
+                  ? { ...c, mutedFor: { ...c.mutedFor, [userId]: true } }
+                  : c
+              );
+            set({
+              conversations: patchMuted(get().conversations),
+              hiddenConversations: patchMuted(get().hiddenConversations),
+              activeConversation:
+                get().activeConversation?._id === conversationId
+                  ? {
+                      ...get().activeConversation!,
+                      mutedFor: { ...get().activeConversation!.mutedFor, [userId]: true },
+                    }
+                  : get().activeConversation,
+            });
+          } catch (error) {
+            console.error(error);
+            toast.error("Lỗi khi tắt thông báo!");
+          }
+        },
+
+        unmuteConversation: async (conversationId) => {
+          const userId = useAuthStore.getState().user?._id;
+          if (!userId) return;
+          try {
+            await chatService.unmuteConversation(conversationId);
+            const patchUnmuted = (list: Conversation[]) =>
+              list.map((c) => {
+                if (c._id !== conversationId) return c;
+                const mutedFor = { ...c.mutedFor };
+                delete mutedFor[userId];
+                return { ...c, mutedFor };
+              });
+            set({
+              conversations: patchUnmuted(get().conversations),
+              hiddenConversations: patchUnmuted(get().hiddenConversations),
+              activeConversation:
+                get().activeConversation?._id === conversationId
+                  ? (() => {
+                      const mutedFor = { ...get().activeConversation!.mutedFor };
+                      delete mutedFor[userId];
+                      return { ...get().activeConversation!, mutedFor };
+                    })()
+                  : get().activeConversation,
+            });
+          } catch (error) {
+            console.error(error);
+            toast.error("Lỗi khi bật thông báo!");
           }
         },
 

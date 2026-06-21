@@ -266,7 +266,7 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
             if (!open) closeConfirm();
           }}
         >
-          <DialogContent showCloseButton={false} aria-describedby="confirm-direct-action-desc">
+          <DialogContent variant="centered" showCloseButton={false} aria-describedby="confirm-direct-action-desc">
             <DialogHeader>
               <DialogTitle>Xóa cuộc trò chuyện?</DialogTitle>
               <DialogDescription id="confirm-direct-action-desc">
@@ -356,7 +356,7 @@ const RightSidebarContent = ({ setSidebarTab }: SideBarContentProps) => {
             if (!open) closeConfirm();
           }}
         >
-          <DialogContent showCloseButton={false} aria-describedby="confirm-group-action-desc">
+          <DialogContent variant="centered" showCloseButton={false} aria-describedby="confirm-group-action-desc">
             <DialogHeader>
               <DialogTitle>
                 {pendingAction?.type === 'deleteGroup' ? 'Xóa nhóm?' : 'Rời nhóm?'}

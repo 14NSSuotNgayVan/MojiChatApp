@@ -5,14 +5,16 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { ArrowRight, Loader2, Mail, User } from "lucide-react";
+import { AuthPasswordInput } from "@/components/auth/auth-password-input";
+import { GoogleIcon, MetaIcon } from "@/components/auth/auth-oauth-icons";
 
 const schema = z
   .object({
@@ -24,7 +26,7 @@ const schema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Mật khẩu không khớp",
-    path: ["confirmPassword"], // Lỗi sẽ show ở field confirmPassword
+    path: ["confirmPassword"],
   });
 
 type singupSchema = z.infer<typeof schema>;
@@ -34,6 +36,7 @@ export function SignupForm({
   ...props
 }: React.ComponentProps<"div">) {
   const { signUp, signInWithGoogle, signInWithFacebook, loading } = useAuthStore();
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -44,7 +47,8 @@ export function SignupForm({
 
   const handleSubmitForm = async (data: singupSchema) => {
     const { username, displayName, email, password } = data;
-    await signUp(username, email, password, displayName);
+    const success = await signUp(username, email, password, displayName);
+    if (success) navigate("/signin?registered=1");
   };
 
   return (
@@ -65,18 +69,38 @@ export function SignupForm({
         className="auth-signin__form auth-reveal auth-reveal--delay-1"
         onSubmit={handleSubmit(handleSubmitForm)}
       >
-        <FieldGroup className="gap-5">
+        <FieldGroup className="gap-5 max-lg:gap-3.5">
           <Field className="grid gap-4 sm:grid-cols-2">
             <Field className="gap-2">
               <FieldLabel htmlFor="username">Tên đăng nhập</FieldLabel>
-              <Input id="username" {...register("username")} type="text" placeholder="user_123" className="h-11" />
+              <div className="auth-input-wrap">
+                <User className="auth-input-wrap__icon" aria-hidden />
+                <Input
+                  id="username"
+                  {...register("username")}
+                  type="text"
+                  placeholder="user_123"
+                  autoComplete="username"
+                  className="auth-input h-12 max-lg:h-11 border-0 bg-transparent pl-10 shadow-none focus-visible:ring-0"
+                />
+              </div>
               {errors?.username && (
                 <FieldDescription className="text-destructive">{errors.username.message}</FieldDescription>
               )}
             </Field>
             <Field className="gap-2">
               <FieldLabel htmlFor="displayName">Tên hiển thị</FieldLabel>
-              <Input id="displayName" {...register("displayName")} type="text" placeholder="User 123" className="h-11" />
+              <div className="auth-input-wrap">
+                <User className="auth-input-wrap__icon" aria-hidden />
+                <Input
+                  id="displayName"
+                  {...register("displayName")}
+                  type="text"
+                  placeholder="User 123"
+                  autoComplete="name"
+                  className="auth-input h-12 max-lg:h-11 border-0 bg-transparent pl-10 shadow-none focus-visible:ring-0"
+                />
+              </div>
               {errors?.displayName && (
                 <FieldDescription className="text-destructive">{errors.displayName.message}</FieldDescription>
               )}
@@ -85,7 +109,17 @@ export function SignupForm({
 
           <Field className="gap-2">
             <FieldLabel htmlFor="email">Email</FieldLabel>
-            <Input id="email" {...register("email")} type="email" placeholder="m@example.com" className="h-11" />
+            <div className="auth-input-wrap">
+              <Mail className="auth-input-wrap__icon" aria-hidden />
+              <Input
+                id="email"
+                {...register("email")}
+                type="email"
+                placeholder="m@example.com"
+                autoComplete="email"
+                className="auth-input h-12 max-lg:h-11 border-0 bg-transparent pl-10 shadow-none focus-visible:ring-0"
+              />
+            </div>
             {errors?.email && (
               <FieldDescription className="text-destructive">{errors.email.message}</FieldDescription>
             )}
@@ -94,11 +128,15 @@ export function SignupForm({
           <Field className="grid gap-4 sm:grid-cols-2">
             <Field className="gap-2">
               <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
-              <Input id="password" {...register("password")} type="password" className="h-11" />
+              <AuthPasswordInput id="password" autoComplete="new-password" {...register("password")} />
             </Field>
             <Field className="gap-2">
               <FieldLabel htmlFor="confirm_password">Xác nhận mật khẩu</FieldLabel>
-              <Input id="confirm_password" {...register("confirmPassword")} type="password" className="h-11" />
+              <AuthPasswordInput
+                id="confirm_password"
+                autoComplete="new-password"
+                {...register("confirmPassword")}
+              />
             </Field>
           </Field>
           {(errors?.password || errors?.confirmPassword) && (
@@ -107,34 +145,65 @@ export function SignupForm({
             </FieldDescription>
           )}
 
-          <Button type="submit" disabled={loading} className="auth-submit-btn h-12 w-full rounded-xl">
-            Tạo tài khoản
+          <Button
+            type="submit"
+            disabled={loading}
+            className="auth-submit-btn h-12 max-lg:h-11 w-full rounded-xl text-base font-medium active:scale-[0.98]"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Đang tạo tài khoản...
+              </>
+            ) : (
+              <>
+                Tạo tài khoản
+                <ArrowRight className="size-4" />
+              </>
+            )}
           </Button>
-
-          <FieldSeparator>
-            Hoặc tiếp tục với
-          </FieldSeparator>
-
-          <Field className="grid grid-cols-2 gap-3">
-            <Button variant="outline" type="button" onClick={signInWithGoogle} className="auth-oauth-btn h-11 rounded-xl">
-              Google
-            </Button>
-            <Button variant="outline" type="button" onClick={signInWithFacebook} className="auth-oauth-btn h-11 rounded-xl">
-              Meta
-            </Button>
-          </Field>
-
-          <FieldDescription className="text-center text-sm">
-            Đã có tài khoản?{" "}
-            <Link to="/signin" className="auth-signin__link">
-              Đăng nhập
-            </Link>
-          </FieldDescription>
         </FieldGroup>
       </form>
 
+      <div className="auth-signin__oauth auth-reveal auth-reveal--delay-2">
+        <div className="auth-signin__divider">
+          <span>hoặc</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            type="button"
+            disabled={loading}
+            onClick={signInWithGoogle}
+            className="auth-oauth-btn h-11 max-lg:h-10 rounded-xl"
+          >
+            <GoogleIcon />
+            Google
+          </Button>
+          <Button
+            variant="outline"
+            type="button"
+            disabled={loading}
+            onClick={signInWithFacebook}
+            className="auth-oauth-btn h-11 max-lg:h-10 rounded-xl"
+          >
+            <MetaIcon />
+            Meta
+          </Button>
+        </div>
+      </div>
+
+      <p className="auth-signin__footer auth-reveal auth-reveal--delay-3">
+        Đã có tài khoản?{" "}
+        <Link to="/signin" className="auth-signin__link">
+          Đăng nhập
+          <ArrowRight className="size-3.5" />
+        </Link>
+      </p>
+
       <p className="auth-signin__legal auth-reveal auth-reveal--delay-3">
-        Bằng cách tiếp tục, bạn đồng ý với <a href="#">Điều khoản</a> và <a href="#">Chính sách</a>.
+        Bằng cách tiếp tục, bạn đồng ý với{" "}
+        <Link to="/terms">Điều khoản</Link> và <Link to="/privacy">Chính sách</Link>.
       </p>
     </div>
   );
