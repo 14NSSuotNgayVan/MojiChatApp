@@ -20,6 +20,10 @@ export const updateConversationAfterCreateMessage = (conversation, message, send
 }
 
 export const emmitNewMessage = (io, conversation, message, sender) => {
+    const mutedFor =
+        conversation.mutedFor instanceof Map
+            ? Object.fromEntries(conversation.mutedFor)
+            : conversation.mutedFor ?? {};
 
     io.to(conversation._id.toString()).emit("new-message", {
         message,
@@ -36,6 +40,7 @@ export const emmitNewMessage = (io, conversation, message, sender) => {
                 medias: message.medias
             },
             unreadCounts: conversation.unreadCounts,
+            mutedFor,
         },
     })
 }

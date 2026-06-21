@@ -756,6 +756,80 @@ export const unhideConversation = async (req, res) => {
     }
 }
 
+export const muteConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId
+        }).select("_id participants").lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!participant || participant.status !== "ACTIVE") {
+            return res.status(403).json({ message: "You are not an active member of this conversation." });
+        }
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            { $set: { [`mutedFor.${userId.toString()}`]: true } }
+        );
+
+        return res.status(200).json({ message: "Mute conversation success!" });
+    } catch (error) {
+        console.error("Error when calling muteConversation: " + error);
+        return res.status(500).send();
+    }
+}
+
+export const unmuteConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user?._id;
+
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+            return res.status(400).json({ message: "Invalid conversationId!" });
+        }
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            "participants.userId": userId
+        }).select("_id participants").lean();
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found!" });
+        }
+
+        const participant = conversation.participants?.find(
+            (p) => p.userId?.toString?.() === userId?.toString?.()
+        );
+        if (!participant || participant.status !== "ACTIVE") {
+            return res.status(403).json({ message: "You are not an active member of this conversation." });
+        }
+
+        await Conversation.updateOne(
+            { _id: conversationId },
+            { $unset: { [`mutedFor.${userId.toString()}`]: "" } }
+        );
+
+        return res.status(200).json({ message: "Unmute conversation success!" });
+    } catch (error) {
+        console.error("Error when calling unmuteConversation: " + error);
+        return res.status(500).send();
+    }
+}
+
 export const hideConversation = async (req, res) => {
     try {
         const { conversationId } = req.params;

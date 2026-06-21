@@ -486,3 +486,83 @@ export const facebookOAuthCallbackHandler = async (req, res) => {
         return res.redirect(`${FRONTEND_URL}/signin?oauth=error&provider=facebook&reason=internal_error`);
     }
 };
+
+export const forgotPasswordHandler = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const genericMessage = "Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu.";
+
+        if (!email || !isValidEmail(email)) {
+            return res.status(200).json({ message: genericMessage });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: normalizedEmail });
+
+        if (!user || !user.hashPassword) {
+            return res.status(200).json({ message: genericMessage });
+        }
+
+        const PasswordResetToken = (await import("../models/PasswordResetToken.js")).default;
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+        await PasswordResetToken.deleteMany({ userId: user._id, usedAt: null });
+        await PasswordResetToken.create({ userId: user._id, tokenHash, expiresAt });
+
+        const resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}`;
+        const { sendPasswordResetEmail } = await import("../utils/mailHelper.js");
+        await sendPasswordResetEmail({ to: normalizedEmail, resetUrl });
+
+        return res.status(200).json({ message: genericMessage });
+    } catch (error) {
+        console.error("Error when calling forgotPasswordHandler: " + error);
+        return res.status(500).send();
+    }
+};
+
+export const resetPasswordHandler = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({ message: "Token and password are required!" });
+        }
+
+        if (!isStrongPassword(password)) {
+            return res.status(400).json({
+                message: "Password must be at least 8 characters and contain both letters and numbers!",
+            });
+        }
+
+        const PasswordResetToken = (await import("../models/PasswordResetToken.js")).default;
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+        const resetRecord = await PasswordResetToken.findOne({
+            tokenHash,
+            usedAt: null,
+            expiresAt: { $gt: new Date() },
+        });
+
+        if (!resetRecord) {
+            return res.status(400).json({ message: "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn." });
+        }
+
+        const user = await User.findById(resetRecord.userId);
+        if (!user || !user.hashPassword) {
+            return res.status(400).json({ message: "Không thể đặt lại mật khẩu cho tài khoản này." });
+        }
+
+        user.hashPassword = await bcrypt.hash(password, 10);
+        await user.save();
+
+        resetRecord.usedAt = new Date();
+        await resetRecord.save();
+
+        return res.status(200).json({ message: "Đặt lại mật khẩu thành công!" });
+    } catch (error) {
+        console.error("Error when calling resetPasswordHandler: " + error);
+        return res.status(500).send();
+    }
+};
