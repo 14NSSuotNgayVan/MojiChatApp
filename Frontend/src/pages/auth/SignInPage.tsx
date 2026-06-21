@@ -1,6 +1,5 @@
 import { SigninForm } from '@/components/auth/signin-form';
 import { AuthLayout } from '@/components/auth/auth-layout';
-import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { ArrowRight } from 'lucide-react';
 import { useEffect } from 'react';
@@ -16,6 +15,12 @@ const SignInPage = () => {
   };
 
   useEffect(() => {
+    if (searchParams.get('registered') === '1') {
+      toast.success('Đăng ký thành công! Hãy đăng nhập để tiếp tục.');
+      navigate('/signin', { replace: true });
+      return;
+    }
+
     const oauthStatus = searchParams.get('oauth');
     if (!oauthStatus) return;
 
@@ -52,17 +57,24 @@ const SignInPage = () => {
       {!accessToken ? (
         <SigninForm />
       ) : (
-        <Card
-          className="cursor-pointer border shadow-sm transition-shadow hover:border-primary/30 hover:shadow-md"
-          onClick={handleNavigateHome}
-        >
-          <CardContent className="p-8">
-            <h3 className="text-xl font-bold mb-2 text-foreground">Bạn đã đăng nhập.</h3>
-            <p className="text-muted-foreground flex justify-between items-center">
-              Quay trở lại ứng dụng! <ArrowRight />
-            </p>
-          </CardContent>
-        </Card>
+        <div className="auth-signin__logged-in auth-reveal">
+          <h3 className="auth-signin__title text-2xl sm:text-3xl">
+            Bạn đã
+            <br />
+            <span className="italic font-medium">đăng nhập.</span>
+          </h3>
+          <p className="auth-signin__subtitle mb-6">
+            Nhấn bên dưới để quay lại ứng dụng chat.
+          </p>
+          <button
+            type="button"
+            onClick={handleNavigateHome}
+            className="auth-submit-btn inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-medium text-primary-foreground active:scale-[0.98]"
+          >
+            Vào MOJI
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
       )}
     </AuthLayout>
   );

@@ -199,7 +199,7 @@ export const ChatWindowFooter = () => {
       {replyingTo && (
         <div
           className={cn(
-            'mx-2 bg-muted/50 border-l-4 border-primary/60 rounded-md px-3 py-2 flex items-center justify-between gap-2 my-2'
+            'mx-2 bg-muted/50 border-l-4 border-primary/60 rounded-md px-3 py-2 flex items-center justify-between gap-2 my-2 slide-up-fade'
           )}
         >
           <div className="min-w-0 flex-1">
@@ -210,7 +210,7 @@ export const ChatWindowFooter = () => {
           </div>
           <button
             type="button"
-            aria-label="Cancel reply"
+            aria-label="Hủy trả lời"
             onClick={() => setReplyingTo(null)}
             className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
           >
@@ -221,6 +221,7 @@ export const ChatWindowFooter = () => {
       <div className="flex gap-2 items-center">
         <label
           htmlFor="chat-file-input"
+          aria-label="Đính kèm ảnh hoặc video"
           className="hover:bg-accent transition-colors p-2 rounded-md cursor-pointer"
         >
           <ImagePlus className="size-4" />
@@ -280,6 +281,7 @@ export const ChatWindowFooter = () => {
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            aria-label="Nhập tin nhắn"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.repeat) {
                 e.preventDefault();
@@ -297,7 +299,9 @@ export const ChatWindowFooter = () => {
               asChild
               className="cursor-pointer absolute bottom-1.5 right-0.5 resize-none"
             >
-              <Smile className="hover:bg-accent size-7 transition-colors p-1 rounded-full" />
+              <button type="button" aria-label="Chọn emoji" className="inline-flex">
+                <Smile className="hover:bg-accent size-7 transition-colors p-1 rounded-full" />
+              </button>
             </PopoverTrigger>
             <PopoverContent className="w-fit p-0 m-2" align="end">
               <EmojiPicker
@@ -318,6 +322,7 @@ export const ChatWindowFooter = () => {
           className="hover:bg-accent transition-colors size-9 p-2"
           onClick={handleSendMessage}
           disabled={!isSendable}
+          aria-label="Gửi tin nhắn"
         >
           <Send />
         </Button>

@@ -9,12 +9,15 @@ import { useChatStore } from '../stores/useChatStore.ts';
 import { useEffect } from 'react';
 import { ChatWindowLayout } from '../components/chat/chat-window-layout.tsx';
 import { initNotificationAudio } from '@/lib/notificationSound.ts';
+import { useFriendStore } from '@/stores/useFriendStore.ts';
 
 const ChatAppPage = () => {
   const { getConversations, activeConversationId } = useChatStore();
+  const { refreshFriends } = useFriendStore();
 
   useEffect(() => {
     getConversations();
+    void refreshFriends();
   }, []);
 
   useEffect(() => {

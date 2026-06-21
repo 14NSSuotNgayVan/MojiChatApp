@@ -6,7 +6,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
 import { useSidebar } from '@/components/ui/sidebar.tsx';
-import { cn } from '@/lib/utils.ts';
+import { useCanHover } from '@/hooks/use-can-hover.ts';
+import { cn, menuActionTriggerClass } from '@/lib/utils.ts';
 import { useAuthStore } from '@/stores/useAuthStore.ts';
 import { useChatStore } from '@/stores/useChatStore.ts';
 import { Button } from '@/components/ui/button.tsx';
@@ -22,7 +23,7 @@ import { Input } from '@/components/ui/input.tsx';
 import Loading from '@/components/ui/loading.tsx';
 import { debounce, getNormalizeString } from '@/lib/utils.ts';
 import { ChevronLeft, MoreHorizontal, SearchIcon, UserPlus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { friendService } from '@/services/friendService.ts';
 import type { User } from '@/types/user.ts';
 
@@ -41,6 +42,7 @@ const ParticipantManagement = ({ onReturn }: Props) => {
   const { user } = useAuthStore();
   const currentUserRole = activeConversation?.participants.find((p) => p._id === user?._id)?.role;
   const { isMobile } = useSidebar();
+  const canHover = useCanHover();
   const participants = useMemo(
     () =>
       activeConversation?.participants
@@ -61,6 +63,7 @@ const ParticipantManagement = ({ onReturn }: Props) => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [searchUsers, setSearchUsers] = useState<User[]>([]);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -83,16 +86,23 @@ const ParticipantManagement = ({ onReturn }: Props) => {
     setPendingRemove(null);
   };
 
-  const handleSearch = debounce((e) => {
-    setKeyword(getNormalizeString(e?.target?.value));
+  const handleSearch = debounce((value: string) => {
+    setSearchKeyword(getNormalizeString(value));
   }, 400);
+
+  const handleChangeSearch = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setKeyword(value);
+    handleSearch(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!openAddDialog || !keyword?.trim()) return;
+      if (!openAddDialog || !searchKeyword?.trim()) return;
       setLoading(true);
       try {
-        const res = await friendService.getFriends({ keyword });
+        const res = await friendService.getFriends({ keyword: searchKeyword });
         const items = (res?.friends ?? []).filter((u: User) => !participantIds.has(u._id));
         setSearchUsers(items);
       } catch (err) {
@@ -102,7 +112,7 @@ const ParticipantManagement = ({ onReturn }: Props) => {
       }
     };
     fetchUsers();
-  }, [keyword, openAddDialog, participantIds]);
+  }, [searchKeyword, openAddDialog, participantIds]);
 
   return (
     <>
@@ -162,8 +172,14 @@ const ParticipantManagement = ({ onReturn }: Props) => {
                 </div>
                 {p._id !== user?._id && currentUserRole === 'ADMIN' && (
                   <DropdownMenu>
-                    <DropdownMenuTrigger className="w-4 h-4 hover:bg-primary dark:hover:bg-neutral-700 rounded-sm">
-                      <MoreHorizontal className="size-full" />
+                    <DropdownMenuTrigger
+                      className={cn(
+                        menuActionTriggerClass(canHover),
+                        canHover ? 'opacity-0 group-hover/item:opacity-100' : 'opacity-100'
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className={canHover ? 'size-full' : 'size-4'} />
                       <span className="sr-only">More</span>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -211,7 +227,7 @@ const ParticipantManagement = ({ onReturn }: Props) => {
 
       {/* Confirm remove dialog */}
       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) handleCancelRemove(); }}>
-        <DialogContent showCloseButton={false} aria-describedby="confirm-remove-desc">
+        <DialogContent variant="centered" showCloseButton={false} aria-describedby="confirm-remove-desc">
           <DialogHeader>
             <DialogTitle>Xóa khỏi nhóm?</DialogTitle>
             <DialogDescription id="confirm-remove-desc">
@@ -243,6 +259,7 @@ const ParticipantManagement = ({ onReturn }: Props) => {
           setOpenAddDialog(open);
           if (!open) {
             setKeyword('');
+            setSearchKeyword('');
             setSearchUsers([]);
           }
         }}
@@ -256,7 +273,8 @@ const ParticipantManagement = ({ onReturn }: Props) => {
               className="peer h-8 ps-8 pe-2 text-sm"
               placeholder={'Tìm kiếm...'}
               type="search"
-              onChange={handleSearch}
+              value={keyword}
+              onChange={handleChangeSearch}
             />
             <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
               <SearchIcon className="text-primary" size={16} />

@@ -1,4 +1,6 @@
 import { ToggleTheme } from '@/components/toggle-theme.tsx';
+import { MojiLogo } from '@/components/brand/moji-logo';
+import { AuthBrandPanel } from '@/components/auth/auth-brand-panel';
 
 type AuthLayoutProps = {
   children: React.ReactNode;
@@ -6,11 +8,25 @@ type AuthLayoutProps = {
 
 export const AuthLayout = ({ children }: AuthLayoutProps) => {
   return (
-    <div className="animated-bg dark:bg-login flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
-      <div className="absolute top-2 right-2">
-        <ToggleTheme />
-      </div>
-      <div className="w-full max-w-sm md:max-w-4xl">{children}</div>
+    <div className="auth-split-shell animated-bg dark:bg-login relative min-h-[100dvh] overflow-hidden">
+      <div className="auth-grain pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.07]" aria-hidden />
+
+      <aside className="auth-brand-side hidden lg:block">
+        <AuthBrandPanel />
+      </aside>
+
+      <main className="auth-form-side">
+        <header className="auth-form-topbar">
+          <MojiLogo size="sm" showWordmark variant="mark" className="items-start lg:hidden" />
+          <ToggleTheme />
+        </header>
+
+        <div className="auth-brand-side--mobile lg:hidden">
+          <AuthBrandPanel variant="mobile" />
+        </div>
+
+        <div className="auth-form-side__inner">{children}</div>
+      </main>
     </div>
   );
 };

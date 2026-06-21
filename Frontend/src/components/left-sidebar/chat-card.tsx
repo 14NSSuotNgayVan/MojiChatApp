@@ -2,7 +2,7 @@ import type { Conversation, LastMessage } from '../../types/chat.ts';
 import { renderLastMessagePreview } from '../../utils/systemMessageText.tsx';
 import { OnlineAvatar } from '../avatars/avatar.tsx';
 import { GroupAvatar } from '../avatars/group-avatar.tsx';
-import { cn, fromNow } from '../../lib/utils.ts';
+import { cn, fromNow, menuActionTriggerClass } from '../../lib/utils.ts';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu.tsx';
-import { BellOff, Check, MoreHorizontal } from 'lucide-react';
+import { Bell, BellOff, Check, MoreHorizontal } from 'lucide-react';
 import { useCanHover } from '../../hooks/use-can-hover.ts';
 import { useIsMobile } from '../../hooks/use-mobile.ts';
 import { useChatStore } from '../../stores/useChatStore.ts';
@@ -27,7 +27,7 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
   const isMobile = useIsMobile();
   const canHover = useCanHover();
   const { setOpenMobile } = useSidebar();
-  const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading, hideConversation, unhideConversation } =
+  const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading, hideConversation, unhideConversation, markConversationRead, muteConversation, unmuteConversation } =
     useChatStore();
   const { user } = useAuthStore();
   const {
@@ -38,7 +38,11 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
     group,
     lastMessageAt,
     unreadCounts,
+    mutedFor,
   } = conversation;
+
+  const isMuted = user?._id ? !!mutedFor?.[user._id] : false;
+  const unreadCount = user?._id ? (unreadCounts?.[user._id] ?? 0) : 0;
 
   const handleClickConversation = async () => {
     if (messageLoading) return;
@@ -75,17 +79,25 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
       )}
 
       {/* center-section */}
-      <div className="space-y-1 flex-1">
-        <div className="font-medium truncate max-w-56 text-sm">
-          {type === 'direct'
-            ? users[participants[0]._id]?.displayName
-            : group?.name || getDefaultGroupName(participants)}
+      <div className="space-y-1 flex-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0">
+          <div className="font-medium truncate text-sm">
+            {type === 'direct'
+              ? users[participants[0]._id]?.displayName
+              : group?.name || getDefaultGroupName(participants)}
+          </div>
+          {isMuted && (
+            <BellOff
+              className="size-3.5 shrink-0 text-muted-foreground"
+              aria-label="Đã tắt thông báo"
+            />
+          )}
         </div>
         {!!lastMessage && user ? (
           <div
             className={cn(
-              'text-muted-foreground text-xs truncate max-w-56',
-              !!unreadCounts?.[user._id] && 'text-[unset]'
+              'text-muted-foreground text-xs truncate',
+              unreadCount > 0 && 'text-[unset] font-medium'
             )}
           >
             {getLastMessagePreview(lastMessage)}
@@ -108,7 +120,7 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
           >
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="w-4 h-4 hover:bg-primary dark:hover:bg-neutral-700 rounded-sm"
+                className={menuActionTriggerClass(canHover)}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-full" />
@@ -119,11 +131,26 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
                 side={isMobile ? 'bottom' : 'right'}
                 align={isMobile ? 'end' : 'start'}
               >
-                <DropdownMenuItem>
-                  <BellOff />
-                  <span>Tắt thông báo</span>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isMuted) {
+                      void unmuteConversation(conversationId);
+                    } else {
+                      void muteConversation(conversationId);
+                    }
+                  }}
+                >
+                  {isMuted ? <Bell /> : <BellOff />}
+                  <span>{isMuted ? 'Bật thông báo' : 'Tắt thông báo'}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={unreadCount <= 0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markConversationRead(conversationId);
+                  }}
+                >
                   <Check />
                   <span>Đánh dấu là đã đọc</span>
                 </DropdownMenuItem>
@@ -150,12 +177,12 @@ export const ChatCard = ({ conversation, isActive, mode = 'normal' }: ChatCardPr
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          {canHover && user && !!unreadCounts?.[user._id] && (
+          {canHover && user && unreadCount > 0 && (
             <div className="block group-hover/item:hidden absolute top-0 right-0">
               <UnreadBadge count={unreadCounts[user._id]} />
             </div>
           )}
-          {!canHover && user && !!unreadCounts?.[user._id] && (
+          {!canHover && user && unreadCount > 0 && (
             <div className="absolute -top-1 -right-1">
               <UnreadBadge count={unreadCounts[user._id]} size="sm" />
             </div>
@@ -170,7 +197,9 @@ export const ChatCardSearch = ({ conversation, isActive }: ChatCardProps) => {
   const { setOpenMobile } = useSidebar();
   const { setActiveConversation, getMessages, getDefaultGroupName, users, messageLoading } =
     useChatStore();
-  const { _id: conversationId, type, participants, group } = conversation;
+  const { user } = useAuthStore();
+  const { _id: conversationId, type, participants, group, mutedFor } = conversation;
+  const isMuted = user?._id ? !!mutedFor?.[user._id] : false;
 
   const handleClickConversation = async () => {
     if (messageLoading) return;
@@ -201,13 +230,21 @@ export const ChatCardSearch = ({ conversation, isActive }: ChatCardProps) => {
       )}
 
       {/* center-section */}
-      <div className="space-y-1 flex-1">
-        <div className="font-medium truncate text-sm">
-          {type === 'direct'
-            ? users[participants[0]._id]?.displayName
-            : group?.name || getDefaultGroupName(participants)}
+      <div className="space-y-1 flex-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0">
+          <div className="font-medium truncate text-sm">
+            {type === 'direct'
+              ? users[participants[0]._id]?.displayName
+              : group?.name || getDefaultGroupName(participants)}
+          </div>
+          {isMuted && (
+            <BellOff
+              className="size-3.5 shrink-0 text-muted-foreground"
+              aria-label="Đã tắt thông báo"
+            />
+          )}
         </div>
-        <div className={cn('text-muted-foreground text-xs truncate max-w-56')}>
+        <div className={cn('text-muted-foreground text-xs truncate')}>
           {group?.name && getDefaultGroupName(participants)}
         </div>
       </div>

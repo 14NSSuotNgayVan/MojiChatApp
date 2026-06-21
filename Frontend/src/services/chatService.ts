@@ -28,6 +28,14 @@ export const chatService = {
     const res = await api.post(`/conversations/${conversationId}/unhide`);
     return res.data;
   },
+  async muteConversation(conversationId: string) {
+    const res = await api.post(`/conversations/${conversationId}/mute`);
+    return res.data;
+  },
+  async unmuteConversation(conversationId: string) {
+    const res = await api.post(`/conversations/${conversationId}/unmute`);
+    return res.data;
+  },
   async clearDirectConversation(conversationId: string) {
     const res = await api.post(`/conversations/${conversationId}/clear`);
     return res.data;

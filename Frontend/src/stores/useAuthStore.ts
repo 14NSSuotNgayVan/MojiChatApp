@@ -26,12 +26,12 @@ export const useAuthStore = create<AuthState>()(
       signUp: async (username, email, password, displayName) => {
         try {
           set({ loading: true });
-          //logic
           await authService.signUp(username, email, password, displayName);
-          toast.success("Đăng ký thành công!");
+          return true;
         } catch (error) {
           console.error(error);
           toast.error("Đăng ký thất bại. Vui lòng thử lại!");
+          return false;
         } finally {
           set({ loading: false });
         }
@@ -95,6 +95,35 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error(error);
           toast.error("Cập nhật hồ sơ thất bại. Vui lòng thử lại!");
+        }
+      },
+      requestPasswordReset: async (email) => {
+        try {
+          set({ loading: true });
+          await authService.requestPasswordReset(email);
+          toast.success("Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu.");
+          return true;
+        } catch (error) {
+          console.error(error);
+          toast.error("Không thể gửi email. Vui lòng thử lại!");
+          return false;
+        } finally {
+          set({ loading: false });
+        }
+      },
+      resetPassword: async (token, password) => {
+        try {
+          set({ loading: true });
+          await authService.resetPassword(token, password);
+          toast.success("Đặt lại mật khẩu thành công! Hãy đăng nhập.");
+          return true;
+        } catch (error: any) {
+          console.error(error);
+          const msg = error?.response?.data?.message || "Đặt lại mật khẩu thất bại.";
+          toast.error(msg);
+          return false;
+        } finally {
+          set({ loading: false });
         }
       },
       refreshToken: async () => {

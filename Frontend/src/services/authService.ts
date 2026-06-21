@@ -50,5 +50,21 @@ export const authService = {
   getProfile: async () => {
     const res = await api.get("/user/profile");
     return res.data;
-  }
+  },
+  requestPasswordReset: async (email: string) => {
+    const res = await api.post(
+      "auth/forgot-password",
+      { email },
+      { withCredentials: true, skipAuth: true } as any
+    );
+    return res.data;
+  },
+  resetPassword: async (token: string, password: string) => {
+    const res = await api.post(
+      "auth/reset-password",
+      { token, password },
+      { withCredentials: true, skipAuth: true } as any
+    );
+    return res.data;
+  },
 };

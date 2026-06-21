@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useCanHover } from '../../hooks/use-can-hover.ts';
+import { useLongPress } from '../../hooks/use-long-press.ts';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import type { Media, Message, MessageGroup, SeenBy } from '../../types/chat.ts';
 import { Avatar, SeenAvatars } from '../avatars/avatar.tsx';
-import { cn, escapeRegex, getMessageTime } from '../../lib/utils.ts';
+import { cn, getMessageTime, splitByNormalizedKeyword } from '../../lib/utils.ts';
 import { useAuthStore } from '../../stores/useAuthStore.ts';
 import { CornerUpLeft, EllipsisVertical, Smile, SmilePlus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover.tsx';
-import { Button } from '../ui/button.tsx';
 import { Dialog, DialogContent } from '../ui/dialog.tsx';
 import { EmojiPicker, EmojiPickerContent, EmojiPickerSearch } from '../ui/emoji-picker.tsx';
 import { OthersProfileCard } from '../profile/profile-card.tsx';
+import { ReactionPresetBar } from './reaction-preset-bar.tsx';
 import { ChatVideo } from '@/components/ui/video.tsx';
 import { MediaGalleryDialog } from '@/components/gallery/media-gallery.tsx';
 import { renderSystemMessage } from '@/utils/systemMessageText.tsx';
@@ -49,18 +50,43 @@ const getReplyPreviewText = (replyTo: Message['replyTo']) => {
   return 'Tin nhắn đã được thu hồi';
 };
 
-const REACTION_PRESETS = ['😂', '😭', '👍', '❤️', '😮', '😡'] as const;
-
 const messageActionBtnClass = (canHover: boolean, isActive: boolean, size: 'sm' | 'md' = 'md') =>
   cn(
-    'transition-opacity z-10 bg-muted/70 hover:bg-muted/90 border rounded-full cursor-pointer',
-    size === 'sm' ? 'p-0.5' : 'p-1',
+    'transition-opacity z-10 bg-muted/70 hover:bg-muted/90 active:bg-muted border rounded-full cursor-pointer touch-manipulation',
+    canHover
+      ? size === 'sm'
+        ? 'p-0.5'
+        : 'p-1'
+      : size === 'sm'
+        ? 'p-1.5'
+        : 'p-2',
     canHover
       ? 'opacity-0 group-hover:opacity-100'
       : isActive
         ? 'opacity-100'
         : 'opacity-0 pointer-events-none'
   );
+
+function MessageActionsRow({
+  align,
+  children,
+}: {
+  align: 'start' | 'end';
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        'absolute top-1/2 -translate-y-1/2 flex items-center gap-1',
+        align === 'start'
+          ? 'right-0 translate-x-[calc(100%+0.5rem)]'
+          : 'left-0 -translate-x-[calc(100%+0.5rem)] gap-0.5'
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 const MessageReactions = ({ message, isOwner }: { message: Message; isOwner: boolean }) => {
   const canHover = useCanHover();
@@ -162,48 +188,32 @@ const MessageReactionBar = ({
           </button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-max p-2  bg-accent/70 rounded-full"
+          className="w-max p-2 bg-accent/70 rounded-full"
           align="center"
           side="top"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex flex-wrap gap-1 items-center">
-            {REACTION_PRESETS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className={cn(
-                  'flex size-6 items-center justify-center rounded-sm text-lg hover:scale-110 hover:bg-muted transition-all p-1',
-                  myEmoji === emoji && 'bg-muted-foreground/50'
-                )}
-                onClick={() => {
-                  handleToggle(emoji);
-                  setOpen(false);
-                }}
-              >
-                {emoji}
-              </button>
-            ))}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setOpen(false);
-                setModalOpen(true);
-              }}
-              className="p-1! size-5"
-            >
-              <SmilePlus className="size-5" />
-            </Button>
-          </div>
+          <ReactionPresetBar
+            compact
+            myEmoji={myEmoji}
+            className="bg-transparent shadow-none border-0"
+            onSelect={(emoji) => {
+              handleToggle(emoji);
+              setOpen(false);
+            }}
+            onMoreClick={() => {
+              setOpen(false);
+              setModalOpen(true);
+            }}
+            moreTrigger={<SmilePlus className="size-5" />}
+          />
         </PopoverContent>
       </Popover>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="w-max p-0">
+        <DialogContent variant="centered" className="w-full max-w-sm p-0 sm:w-max">
           <EmojiPicker
-            className="h-[420px]"
+            className="h-[min(420px,60dvh)] sm:h-[420px]"
             onEmojiSelect={({ emoji }) => {
               handleToggle(emoji);
               setModalOpen(false);
@@ -264,27 +274,39 @@ const MessageDeleteMenu = ({
 };
 
 const MessageHighlightText = ({ text, keyword }: { text: string; keyword: string }) => {
-  const k = keyword.trim();
-  if (!k) return <>{text}</>;
-  const re = new RegExp(`(${escapeRegex(k)})`, 'gi');
-  const parts = text.split(re);
+  const segments = splitByNormalizedKeyword(text, keyword);
+  if (segments.length === 1 && !segments[0].match) return <>{text}</>;
+
   return (
     <>
-      {parts.map((part, i) =>
-        part.toLowerCase() === k.toLowerCase() ? (
+      {segments.map((seg, i) =>
+        seg.match ? (
           <mark key={i} className="rounded bg-yellow-400/40 px-0.5 dark:bg-yellow-500/25">
-            {part}
+            {seg.value}
           </mark>
         ) : (
-          <span key={i}>{part}</span>
+          <span key={i}>{seg.value}</span>
         )
       )}
     </>
   );
 };
 
-const MediaView = ({ className, media }: { className: string; media: Media }) => {
+const MediaView = ({
+  className,
+  media,
+  shouldSuppressClick,
+}: {
+  className: string;
+  media: Media;
+  shouldSuppressClick?: () => boolean;
+}) => {
   const [openGallery, setOpenGallery] = useState<boolean>(false);
+
+  const handleMediaOpen = () => {
+    if (shouldSuppressClick?.()) return;
+    setOpenGallery(true);
+  };
 
   const renderMedia = () => {
     switch (media.type) {
@@ -292,10 +314,9 @@ const MediaView = ({ className, media }: { className: string; media: Media }) =>
         return (
           <img
             src={media.url}
+            alt="Ảnh đính kèm"
             className={className}
-            onClick={() => {
-              setOpenGallery(true);
-            }}
+            onClick={handleMediaOpen}
           />
         );
       }
@@ -305,9 +326,7 @@ const MediaView = ({ className, media }: { className: string; media: Media }) =>
             src={media.url}
             className={className}
             poster={media?.meta?.poster}
-            onClick={() => {
-              setOpenGallery(true);
-            }}
+            onClick={handleMediaOpen}
           />
         );
       }
@@ -319,7 +338,7 @@ const MediaView = ({ className, media }: { className: string; media: Media }) =>
       {openGallery && (
         <MediaGalleryDialog open={openGallery} onOpenChange={setOpenGallery} currentMedia={media} />
       )}
-      {renderMedia()}
+      <div data-media-view>{renderMedia()}</div>
     </>
   );
 };
@@ -374,58 +393,70 @@ export const OtherMessage = ({
     setIsShowDes((prev) => !prev);
   };
 
-  const handleBubbleClick = (e: React.MouseEvent) => {
-    if (!canHover) {
-      e.stopPropagation();
-      if (activeMessageId !== message._id) {
-        setActiveMessageId(message._id);
-        return;
-      }
+  const showMessageActions = useCallback(() => {
+    if (!message.isDeleted && message.type !== 'system') {
+      setActiveMessageId(message._id);
     }
+  }, [message._id, message.isDeleted, message.type, setActiveMessageId]);
+
+  const { handlers: pressHandlers, shouldSuppressClick } = useLongPress({
+    enabled: !canHover,
+    onLongPress: showMessageActions,
+    onPress: (event) => {
+      if ((event.target as HTMLElement | null)?.closest('[data-media-view]')) return;
+      handleToggleMessage();
+    },
+  });
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    if (!canHover) return;
+    e.stopPropagation();
     handleToggleMessage();
   };
 
-  const handleMessageTap = (e: React.MouseEvent) => {
-    if (canHover) return;
-    e.stopPropagation();
-    setActiveMessageId(activeMessageId === message._id ? null : message._id);
-  };
-
   const renderMediaGrid = () => {
+    const enterClass = message.isNew ? 'chat-msg-enter' : '';
+
     if (message.type === 'media' && message.medias?.length === 1) {
       return (
-        <MediaView
-          className={cn(
-            'w-full max-w-2xs rounded-md overflow-hidden',
-            indexType.isSingle && 'rounded-2xl',
-            indexType.isFirst && 'rounded-3xl rounded-bl-sm',
-            indexType.isLast && 'rounded-3xl rounded-tl-sm',
-            indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-            isShowDes && !indexType.isFirst && 'rounded-2xl'
-          )}
-          media={message.medias[0]}
-        />
+        <div className={enterClass}>
+          <MediaView
+            className={cn(
+              'w-full max-w-2xs rounded-md overflow-hidden',
+              indexType.isSingle && 'rounded-2xl',
+              indexType.isFirst && 'rounded-3xl rounded-bl-sm',
+              indexType.isLast && 'rounded-3xl rounded-tl-sm',
+              indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+              isShowDes && !indexType.isFirst && 'rounded-2xl'
+            )}
+            media={message.medias[0]}
+            shouldSuppressClick={shouldSuppressClick}
+          />
+        </div>
       );
     }
 
     if (message.type === 'mixed' && message.medias?.length === 1) {
       return (
-        <MediaView
-          media={message.medias?.[0]}
-          className={cn(
-            'w-full max-w-2xs rounded-md overflow-hidden',
-            indexType.isSingle && 'rounded-3xl rounded-tl-sm',
-            indexType.isFirst && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
-            indexType.isLast && 'rounded-3xl rounded-tl-sm',
-            indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm'
-          )}
-        />
+        <div className={enterClass}>
+          <MediaView
+            media={message.medias?.[0]}
+            className={cn(
+              'w-full max-w-2xs rounded-md overflow-hidden',
+              indexType.isSingle && 'rounded-3xl rounded-tl-sm',
+              indexType.isFirst && 'rounded-3xl rounded-tl-sm rounded-bl-sm',
+              indexType.isLast && 'rounded-3xl rounded-tl-sm',
+              indexType.isMiddle && 'rounded-3xl rounded-tl-sm rounded-bl-sm'
+            )}
+            shouldSuppressClick={shouldSuppressClick}
+          />
+        </div>
       );
     }
 
     if (message.medias?.length && message.medias?.length > 1) {
       return (
-        <div className="max-w-full flex flex-wrap gap-1 w-max">
+        <div className={cn('max-w-full flex flex-wrap gap-1 w-max', enterClass)}>
           {message.medias?.map((mda) => (
             <MediaView
               key={mda._id}
@@ -433,6 +464,7 @@ export const OtherMessage = ({
               className={cn(
                 'w-full max-w-2xs rounded-md aspect-square object-cover overflow-hidden grow'
               )}
+              shouldSuppressClick={shouldSuppressClick}
             />
           ))}
         </div>
@@ -441,12 +473,16 @@ export const OtherMessage = ({
   };
 
   const isSearchHighlight = highlightedMessageId === message._id;
+  const isFocusedOnMobile = !canHover && activeMessageId === message._id;
 
   return (
     <div
       data-message-id={message._id}
-      className={cn('flex flex-col gap-1 group', isSearchHighlight && 'bg-primary/10 rounded-lg')}
-      onClick={handleMessageTap}
+      className={cn(
+        'flex flex-col gap-1 group',
+        isSearchHighlight && 'bg-primary/10 rounded-lg',
+        isFocusedOnMobile && 'opacity-0 pointer-events-none'
+      )}
     >
       <p
         className={cn(
@@ -467,48 +503,57 @@ export const OtherMessage = ({
       )}
       <div
         className={cn(
-          'flex max-w-2/3 gap-1 items-end relative w-max',
+          'flex flex-col max-w-2/3',
           message.reactions?.length && 'mb-3'
         )}
       >
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 flex translate-x-[calc(100%+0.5rem)] items-center gap-1">
-          {!message.isDeleted && (
-            <>
-              <MessageReactionBar
+        <div className="flex max-w-full gap-1 items-end relative w-max">
+          {canHover && (
+            <MessageActionsRow align="start">
+              {!message.isDeleted && (
+                <>
+                  <MessageReactionBar
+                    message={message}
+                    canHover={canHover}
+                    isActionsVisible={isActionsVisible}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Reply to message"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReplyingTo(message);
+                    }}
+                    className={messageActionBtnClass(canHover, isActionsVisible)}
+                  >
+                    <CornerUpLeft className="size-3" />
+                  </button>
+                </>
+              )}
+              <MessageDeleteMenu
                 message={message}
+                isOwner={false}
                 canHover={canHover}
                 isActionsVisible={isActionsVisible}
               />
-              <button
-                type="button"
-                aria-label="Reply to message"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReplyingTo(message);
-                }}
-                className={messageActionBtnClass(canHover, isActionsVisible)}
-              >
-                <CornerUpLeft className="size-3" />
-              </button>
-            </>
+            </MessageActionsRow>
           )}
-          <MessageDeleteMenu
-            message={message}
-            isOwner={false}
-            canHover={canHover}
-            isActionsVisible={isActionsVisible}
-          />
-        </div>
 
         {indexType.isLast || indexType.isSingle ? (
           <Popover>
-            <PopoverTrigger>
-              {sender && (
-                <Avatar
-                  name={users[sender?._id]?.displayName}
-                  avatarUrl={users[sender?._id]?.avtUrl}
-                />
-              )}
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="rounded-full cursor-pointer"
+                aria-label={`Xem hồ sơ ${sender?._id ? users[sender._id]?.displayName ?? 'người gửi' : 'người gửi'}`}
+              >
+                {sender && (
+                  <Avatar
+                    name={users[sender?._id]?.displayName}
+                    avatarUrl={users[sender?._id]?.avtUrl}
+                  />
+                )}
+              </button>
             </PopoverTrigger>
             <PopoverContent align="start" side="bottom" className="w-80">
               {sender && <OthersProfileCard userId={sender?._id} />}
@@ -517,7 +562,14 @@ export const OtherMessage = ({
         ) : (
           <div className="w-10 shrink-0"></div>
         )}
-        <div className={cn('flex flex-col gap-1 max-w-full w-max relative')}>
+        <div
+          className={cn(
+            'flex flex-col gap-1 max-w-full w-max relative touch-manipulation select-none',
+            !canHover && 'cursor-default'
+          )}
+          data-message-bubble
+          {...pressHandlers}
+        >
           {!message.isDeleted && message.replyTo && (
             <div className="bg-secondary px-3 py-2 rounded-t-2xl translate-y-5 -mt-4">
               <p className="text-sm text-muted-foreground truncate pb-4">
@@ -534,6 +586,7 @@ export const OtherMessage = ({
             <div
               className={cn(
                 'bg-(--message) px-3 py-2 hover:bg-accent z-1',
+                message.isNew && 'chat-msg-enter',
                 ...(message.type === 'mixed'
                   ? [
                       'w-max max-w-full',
@@ -550,12 +603,13 @@ export const OtherMessage = ({
                       isShowDes && !indexType.isFirst && 'rounded-2xl',
                     ])
               )}
-              onClick={handleBubbleClick}
+              onClick={canHover ? handleBubbleClick : undefined}
             >
               <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
             </div>
           )}
           {!message.isDeleted && renderMediaGrid()}
+        </div>
         </div>
       </div>
       {seenByUsers && <SeenAvatars seenUsers={seenByUsers} />}
@@ -565,7 +619,7 @@ export const OtherMessage = ({
 
 export const OtherMessageGroup = ({ group }: { group: MessageGroup }) => {
   return (
-    <div className="flex flex-col gap-1 zoom-in">
+    <div className="flex flex-col gap-1">
       {group.messages.map((mg, idx) => (
         <OtherMessage
           message={mg}
@@ -610,63 +664,80 @@ export const OwnerMessage = ({
     setIsShowDes((prev) => !prev);
   };
 
-  const handleBubbleClick = (e: React.MouseEvent) => {
-    if (!canHover) {
-      e.stopPropagation();
-      if (activeMessageId !== message._id) {
-        setActiveMessageId(message._id);
-        return;
-      }
+  const showMessageActions = useCallback(() => {
+    if (!message.isDeleted && message.type !== 'system') {
+      setActiveMessageId(message._id);
     }
+  }, [message._id, message.isDeleted, message.type, setActiveMessageId]);
+
+  const { handlers: pressHandlers, shouldSuppressClick } = useLongPress({
+    enabled: !canHover,
+    onLongPress: showMessageActions,
+    onPress: (event) => {
+      if ((event.target as HTMLElement | null)?.closest('[data-media-view]')) return;
+      handleToggleMessage();
+    },
+  });
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    if (!canHover) return;
+    e.stopPropagation();
     handleToggleMessage();
   };
 
-  const handleMessageTap = (e: React.MouseEvent) => {
-    if (canHover) return;
-    e.stopPropagation();
-    setActiveMessageId(activeMessageId === message._id ? null : message._id);
-  };
-
-  const isSearchHighlight = highlightedMessageId === message._id;
-
   const renderMediaGrid = () => {
+    const enterClass = message.isNew ? 'chat-msg-enter' : '';
+
     if (message.type === 'media' && message.medias?.length === 1) {
       return (
-        <MediaView
-          className={cn(
-            'w-full max-w-2xs rounded-md max-h-96 overflow-hidden',
-            indexType.isSingle && 'rounded-2xl',
-            indexType.isFirst && 'rounded-3xl rounded-br-sm',
-            indexType.isLast && 'rounded-3xl rounded-tr-sm',
-            indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-            isShowDes && !indexType.isFirst && 'rounded-2xl'
-          )}
-          media={message.medias[0]}
-        />
+        <div className={enterClass}>
+          <MediaView
+            className={cn(
+              'w-full max-w-2xs rounded-md max-h-96 overflow-hidden',
+              indexType.isSingle && 'rounded-2xl',
+              indexType.isFirst && 'rounded-3xl rounded-br-sm',
+              indexType.isLast && 'rounded-3xl rounded-tr-sm',
+              indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+              isShowDes && !indexType.isFirst && 'rounded-2xl'
+            )}
+            media={message.medias[0]}
+            shouldSuppressClick={shouldSuppressClick}
+          />
+        </div>
       );
     }
     if (message.type === 'mixed' && message.medias?.length === 1) {
       return (
-        <MediaView
-          media={message.medias?.[0]}
-          className={cn(
-            'w-full max-w-2xs rounded-md max-h-96 overflow-hidden',
-            indexType.isSingle && 'rounded-3xl rounded-tr-sm',
-            indexType.isFirst && 'rounded-3xl rounded-tr-sm rounded-br-sm',
-            indexType.isLast && 'rounded-3xl rounded-tr-sm',
-            indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm'
-          )}
-        />
+        <div className={enterClass}>
+          <MediaView
+            media={message.medias?.[0]}
+            className={cn(
+              'w-full max-w-2xs rounded-md max-h-96 overflow-hidden',
+              indexType.isSingle && 'rounded-3xl rounded-tr-sm',
+              indexType.isFirst && 'rounded-3xl rounded-tr-sm rounded-br-sm',
+              indexType.isLast && 'rounded-3xl rounded-tr-sm',
+              indexType.isMiddle && 'rounded-3xl rounded-tr-sm rounded-br-sm'
+            )}
+            shouldSuppressClick={shouldSuppressClick}
+          />
+        </div>
       );
     }
 
     if (message.medias?.length && message.medias?.length > 1) {
       return (
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+        <div
+          className={cn(
+            'w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1',
+            enterClass
+          )}
+        >
           {message.medias?.map((mda) => (
             <MediaView
+              key={mda._id}
               media={mda}
               className={'w-full max-w-2xs rounded-md aspect-square object-cover'}
+              shouldSuppressClick={shouldSuppressClick}
             />
           ))}
         </div>
@@ -674,11 +745,17 @@ export const OwnerMessage = ({
     }
   };
 
+  const isSearchHighlight = highlightedMessageId === message._id;
+  const isFocusedOnMobile = !canHover && activeMessageId === message._id;
+
   return (
     <div
       data-message-id={message._id}
-      className={cn('flex flex-col gap-1', isSearchHighlight && 'bg-primary/10 rounded-lg')}
-      onClick={handleMessageTap}
+      className={cn(
+        'flex flex-col gap-1',
+        isSearchHighlight && 'bg-primary/10 rounded-lg',
+        isFocusedOnMobile && 'opacity-0 pointer-events-none'
+      )}
     >
       <p
         className={cn(
@@ -690,38 +767,48 @@ export const OwnerMessage = ({
       </p>
       <div
         className={cn(
-          'self-end max-w-2/3 flex flex-col items-end gap-1 relative group',
+          'self-end max-w-2/3 flex flex-col items-end gap-1',
           message.reactions?.length && 'mb-3'
         )}
       >
-        <div className="absolute top-1/2 left-0 -translate-x-[calc(100%+0.5rem)] -translate-y-1/2 flex items-center gap-0.5">
-          <MessageDeleteMenu
-            message={message}
-            isOwner
-            canHover={canHover}
-            isActionsVisible={isActionsVisible}
-          />
-          {!message.isDeleted && (
-            <>
-              <button
-                type="button"
-                aria-label="Reply to message"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReplyingTo(message);
-                }}
-                className={messageActionBtnClass(canHover, isActionsVisible)}
-              >
-                <CornerUpLeft className="size-3" />
-              </button>
-              <MessageReactionBar
+        <div
+          className={cn(
+            'relative flex flex-col items-end gap-1 w-full group touch-manipulation select-none',
+            !canHover && 'cursor-default'
+          )}
+          data-message-bubble
+          {...pressHandlers}
+        >
+          {canHover && (
+            <MessageActionsRow align="end">
+              <MessageDeleteMenu
                 message={message}
+                isOwner
                 canHover={canHover}
                 isActionsVisible={isActionsVisible}
               />
-            </>
+              {!message.isDeleted && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Reply to message"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReplyingTo(message);
+                    }}
+                    className={messageActionBtnClass(canHover, isActionsVisible)}
+                  >
+                    <CornerUpLeft className="size-3" />
+                  </button>
+                  <MessageReactionBar
+                    message={message}
+                    canHover={canHover}
+                    isActionsVisible={isActionsVisible}
+                  />
+                </>
+              )}
+            </MessageActionsRow>
           )}
-        </div>
         {!message.isDeleted && message.replyTo && (
           <>
             <p className="text-xs text-muted-foreground truncate text-left w-full pl-2">
@@ -746,6 +833,7 @@ export const OwnerMessage = ({
           <div
             className={cn(
               'bg-(--message) px-3 py-2 hover:bg-accent z-1',
+              message.isNew && 'chat-msg-enter',
               ...(message.type === 'mixed'
                 ? [
                     'w-max max-w-full',
@@ -762,13 +850,14 @@ export const OwnerMessage = ({
                     isShowDes && !indexType.isFirst && 'rounded-2xl',
                   ])
             )}
-            onClick={handleBubbleClick}
+            onClick={canHover ? handleBubbleClick : undefined}
           >
             <MessageHighlightText text={message.content ?? ''} keyword={messageSearchKeyword} />
           </div>
         )}
         {!message.isDeleted && renderMediaGrid()}
         {!message.isDeleted && <MessageReactions message={message} isOwner />}
+        </div>
       </div>
       <SeenAvatars seenUsers={seenByUsers} />
     </div>
@@ -777,7 +866,7 @@ export const OwnerMessage = ({
 
 export const OwnerMessageGroup = ({ group }: { group: MessageGroup }) => {
   return (
-    <div className="flex flex-col gap-1 zoom-in">
+    <div className="flex flex-col gap-1">
       {group.messages.map((mg, idx) => (
         <OwnerMessage
           message={mg}

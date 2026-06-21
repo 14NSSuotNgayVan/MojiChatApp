@@ -23,8 +23,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.t
 import { debounce, getNormalizeString } from '@/lib/utils.ts';
 import { friendService } from '@/services/friendService.ts';
 import type { ReceivedRequest, SentRequest } from '@/types/user.ts';
+import { useFriendStore } from '@/stores/useFriendStore';
 import { Check, SearchIcon, Undo2, UserRoundCheck, UserRoundX, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 type NotUser = {
   _id: string;
@@ -52,6 +53,7 @@ const FRIEND_MANAGE_TABS = {
 
 const FriendTab = ({ handleOpenProfile, keyword }: TabProps) => {
   const [loading, setLoading] = useState<boolean>(false);
+  const refreshFriends = useFriendStore((s) => s.refreshFriends);
 
   const [users, setUsers] = useState<NotUser[]>([]);
 
@@ -59,6 +61,7 @@ const FriendTab = ({ handleOpenProfile, keyword }: TabProps) => {
     try {
       setLoading(true);
       await friendService.unFriend(userId);
+      await refreshFriends();
       handleGetFriends();
     } catch (error) {
       console.log('Lỗi khi gọi unFriendHandler: ' + error);
@@ -72,7 +75,7 @@ const FriendTab = ({ handleOpenProfile, keyword }: TabProps) => {
   const handleGetFriends = async () => {
     setLoading(true);
     try {
-      const res = await friendService.getFriends({ keyword: keyword.trim() });
+      const res = await friendService.getFriends({ keyword: getNormalizeString(keyword.trim()) });
       setUsers(res?.friends);
     } catch (error) {
       console.error(error);
@@ -111,7 +114,7 @@ const FriendTab = ({ handleOpenProfile, keyword }: TabProps) => {
                     Hủy kết bạn
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent variant="centered" className="sm:max-w-[425px]">
                   <DialogHeader>
                     <DialogTitle>Xác nhận</DialogTitle>
                     <DialogDescription>
@@ -144,6 +147,7 @@ const FriendTab = ({ handleOpenProfile, keyword }: TabProps) => {
 
 const ReceivedTab = ({ handleOpenProfile, keyword }: TabProps) => {
   const [loading, setLoading] = useState<boolean>(false);
+  const refreshFriends = useFriendStore((s) => s.refreshFriends);
 
   const [requets, setRequests] = useState<ReceivedRequest[]>([]);
 
@@ -151,6 +155,7 @@ const ReceivedTab = ({ handleOpenProfile, keyword }: TabProps) => {
     try {
       setLoading(true);
       await friendService.acceptFriendRequest(id);
+      await refreshFriends();
       handleGetFriendRequests();
     } catch (error) {
       console.log('Lỗi khi gọi acceptFriendHandler: ' + error);
@@ -161,6 +166,7 @@ const ReceivedTab = ({ handleOpenProfile, keyword }: TabProps) => {
     try {
       setLoading(true);
       await friendService.declineFriendRequest(id);
+      await refreshFriends();
       handleGetFriendRequests();
     } catch (error) {
       console.log('Lỗi khi gọi declineFriendHandler: ' + error);
@@ -174,7 +180,9 @@ const ReceivedTab = ({ handleOpenProfile, keyword }: TabProps) => {
   const handleGetFriendRequests = async () => {
     setLoading(true);
     try {
-      const res = await friendService.getFriendRequests({ keyword: keyword.trim() });
+      const res = await friendService.getFriendRequests({
+        keyword: getNormalizeString(keyword.trim()),
+      });
       setRequests(res?.received);
     } catch (error) {
       console.error(error);
@@ -244,6 +252,7 @@ const ReceivedTab = ({ handleOpenProfile, keyword }: TabProps) => {
 
 const SentTab = ({ handleOpenProfile, keyword }: TabProps) => {
   const [loading, setLoading] = useState<boolean>(false);
+  const refreshFriends = useFriendStore((s) => s.refreshFriends);
 
   const [requets, setRequests] = useState<SentRequest[]>([]);
 
@@ -251,6 +260,7 @@ const SentTab = ({ handleOpenProfile, keyword }: TabProps) => {
     try {
       setLoading(true);
       await friendService.declineFriendRequest(id);
+      await refreshFriends();
       handleGetFriendRequests();
     } catch (error) {
       console.log('Lỗi khi gọi declineFriendHandler: ' + error);
@@ -264,7 +274,9 @@ const SentTab = ({ handleOpenProfile, keyword }: TabProps) => {
   const handleGetFriendRequests = async () => {
     setLoading(true);
     try {
-      const res = await friendService.getFriendRequests({ keyword: keyword.trim() });
+      const res = await friendService.getFriendRequests({
+        keyword: getNormalizeString(keyword.trim()),
+      });
       setRequests(res?.sent);
     } catch (error) {
       console.error(error);
@@ -319,15 +331,24 @@ export const FriendsDialog = ({ open, onOpenChange }: DialogProps) => {
   const [openProfileDialog, setOpenProfileDialog] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [keyword, setKeyword] = useState<string>('');
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
 
-  const handleSearch = debounce((e) => {
-    setKeyword(getNormalizeString(e?.target?.value));
+  const handleSearch = debounce((value: string) => {
+    setSearchKeyword(getNormalizeString(value));
   }, 500);
+
+  const handleChangeSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setKeyword(value);
+    handleSearch(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open);
     if (!open) {
       setKeyword('');
+      setSearchKeyword('');
     }
   };
 
@@ -359,7 +380,8 @@ export const FriendsDialog = ({ open, onOpenChange }: DialogProps) => {
               className="peer h-8 ps-8 pe-2 text-sm"
               placeholder={'Nhập tên, email hoặc số điện thoại...'}
               type="search"
-              onChange={handleSearch}
+              value={keyword}
+              onChange={handleChangeSearch}
             />
             <div className="text-white pointer-events-none absolute flex h-full top-0 items-center justify-center ps-2 peer-disabled:opacity-50">
               <SearchIcon className="text-primary" size={16} />
@@ -367,21 +389,21 @@ export const FriendsDialog = ({ open, onOpenChange }: DialogProps) => {
           </div>
           <div className="flex flex-col gap-3">
             <Tabs defaultValue={FRIEND_MANAGE_TABS.FRIENDS} className="w-full">
-              <TabsList variant="ghost" className="gap-1">
+              <TabsList variant="ghost" className="h-auto w-full justify-start gap-1 overflow-x-auto">
                 <TabsTrigger value={FRIEND_MANAGE_TABS.FRIENDS}>Bạn bè</TabsTrigger>
                 <TabsTrigger value={FRIEND_MANAGE_TABS.RECEIVED_REQ}>Lời mời đã nhận</TabsTrigger>
                 <TabsTrigger value={FRIEND_MANAGE_TABS.SENT_REQ}>Lời mời đã gửi</TabsTrigger>
               </TabsList>
               <TabsContent value={FRIEND_MANAGE_TABS.FRIENDS}>
-                <FriendTab handleOpenProfile={handleOpenProfile} keyword={keyword} />
+                <FriendTab handleOpenProfile={handleOpenProfile} keyword={searchKeyword} />
               </TabsContent>
 
               <TabsContent value={FRIEND_MANAGE_TABS.RECEIVED_REQ}>
-                <ReceivedTab handleOpenProfile={handleOpenProfile} keyword={keyword} />
+                <ReceivedTab handleOpenProfile={handleOpenProfile} keyword={searchKeyword} />
               </TabsContent>
 
               <TabsContent value={FRIEND_MANAGE_TABS.SENT_REQ}>
-                <SentTab handleOpenProfile={handleOpenProfile} keyword={keyword} />
+                <SentTab handleOpenProfile={handleOpenProfile} keyword={searchKeyword} />
               </TabsContent>
             </Tabs>
           </div>

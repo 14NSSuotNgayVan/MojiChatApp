@@ -142,12 +142,14 @@ export const MediaGalleryDialog = ({ open, onOpenChange, currentMedia }: DialogP
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           aria-describedby={undefined}
-          className="w-full max-w-full! h-screen flex flex-col"
+          variant="fullscreen"
+          showSheetHandle={false}
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          <DialogHeader className="shrink">
+          <DialogHeader className="shrink-0 px-4 pt-3 sm:px-5 sm:pt-4">
             <DialogTitle>MOJI</DialogTitle>
           </DialogHeader>
-          <div className="w-full grow overflow-hidden">
+          <div className="min-h-0 w-full flex-1 overflow-hidden">
             {currentConvMedia?.items?.length && !loading ? (
               <MediaCarousel
                 key="carousel-main"

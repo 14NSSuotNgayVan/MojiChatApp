@@ -4,9 +4,12 @@ import { Separator } from '../ui/separator.tsx';
 import { useChatStore } from '../../stores/useChatStore.ts';
 import { OnlineAvatar } from '../avatars/avatar.tsx';
 import { GroupAvatar } from '../avatars/group-avatar.tsx';
-import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, X, BellOff } from 'lucide-react';
 import { Input } from '../ui/input.tsx';
 import { Button } from '../ui/button.tsx';
+import { MojiLogo } from '@/components/brand/moji-logo.tsx';
+import { getNormalizeString } from '@/lib/utils.ts';
+import { useAuthStore } from '@/stores/useAuthStore.ts';
 
 export const ChatWindowHeader = () => {
   const {
@@ -21,7 +24,10 @@ export const ChatWindowHeader = () => {
     currentSearchIndex,
     activeConversationId,
   } = useChatStore();
+  const { user } = useAuthStore();
 
+  const isMuted =
+    user?._id && activeConversation ? !!activeConversation.mutedFor?.[user._id] : false;
   const [searchOpen, setSearchOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -42,7 +48,7 @@ export const ChatWindowHeader = () => {
   useEffect(() => {
     if (!searchOpen || !activeConversationId) return;
     const t = window.setTimeout(() => {
-      const q = inputValue.trim();
+      const q = getNormalizeString(inputValue.trim());
       if (q) {
         void searchMessagesInConversation(activeConversationId, q);
       } else {
@@ -60,10 +66,12 @@ export const ChatWindowHeader = () => {
 
   if (!activeConversation)
     return (
-      <header className="flex h-16 shrink-0 items-center gap-2">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarManagerTrigger name="left" className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-2 sm:px-4">
+        <SidebarManagerTrigger name="left" className="-ml-1 shrink-0" />
+        <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4 shrink-0" />
+        <div className="flex items-center gap-2 min-w-0">
+          <MojiLogo size="sm" variant="mark" className="gap-0 shrink-0" />
+          <span className="font-bold text-lg truncate">MOJI</span>
         </div>
       </header>
     );
@@ -82,7 +90,11 @@ export const ChatWindowHeader = () => {
             placeholder="Tìm trong cuộc trò chuyện..."
             aria-label="Tìm tin nhắn"
           />
-          <span className="text-muted-foreground shrink-0 text-xs tabular-nums sm:text-sm">
+          <span
+            className="text-muted-foreground shrink-0 text-xs tabular-nums sm:text-sm"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {messageSearchLoading && !messageSearchTotal ? (
               '…'
             ) : messageSearchTotal > 0 ? (
@@ -141,11 +153,19 @@ export const ChatWindowHeader = () => {
                 participants={activeConversation?.participants}
               />
             )}
-            <div className="truncate font-medium">
-              {activeConversation?.type === 'direct'
-                ? users[activeConversation?.participants[0]._id]?.displayName
-                : activeConversation?.group?.name ||
-                  getDefaultGroupName(activeConversation.participants!)}
+            <div className="flex min-w-0 items-center gap-1 truncate font-medium">
+              <span className="truncate">
+                {activeConversation?.type === 'direct'
+                  ? users[activeConversation?.participants[0]._id]?.displayName
+                  : activeConversation?.group?.name ||
+                    getDefaultGroupName(activeConversation.participants!)}
+              </span>
+              {isMuted && (
+                <BellOff
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  aria-label="Đã tắt thông báo"
+                />
+              )}
             </div>
           </div>
 
