@@ -131,6 +131,11 @@ const conversationSchema = new mongoose.Schema({
         of: Date,
         default: {}
     },
+    mutedFor: {
+        type: Map,
+        of: Boolean,
+        default: {}
+    },
     // Direct chat: chỉ hiển thị message từ thời điểm này trở đi cho từng user
     clearedAt: {
         type: Map,
